@@ -183,8 +183,7 @@ commit_one()
 
 discard_one()
 {
-	rm -f "$1"
-	cp "$1~current~" $1
+	cmp -s "$1~current~" $1 || { rm -f "$1" ; cp "$1~current~" $1; }
 	chmod u+w $1
 }
 
@@ -234,7 +233,8 @@ save_patch()
 find_prefix()
 {
 	# set "prefix" to number for -pn by looking at first file in given patch.
-	file=`lsdiff $1 | head -1`
+	n=${2-1}
+	file=`lsdiff $1 | head -$n | tail -1`
 	orig=$file
 	prefix=0
 	while [ \( -n "$file" -a ! -f "$file" \) -o " $file" != " ${file#/}" ]
@@ -243,7 +243,11 @@ find_prefix()
 	    prefix=`expr $prefix + 1`
 	done
 	if [ -z "$file" ]
-	then echo "Cannot find $orig" >&2 ; exit 1;
+	then echo "Cannot find $orig" >&2 
+	   if [ $n -gt 4 ]
+	   then exit 2;
+	   else find_prefix "$1" $[n+1]
+	   fi
 	fi
 	if [ " $orig" != " $file" ]
 	then
