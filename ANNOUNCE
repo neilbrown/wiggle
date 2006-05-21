@@ -1,4 +1,4 @@
-ANNOUNCE: wiggle - a tools for applying patches with conflicts
+ANNOUNCE: wiggle - a tool for applying patches with conflicts
 
 I am pleased to announce the first public release of 'wiggle'.
 
@@ -7,7 +7,7 @@ apply due to conflicting changes in the original.
 
 Wiggle will always apply all changes in the patch to the original.
 If it cannot find a way to cleanly apply a patch, it inserts it
-in the original in a manner similar to 'merge', and report an
+in the original in a manner similar to 'merge', and reports an
 unresolvable conflict.  Such a conflict will look like:
 
 <<<<<<<
@@ -19,9 +19,9 @@ Some text that the patch changes
 Some text that is the result of the patch
 >>>>>>>
 
-with the meaning that the "text that the patch
-changes" was expected somewhere in the "text from the original 
-file" and should be replaced with "the result of the patch".
+with the meaning that the "text that the patch changes"
+was expected somewhere in the "text from the original file"
+and should be replaced with "the result of the patch".
 
 wiggle analyses the file and the patch in terms of words rather than
 whole lines and so is able to find matches that patch is
