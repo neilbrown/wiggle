@@ -85,6 +85,8 @@
 #include	<stdlib.h>
 #include	<ctype.h>
 
+char *Cmd = "wiggle";
+
 void die()
 {
 	fprintf(stderr,"wiggle: fatal error\n");
@@ -152,17 +154,26 @@ int main(int argc, char *argv[])
 	int reverse = 0;
 	int verbose=0, quiet=0;
 	int i;
+	int strip = -1;
 	int chunks1=0, chunks2=0, chunks3=0;
 	int exit_status = 0;
 	FILE *outfile = stdout;
 	char *helpmsg;
+	char *base0;
 
 	struct stream f, flist[3];
 	struct file fl[3];
 	struct csl *csl1, *csl2;
 
+	base0 = strrchr(argv[0], '/');
+	if (base0) base0++; else base0=argv[0];
+	if (strcmp(base0, "vpatch")==0) {
+		Cmd = base0;
+		mode = 'B';
+	}
+
 	while ((opt = getopt_long(argc, argv,
-				  short_options, long_options,
+				  short_options(mode), long_options,
 				  &option_index)) != -1)
 		switch(opt) {
 		case 'h':
@@ -171,6 +182,7 @@ int main(int argc, char *argv[])
 			case 'x': helpmsg = HelpExtract; break;
 			case 'd': helpmsg = HelpDiff; break;
 			case 'm': helpmsg = HelpMerge; break;
+			case 'B': helpmsg = HelpBrowse; break;
 			}
 			fputs(helpmsg, stderr);
 			exit(0);
@@ -184,6 +196,7 @@ int main(int argc, char *argv[])
 			fputs(Usage, stderr);
 			exit(2);
 
+		case 'B':
 		case 'x':
 		case 'd':
 		case 'm':
@@ -222,7 +235,13 @@ int main(int argc, char *argv[])
 			exit(2);
 
 		case 'p':
-			ispatch = 1;
+			if (mode == 'B')
+				strip = atol(optarg?optarg:"0");
+			else if (optarg) {
+				fprintf(stderr, "wiggle: SORRY, PARSE ERROR\n");
+				exit(2);
+			} else
+				ispatch = 1;
 			continue;
 
 		case 'v': verbose++; continue;
@@ -230,6 +249,12 @@ int main(int argc, char *argv[])
 		}
 	if (!mode)
 		mode = 'm';
+
+	if (mode == 'B') {
+		vpatch(argc-optind, argv+optind, strip, reverse, replace);
+		/* should not return */
+		exit(1);
+	}
 
 	if (obj && mode == 'x') {
 		fprintf(stderr,"wiggle: cannot specify --line or --word with --extract\n");
@@ -618,7 +643,7 @@ int main(int argc, char *argv[])
 		{
 			struct ci ci;
 
-			ci = print_merge(outfile, &fl[0], &fl[1], &fl[2], 
+			ci = print_merge2(outfile, &fl[0], &fl[1], &fl[2], 
 						   csl1, csl2, obj=='w');
 			if (!quiet && ci.conflicts)
 				fprintf(stderr, "%d unresolved conflict%s found\n", ci.conflicts, ci.conflicts==1?"":"s");

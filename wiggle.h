@@ -56,6 +56,11 @@ static inline int ends_line(struct elmnt e)
 	return e.len &&  e.start[e.len-1] == '\n';
 }
 
+static inline int ends_mline(struct elmnt e)
+{
+	return e.len &&  e.start[0] == '\n';
+}
+
 struct csl {
 	int a,b;
 	int len;
@@ -66,6 +71,14 @@ struct file {
 	int elcnt;
 };
 
+struct merge {
+	enum mergetype {End, Unmatched, Unchanged, Extraneous, Changed, Conflict, AlreadyApplied} type;
+	int a,b,c; /* start of ranges */
+	int al, bl, cl; /* length of ranges */
+	int c1, c2; /* this or next commonsequence */
+	int in_conflict; 
+	int lo,hi; /* region of an Unchanged that is not involved in a conflict */
+};
 extern struct stream load_file(char *name);
 extern int split_patch(struct stream, struct stream*, struct stream*);
 extern int split_merge(struct stream, struct stream*, struct stream*, struct stream*);
@@ -77,22 +90,39 @@ extern struct csl *diff_partial(struct file a, struct file b,
 extern struct csl *worddiff(struct stream f1, struct stream f2,
 			    struct file *fl1p, struct file *fl2p);
 
-struct ci { int conflicts; int ignored; };
+struct ci { 
+	int conflicts, wiggles, ignored; 
+	struct merge *merger;
+};
 extern struct ci print_merge(FILE *out, struct file *a, struct file *b, struct file *c,
+		       struct csl *c1, struct csl *c2,
+		       int words);
+extern struct ci print_merge2(FILE *out, struct file *a, struct file *b, struct file *c,
 		       struct csl *c1, struct csl *c2,
 		       int words);
 extern void printword(FILE *f, struct elmnt e);
 
+extern struct ci make_merger(struct file a, struct file b, struct file c,
+			       struct csl *c1, struct csl *c2, int words);
+
 extern void die(void);
 
+extern int vpatch(int argc, char *argv[], int strip, int reverse, int replace);
+
+extern char *Cmd;
 extern char Version[];
-extern char short_options[];
+extern char short_options1[], short_options2[];
+static inline char *short_options(char mode)
+{
+	return mode == 'B' ? short_options2 : short_options1;
+}
 extern struct option long_options[];
 extern char Usage[];
 extern char Help[];
 extern char HelpExtract[];
 extern char HelpDiff[];
 extern char HelpMerge[];
+extern char HelpBrowse[];
 
 
 #define	ByLine	0

@@ -12,12 +12,14 @@ BINDIR  = /usr/bin
 MANDIR  = /usr/share/man
 MAN1DIR = $(MANDIR)/man1
 MAN5DIR = $(MANDIR)/man5
+LDLIBS = -lncurses
 
 all: wiggle wiggle.man test
 
-
-wiggle : wiggle.o load.o split.o extract.o diff.o bestmatch.o ReadMe.o merge.o
-wiggle.o load.o split.o extract.o diff.o bestmatch.o ReadMe.o merge.o : wiggle.h
+wiggle : wiggle.o load.o split.o extract.o diff.o bestmatch.o ReadMe.o \
+              merge.o merge2.o vpatch.o
+wiggle.o load.o split.o extract.o diff.o bestmatch.o ReadMe.o merge.o \
+               merge2.o vpatch.o : wiggle.h
 
 test: wiggle dotest
 	sh dotest
@@ -48,3 +50,6 @@ dist : test clean version
 
 v : version
 	cat version
+
+demo.patch:
+	diff -ru demo.orig demo.patched | sed 's/demo.patched/demo/' > demo.patch

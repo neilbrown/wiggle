@@ -27,3 +27,83 @@
 - Design viewer.
    Maybe:
     3 windows: before, patch, after
+
+-----------------------------------
+p - md.c - wait_event_interruptible
+  The preceeding tabs aren't noticed as being the same...
+
+
+-----------------------------------
+31 March 2005
+Some possible targets:
+
+ - check new marge code on all tests
+ - output merge as a diff from original
+ - handle multi-file patchs, producing new patch or updating files
+ - improve diff3 markers
+ - modified
+ - preserve permissions in created file
+ - allow output to have just one stream selected of conflicts.
+ - allow 'output' to include .rej files
+ - fix "produced this was" -> "produced this way" in man page
+
+other things
+ - Read a series of patches and determine dependancies
+   Then push a given patch forward or backward in the list.
+   Possibly full determination of dependancies isn't needed.
+   Just pust the target patch until it hits a wall, then
+   push the wall as far as it goes.
+   A potential 'wall' happens when inserted text is deleted.
+   We refine A -> B -> C and see if it can be broken up with
+   common a->a->a sections and between them,
+    x->x->y or p->q->q
+   There can then become x->y->y and p->p->q
+   But suppose we find x->x->y and p->q->q with no
+   a->a->a in between.  Are we allowed to handle that?
+
+   This is a sentence
+    (is -> was)
+   This was a sentence
+    (a -> my)
+   This was my sentence
+ 
+   Commutine the patches give
+   This is a sentence
+    (a -> my)
+   This is my sentence
+    (is -> was)
+   This was my sentence
+
+   That seems safe enough.  How about insertions and deletions?
+    This a sentence 
+     (add is)
+    This is a sentence
+      (remove a)
+    This is sentence 
+
+    This a sentence
+      (remove a)
+    This setence
+      (add is)
+    This is sentence
+
+    Seems ok... Maybe the fact that we have perfect matches (no extraneous stuff)
+    make it easier....
+
+
+    So: first sort the blocks (well, the files) and see if there is any overlap
+    of after-A with before-B.
+    If not, we update offsets.  Maybe store each chunk as offset-from-end-of-last.
+    If so, we extend both blocks, possibly including other blocks, to get two blocks
+    that start and end at the same place.
+    Then run a word-wise merge-like thing.  If there are no conflicts, extract the new
+    intermediate file and create the new diff from that.
+
+    So: each patch is a list of files with hunks
+      the hunks may grow extra context as it is found in other hunks
+       and may even merge.
+     To commute two patches:
+        If a chunk doesn't match any chunk in other file, just retain it.
+        If it does, expand both chunks with common data from the other
+         then run the diff code, then extract the new middle
+
