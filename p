@@ -151,7 +151,7 @@ diff_one()
 	else
 		echo
 		echo "diff ./$1~current~ ./$1"
-		diff --show-c-function -u ./$1~current~ ./$1
+		diff -N --show-c-function -u ./$1~current~ ./$1
 	fi
 }
 
@@ -190,14 +190,19 @@ swap_one()
 	mv "$1.tmp" "$1~current~"
 }
 
+CERT='Signed-off-by: Neil Brown <neilb@cse.unsw.edu.au>'
 make_diff()
 {
    {
 	[ -s .patches/status ] && echo "Status: `cat .patches/status`"
+	[ -s .patches/notes ] && { echo; cat .patches/notes ; }
+	if grep -F "$CERT" .patches/notes > /dev/null 2>&1
+	then :
+        else echo "$CERT"
+	fi
 	echo
-	[ -s .patches/notes ] && { cat .patches/notes ; echo; }
 	all_files diff_one > .patches/tmp
-	echo " ----------- Diffstat output ------------"
+	echo "### Diffstat output"
 	diffstat -p0 2> /dev/null < .patches/tmp
 	cat .patches/tmp
 	[ -s .patches/tmp ] || rm .patches/patch
@@ -227,7 +232,7 @@ find_prefix()
 	file=`lsdiff $1 | head -1`
 	orig=$file
 	prefix=0
-	while [ -n "$file" -a ! -f "$file" ]
+	while [ \( -n "$file" -a ! -f "$file" \) -o " $file" != " ${file#/}" ]
 	do
 	    file=`expr "$file" : '[^/]*/\(.*\)'`
 	    prefix=`expr $prefix + 1`
@@ -253,6 +258,7 @@ extract_notes()
     { head = 0; }
     $0 == "" { blanks++; next; }
     $0 ~ /^ *---/ { exit }
+    $0 ~ /^###/ { exit }
     {   while (blanks > 0) {
 	   blanks--; print "";
 	}
@@ -481,7 +487,7 @@ case $cmd in
 	echo "Using $pfile..."
 
 	# make sure patch applies in reverse
-	if patch -s --fuzz=0 --dry-run -f -p0 -R < "$pfile"
+	if patch -s --fuzz=0  -l --dry-run -f -p0 -R < "$pfile"
 	then echo "Yep, that seems to be included"
 	elif [ -n "$force" ]
 	then echo "It doesn't apply reverse-out cleanly, but you asked for it..."
@@ -568,7 +574,7 @@ case $cmd in
 	;;
 
   publish )
-	name=`date -u +%Y-%m-%d:%H`
+	name=`date -u +%Y-%m-%d-%H`
 	if [ -d .patches/dest ]
 	then : good
 	else echo >&2 No destination specified at .patches/dest ; exit 1;
@@ -714,9 +720,18 @@ case $cmd in
 	    exit 1;
 	fi
 	messid="<`date +'%Y%m%d%H%M%S'`.$$.patches@`uname -n`>"
-	cnt=$(ls .patches/applied/???${1}* | wc -l)
-	cnt=$(echo $cnt)  # discard spaces
+	cnt=0
+	for patch in .patches/applied/???${1}*
+	do
+          n=${patch##*/}
+	  n=${n:0:3}
+	  if [ -n "$2" ] && [ $2 -gt $n ] ; then continue; fi
+	  if [ -n "$3" ] && [ $3 -lt $n ] ; then continue; fi
+	  cnt=$(expr $cnt + 1 )
+	done
 	this=1
+	if [ $cnt -gt 1 ]
+	then
 	{
 	    cat .patches/owner
 	    echo "To: `cat .patches/maintainer`"
@@ -724,7 +739,7 @@ case $cmd in
 		while read word prefix addr
 		  do if [ " $word" = " $1" ] ; then
 			echo "Cc: $addr" 
-			sprefix="$prefix - "
+			sprefix="$prefix "
 		    fi
 		  done < .patches/cc
 	    fi
@@ -732,15 +747,20 @@ case $cmd in
 		  then
 		  echo "Subject: [PATCH] $sprefix Intro"
 		  else
-		  echo "Subject: [PATCH] ${sprefix}0 of $cnt - Introduction"
+		  echo "Subject: [PATCH ${sprefix}0 of $cnt] Introduction"
 	    fi
 	    echo "Message-ID: $messid"
 	    echo
 	    echo PUT COMMENTS HERE
 	} > .patches/mail/000Intro
+	fi
 
 	for patch in .patches/applied/???${1}*
 	do
+          n=${patch##*/}
+	  n=${n:0:3}
+	  if [ -n "$2" ] && [ $2 -gt $n ] ; then continue; fi
+	  if [ -n "$3" ] && [ $3 -lt $n ] ; then continue; fi
 	  {
 	      sprefix=
 	      cat .patches/owner
@@ -749,19 +769,22 @@ case $cmd in
 		  while read word prefix addr
 		    do if [ " $word" = " $1" ] ; then
 			echo "Cc: $addr" 
-			sprefix="$prefix - "
+			sprefix="$prefix "
 		    fi
 		  done < .patches/cc
 	      fi
 	      head=`sed -e '/^Status/d' -e '/^$/d' -e q $patch`
 	      if [ $cnt = 1 ]
 		  then
-		  echo "Subject: [PATCH] $sprefix $head"
+		  echo "Subject: [PATCH $sprefix] $head"
 		  else
-		  echo "Subject: [PATCH] $sprefix$this of $cnt - $head"
+		  echo "Subject: [PATCH $sprefix$this of $cnt] $head"
 	      fi
 	      echo "References: $messid"
 	      echo
+	      if [ $cnt = 1 ] ; then
+		  echo "### Comments for Changeset"
+	      fi
 	      sed -e '1,3d' $patch
 	  } > .patches/mail/${patch#.patches/applied/}
 	  this=$(expr $this + 1)

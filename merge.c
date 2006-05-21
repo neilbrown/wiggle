@@ -422,6 +422,15 @@ static int advance(struct csl *c1, struct csl *c2, struct point *p)
 		if (c1[p->c1].len == 0 ||
 		    a < c1[p->c1].a + c1[p->c1].len) {
 			p->in_a = 0;
+			/*
+			 * if we've slid, make sure not to skip over
+			 * the stuff in c2.
+			 */
+			if(slid && p->c2 != -1 && c2[p->c2].a == b && 
+			   c2[p->c2].b > c2[p->c2].a) {
+				c -= c2[p->c2].b - c2[p->c2].a;
+			}
+
 			p->pos = c;
 			slid = 1;
 			goto retry;
