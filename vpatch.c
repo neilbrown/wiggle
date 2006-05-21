@@ -658,7 +658,7 @@ void draw_line(int i, struct pos pos, int mode,
 			if (e1.start[0] == '\n') {
 				break;
 			}
-			c = e1.start;
+			c = (unsigned char *)e1.start;
 			l = e1.len;
 			while (l) {
 				if (*c >= ' ' && *c != 0x7f) {
@@ -1075,7 +1075,7 @@ void draw_mside(int mode, int row, int offset, int start, int cols,
 		if (e.start[0] == 0)
 			continue;
 		attrset(visible(mode, m[pos.m].type, pos.s));
-		c = e.start;
+		c = (unsigned char *)e.start;
 		l = e.len;
 		while(l) {
 			if (*c >= ' ' && *c != 0x7f) {
