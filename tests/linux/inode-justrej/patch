@@ -1,0 +1,16 @@
+***************
+*** 942,948 ****
+  {
+  	struct super_operations *op = inode->i_sb->s_op;
+  
+- 	list_del_init(&inode->i_hash);
+  	list_del_init(&inode->i_list);
+  	inode->i_state|=I_FREEING;
+  	inodes_stat.nr_inodes--;
+--- 953,958 ----
+  {
+  	struct super_operations *op = inode->i_sb->s_op;
+  
+  	list_del_init(&inode->i_list);
+  	inode->i_state|=I_FREEING;
+  	inodes_stat.nr_inodes--;

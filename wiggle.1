@@ -1,0 +1,439 @@
+.\" -*- nroff -*-
+.\" wiggle - apply rejected patches
+.\"
+.\" Copyright (C) 2003 Neil Brown <neilb@cse.unsw.edu.au>
+.\"
+.\"
+.\"    This program is free software; you can redistribute it and/or modify
+.\"    it under the terms of the GNU General Public License as published by
+.\"    the Free Software Foundation; either version 2 of the License, or
+.\"    (at your option) any later version.
+.\"
+.\"    This program is distributed in the hope that it will be useful,
+.\"    but WITHOUT ANY WARRANTY; without even the implied warranty of
+.\"    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+.\"    GNU General Public License for more details.
+.\"
+.\"    You should have received a copy of the GNU General Public License
+.\"    along with this program; if not, write to the Free Software
+.\"    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+.\"
+.\"    Author: Neil Brown
+.\"    Email: <neilb@cse.unsw.edu.au>
+.\"    Paper: Neil Brown
+.\"           School of Computer Science and Engineering
+.\"           The University of New South Wales
+.\"           Sydney, 2052
+.\"           Australia
+.\"
+.TH WIGGLE 1 "" v0.6
+.SH NAME
+wiggle \- apply rejected patches and perform word-wise diffs
+
+.SH SYNOPSIS
+
+.BI wiggle " [function] [options] file [files]"
+
+.SH DESCRIPTION
+The main function of
+.I wiggle
+is to apply a patch to a file in a similar manner to the
+.BR patch (1)
+program.
+
+The distinctive difference of
+.I wiggle
+is that it will attempt to apply a patch even if the "before" part of
+the patch doesn't match the target file perfectly.
+This is achieved by breaking the file and patch into words and finding
+the best alignment of words in the file with words in the patch.
+Once this alignment has been found, any differences (word-wise) in the
+patch are applied to the file as best as possible.
+
+Also,
+.I wiggle
+will (in some cases) detect changes that have already been applied,
+and will ignore them.
+
+.I wiggle
+ensures that every change in the patch is applied to the target
+file somehow.  If a particular change cannot be made in the file, the
+file is annotated to show where the change should be made is a similar
+way to the
+.BR merge (1)
+program.
+Each annotation contains 3 components: a portion of the original file
+where the change should be applied, a portion of the patch that
+couldn't be matched precisely in the file, and the text that should
+replace that portion of the patch.  These are separated by lines
+containing precisely 7 identical characters, either '<', '|', '=', or '>', so
+.in +5
+.nf
+.ft CW
+<<<<<<<
+Some portion of the original file
+|||||||
+text to replace
+=======
+text to replace it with
+>>>>>>>
+.ft
+.fi
+.in -5
+
+indicates that "text to replace" should be replaced by "text to
+replace it with" somewhere in the portion of the original file.
+However
+.I wiggle
+was not able to find a place to make this change.
+
+.I wiggle
+can also produce conflict reports showing only the words that are
+involved rather than showing whole lines.
+In this case the output looks like:
+.ft CW
+.ti +5
+<<<---original|||old===new--->>>
+.ft
+
+A typical usage of
+.I wiggle
+is to run
+.I patch
+to apply some patch, and to collect a list of rejects by monitoring
+the error messages from patch.  Then for each file for which a
+reject was found, run
+.ti +5
+wiggle --replace originalfile originalfile.rej
+
+Finally each file must be examined to resolve any unresolved
+conflicts, and to make sure the applied patch is semantically correct.
+
+.SS OPTIONS
+The following options are understood by
+.IR wiggle .
+Some of these are explained in more detail in the following sections
+on MERGE, DIFF, and EXTRACT.
+
+.TP
+.BR -m ", " --merge
+Select the "merge" function.  This is the default function.
+
+.TP
+.BR -d ", " --diff
+Select the "diff" function.  This displays the differences between files.
+
+.TP
+.BR -x ", " --extract
+Select the "extract" function.  This extracts one branch of a patch or
+merge file.
+
+.TP
+.BR -w ", " --words
+Request that all operations and display be word based.  This is the
+default for the "diff" function.
+
+.TP
+.BR -l ", " --lines
+Request that all operations and display be line based.
+
+.TP
+.BR -p ", " --patch
+Treat the last named file as a patch instead of a file (with --diff)
+or a merge (--extract).
+
+.TP
+.BR -r ", " --replace
+Normally the merged output is written to standard-output.  With
+--replace, the original file is replaced with the merge output.
+
+.TP
+.BR -R ", " --reverse
+When used with the "diff" function, swap the files before calculating
+the differences.
+When used with the "merge" function,
+.I wiggle
+attempts to revert changes rather than apply them.
+
+.TP
+.BR -h ", " --help
+Print a simple help message.  If given after one of the function
+selectors (--merge, --diff, --extract) help specific to that function
+is displayed.
+
+.TP
+.BR -V ", " --version
+Display the version number of
+.IR wiggle .
+
+.TP
+.BR -v ", " --verbose
+Enable verbose mode.  Currently this makes no difference.
+
+.TP
+.BR -q ", " --quiet
+Enable quiet mode.  This suppresses the message from the merge
+function when there are unresolvable conflicts.
+
+.SS WORDS
+.I wiggle
+can divide a text into lines or words when performing it's tasks.
+A line is simply a string of characters terminated by a newline.
+A word is either a maximal contiguous string of alphanumerics
+(including underscore), a maximal contiguous string of space or tab
+characters, or any other single character.
+
+.SS MERGE
+The merge function modifies a given text by finding all changes between
+two other texts and imposing those changes on the given text.
+
+Normally
+.I wiggle
+considers words which have changed so as to maximise the possibility
+of finding a good match in the given text for the context of a given
+change.  However it can consider only whole lines.
+
+.I wiggle
+extracts the three texts that it needs from files listed on the
+command line.  Either 1, 2, or 3 files may be listed, and any one of
+them may be a lone hyphen signifying standard-input.
+
+If one file is given, it is treated as a
+.B merge
+file, i.e. the output of "merge -A" or "wiggle".  Such a file
+implicitly contains three streams and these are extracted and
+compared.
+
+If two files are given, then the first simply contains the primary
+text, and the second is treated as a patch file (the output of "diff\ -u"
+or "diff\ -c", or a ".rej" file from
+.IR patch )
+and the two other texts
+are extracted from that.
+
+Finally if three files are listed, they are taken to contain the given
+text and the two other texts, in order.
+
+Normally the result of the merge is written to standard-output.
+However if the "-r" flag is given, the output is written to a file
+which replaces the original given file. In this case the original file
+is renamed to have a
+.B .porig
+suffix (for "patched original" which makes sense if you first use
+.I patch
+to apply a patch, and then use
+.I wiggle
+to wiggle the rejects in).
+
+If no errors occur (such as file access errors)
+.I wiggle
+will exit with a status of 0 if all changes were successfully merged,
+and with an exit status of 1 and a brief message if any changes could
+not be fully merged and were instead inserted as annotations.
+
+The merge function can operate in three different modes with respect
+to lines or words.
+
+With the
+.B --lines
+option, whole lines are compared and any conflicts
+are reported as whole lines that need to be replaced.
+
+With the
+.B --words
+option, individual words are compared and any
+conflicts are reported just covering the words affected.  This used
+the \f(CW <<<|||===>>> \fP conflict format.
+
+Without either of these options, a hybrid approach is taken.
+Individual words are compared and merged, but when a conflict is found
+the whole surrounding line is reported as being in conflict.  
+
+.I wiggle
+will ensure that every change between the two other texts is reflected
+in the result of the merge somehow.  There are four different ways
+that a change can be reflected.
+.IP 1
+If a change converts
+.B A
+to
+.B B
+and
+.B A
+is found at a suitable place in the original file, it is
+replaced with
+.BR B .
+This includes the possibility that
+.B B
+is empty, but
+not that
+.B A
+is empty.
+
+.IP 2
+If a change is found which simply adds
+.B B
+and the text immediately preceding and following the insertion are
+found adjacent in the original file in a suitable place, then
+.B B
+is inserted between those adjacent texts.
+
+.IP 3
+If a change is found which changes
+.B A
+to
+.B B
+and this appears (based on context) to align with
+.B B
+in the original, then it is assumed that this change has already been
+applied, and the change is ignored.  When this happens, a message
+reflected the number of ignored changes is printed by
+.IR wiggle .
+
+.IP 4
+If a change is found that does not fit any of the above possibilities,
+then a conflict is reported as described earlier.
+
+.SS DIFF
+
+The diff function is provided primarily to allow inspection of the
+alignments that
+.I wiggle
+calculated between texts and that it uses for performing a merge.
+
+The output of the diff function is similar to the unified output of
+diff.  However while diff does not output long stretches of common text,
+.IR wiggle 's
+diff mode outputs everything.
+
+When calculating a word-based alignment (the default),
+.I wiggle
+may need to show these word-based differences.  This is done using an
+extension to the unified-diff format.  If a line starts with a
+vertical bar, then it may contain sections surrounded by special
+multi-character brackets.  The brackets "<<<++" and "++>>>" surround
+added text while "<<<--" and "-->>>" surround removed text.
+
+.I wiggle
+can be given the two texts to compare in one of three ways.
+
+If only one file is given, then it is treated as a patch and the two
+branches of that diff are compared.  This effectively allows a patch
+to be refined from a line-based patch to a word-based patch.
+
+If two files are given, then they are normally assumed to be simple
+texts to be compared.
+
+If two files are given along with the --patch option, then the second
+file is assumed to be a patch and either the first (with -1) or the
+second (with -2) branch is extracted and compared with text found in
+the first file.
+
+This last option causes
+.I wiggle
+to apply a "best-fit" algorithm for aligning patch hunks with the
+file before computing the differences.  This algorithm is used when
+merging a patch with a file, and its value can be seen by comparing
+the difference produced this was with the difference produced by first
+extracting one branch of a patch into a file, and then computing the
+difference of that file with the main file.
+
+
+.SS EXTRACT
+
+The extract function of
+.I wiggle
+simply exposes the internal functionality for extracting one branch of
+a patch or a merge file.
+
+Precisely one file should be given, and it will be assumed to be a
+merge file unless
+.B  --patch
+is given, in which case a patch is assumed.
+
+The choice of branch in made by providing one of
+.BR -1 ,
+.BR  -2 ,
+or
+.B -3
+with obvious meanings.
+
+.SH WARNING
+
+Caution should always be exercised when applying a rejected patch with
+.IR wiggle .
+When
+.I patch
+rejects a patch, it does so for a good reason.  Even though
+.I wiggle
+may be able to find a believable place to apply each textual change,
+there is no guarantee that the result is correct in any semantic
+sense.  The result should always be inspected to make sure it is
+correct. 
+
+.SH EXAMPLES
+
+.B "  wiggle --replace file file.rej"
+.br
+This is the normal usage of
+.I wiggle
+and will take any changes in
+.B file.rej
+that
+.I patch
+could not apply, and merge them into
+.BR file .
+
+.B "  wiggle -dp1 file file.rej"
+.br
+This will perform a word-wise comparison between the
+.B file
+and the
+.I before
+branch of the diff in
+.B file.rej
+and display the differences.  This allows you to see where a given
+patch would apply.
+
+.B "   wiggle --merge --help"
+.br
+Get help about the merge function of
+.IR wiggle .
+
+.SH QUOTE
+The name of wiggle was inspired by the following quote, even though
+wiggle does not (yet) have a graphical interface.
+
+.nf
+The problem I find is that I often want to take
+  (file1+patch) -> file2,
+when I don't have file1.  But merge tools want to take
+  (file1|file2) -> file3.
+I haven't seen a graphical tool which helps you to wiggle a patch
+into a file.
+
+-- Andrew Morton - 2002
+.fi
+
+.SH SHORTCOMINGS
+.IP -
+.I wiggle
+cannot read the extended unified-diff output that it produces for
+--diff --words.
+
+.IP -
+.I wiggle
+cannot read the word-based merge format that it produces for --merge
+--words.
+
+.SH AUTHOR
+
+Neil Brown at Computer Science and Engineering at
+The University of New South Wales, Sydney, Australia
+
+.SH SEE ALSO
+.IR patch (1),
+.IR diff (1),
+.IR merge (1),
+.IR wdiff (1),
+.IR diff3 (1).

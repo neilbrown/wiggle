@@ -1,0 +1,327 @@
+ p is a tool for managing patches.  It contains many
+ subcommands.  To use a particular subcommand, give it
+ as the first argument to p, and then give any arguments
+ that subcommand requires
+
+files
+ p keeps all it's files and patches in a subdirectory of
+ the toplevel directory of a project.  This subdirectory
+ is called ".patches".  It is often convenient for 
+ ".patches" to actually be a symbolic link to somewhere 
+ else altogether.
+
+ The files and directories contained in .patches are:
+   applied/    A directory containing applied patches
+   removed/    A directory containing removed patches
+   include/    A directory containing included patches
+     Files in these directories are prefixed by a 3digit number
+     which indicate thr order in which patches were added.
+     The remainder of the filename is the name of the patch.
+     Each file contains:
+       Status: status
+       ... notes ...
+       ... diffstat output ...
+       the actual patch
+   name        A file containing the name of the current patch
+   status      A file containing the status of the current patch
+   notes       A file with notes about the patch
+   patch       A a recently generated copy of the current patch
+   files       A list of files that are 'checked out'
+   to-resolve  A list of files that might have conflicts that need resolving
+   tmp         A temporary file
+   last-applied A most recently apply patch that had conflicts
+   last-purge
+   dest/       A directory where 'p publish' puts patch sets.
+   SOURCE/     A directory where a bk repository lives.
+   mail/       A directory of patches converted to email messages
+   cc          A files listing:  prefix name emailaddr
+                When mailing patches which start with prefix, name
+                is put on the subject line, and the mail is cc:ed to
+                emailaddr
+   maintainer  This is where patches are mailed to
+   owner       These mail headers are included in each mail message
+   get-version A script to get a base version number for use when publishing
+   to-resolve  List of files have have outstanding conflicts to be resolved.
+
+
+model
+overview
+ What is 'p' ?
+
+ 'p' is a patch management system, not a source code control system.
+ It allows you to create a set of patches against a base release, to
+ annotate those patches with comments, and to revisit and edit patches
+ after they have been committed.
+
+ It also allows you to update the base release that the patches are
+ against, and then re-apply all patches.
+
+ At any time, there are a number of applied patches, a number of
+ removed patches and possibly a current patch.
+ The sets of applied and removed patches act much like stacks.  The current 
+ patch can be moved to the top of either (commit or discard), and the top
+ of either patch can be moved to the current patch (open or apply).
+ open and apply actualy allow any patch in the corresponding stack to be
+ made current, and assume that the use won't re-order patches that
+ should not be re-ordered.
+
+ To enable 'p' for a project, you simply create a directory called ".patches"
+ in the top level directory of that project.  Files should be checked out
+ ("p co filename") before editing but never need to be checked in.  Applying
+ and external patch automatically checks out all modified files.
+
+ Often it is appropriate to have the .patches directory elsewhere (for
+ example in an http-export directory tree for public access) and have a 
+ symlink from .patches to that location.
+
+ p can be run from any subdirectory of a project containing a .patches
+ directory.
+
+ To find out about the contents of the .patches directory, see
+      p help files
+
+ Some common commands are:
+    p co filename               # monitor changes to filename
+    p make                      # create and view the current patch
+    p commit                    # commit the current patch
+    p discard                   # discard current patch, saving it as 
+                                # a removed patch
+    p apply                     # re-apply a removed patch, or apply
+                                # an external patch
+    p list                      # list current patches
+
+co
+ Usage:  p co filename
+
+ prepare filename for editing.  This makes sure there is a
+ copy of the file with a ~current~ suffix, and that the file
+ is listed in in .patches/files.  This command can be run from
+ a subdirectory of the project, and it will still do the
+ right thing.
+
+make
+view
+ Usage:  p make
+         p view [patchnamefragment]
+
+ make and view provide the same functionality.
+ When given a patch name fragment, they will allow the unique
+ patch with that name (either applied or removed) to be viewed
+ (using the pager $PAGER, or less).
+ Without an argument, the current patch is calculated and
+ displayed.  This explains the two names as with no argument,
+ they both make, and view the current patch.
+
+all
+ Usage:  p all
+
+ Generate a composite patch of all currently applied patches.
+ This involves creation a patch from the ~orig~ version of every
+ file to it's current version.
+
+status
+name
+
+ Usage: p status [newstatus]
+        p name [newname]
+
+ If a new status or name is given, it is recorded as the current
+ status or name for the current patch.  If no argument is given,
+ the command will prompt for both a new name and a new status.
+ The current value is offered as a default in each case.
+
+note
+notes
+ Usage: p notes
+
+ Open the notes describing the current patch in an $EDITOR
+ The notes should contain a simple one-line description, 
+ a black line, and then a detailed description.
+
+discard
+ Usage: p discard
+
+ The current patch is discard: moved to the .patches/removed
+ directory.  If it doesn't have a name or status, these are
+ prompted for.
+
+commit
+ Usage: p commit
+
+ The current patch is commit: moved to the .patches/applied
+ directory.  If name or status aren't set, these are prompted
+ for.  If no notes have been written, and $EDITOR session is
+ started with a template for some notes.  
+ The patch is presented in the file being edited for reference,
+ but will be removed from the notes on exit.
+
+open
+ Usage: p open [last | patch-name-fragment]
+
+ The open command is used to open a previously commited
+ patch for further editing.
+
+ Without any argument, a list of available commited patches
+ is given.
+ If the argument 'last'is given, then the most recently commited
+ patch is opened.
+ Otherwise a unique patch with a name containing the name fragment
+ is openned.  If there is no such unique patch, and error message
+ is given. 
+
+included
+ Usage: p included [-f] [last | patch-name-fragment]
+
+ After updating the base release of a project, some of the patches
+ which are currently "removed" may already have been included in that
+ release and so don't need to be maintained any more.
+
+ The "included" command will check if a given patch appears to have
+ been included and if so, moves it to the .patches/included directory.
+ The test is performed by seeing if 'patch' is able to remove the
+ patch.  If it cannot, but you are sure that the patch has been included
+ (the problems patch reports are spurious) then using '-f' will cause
+ the patch to be moved to 'included' anyway.
+
+list
+ Usage: p list
+
+ List all the patches in either 'applied' or 'removed'.
+
+apply
+ Usage: p apply [-f] [-a] [last | patch-name-fragment | filename]
+
+ This command is used for applying a patch to the project.
+ If a patch in 'removed' is given, then it is moved out of 'removed'
+ and is applied.  If a filename is given, the patch in that file is
+ applied but the file is left unchanged.
+
+ When applying a patch, all affected files are checked-out first.
+
+ If 'patch' cannot apply the patch without error, 'apply' will fail.
+ Giving the '-f' option will cause 'apply' to apply the patch anyway,
+ and then run 'wiggle' to merge any rejected patch chunks as best
+ as possible.  Any files for which wiggle finds unresolvaable conflicts
+ while have its name saved in a file (.patches/to-resolve).  This
+ list is used by the 'p resolve' command.
+
+ Normally, 'apply' will not apply a patch to be applies if there is 
+ one already open.  However the '-a' option may be given to ask
+ 'apply' to "append" the patch to the current patch.
+
+resolve
+ Usage: p resolve
+
+ This is used to resolve any conflicts found by wiggle.  Each file
+ listed in .patches/to-resolve is presented for editing, and then
+ has wiggle run over it again to check that all conflicts have
+ been resolved. 
+
+publish
+ Usage: p publish
+
+ The 'publish' command will create a new subdirectory of 
+    .patches/dest
+ (which is often a symlink to a web-page area) and copy
+ all current applied and removed patches into that directory.
+ It also creates a complete patch (with "p all") and stores
+ that in the directory.
+
+clean
+ Usage: p clean
+
+ clean checks that no patches are currently applied, and 
+ cleans up any ~current~ or ~orig~ files that have been left 
+ in the source tree.  It also removed write permission from 
+ all checked-out files.
+
+ It effectively undoes all check-outs.
+
+ It is run as part of 'update' which incorporates upstream 
+ changes into a source tree.
+
+openall
+ Usage: p openall
+
+ This command repeatedly runs "p open last && p discard" until
+ that fails, which usually means that all patches have been
+ discarded.  This is part of the preparation for incorporating
+ upstream changes.
+
+snapshot
+ Usage: p snapshot
+
+ This command takes a shapshot of the current patch so that further
+ work can be done in the patch, but it can easily be removed if 
+ there are problems.
+
+ This might be used before appending a patch incase something goes
+ wrong in the appending process.
+
+snapdiff
+ Usage: p snapdiff
+
+ Display the differences between the latest snapshot and the current
+ source.
+
+snapback
+ Usage: p snapback
+
+ Revert all changes since the last snapshot
+
+pull
+ Usage: p pull
+
+ Update the local copy of the official source repository.  This
+ can be found by following the .patches/SOURCE link.
+
+ Currently the code assumes it is a BitKeeper repository and
+ runs "bk pull".  It should be enhanced to recognise CVS and 
+ run "cvs update".
+
+update
+ Usage: p update
+
+ This command updates the based release of the package.  To
+ do this it removes all patches (p openall), cleans up (p clean),
+ creates a patch from information in .patches/SOURCE, and applies
+ that patch.  It currently makes no attempt to re-apply any
+ patches, or to "p included" and patches.
+
+ Currently the code assumes a BitKeeper repository and uses
+ "bk export -tpatch -rLASTEST," to extract a patch, and then
+ retags the repository with "bk tag LATEST".  It should be
+ enhanced to recognise and work with CVS as well.
+
+premail
+ Usage: p premail [patch-name-prefix]
+
+ This command converts a selection of patches to Email messages.
+ The email messages are stored in .patches/mail.
+ SAY MORE HERE
+
+nomail
+ Usage: p nomail
+
+ Remove the .patches/mail directory and contents.
+
+email
+ Usage: p email
+
+ Send all mail messages in .patches/mail.  On success, each
+ email message is removed.
+
+help
+ Usage: p help [topic]
+
+ Print out help messages, which are contained in a file
+   p.help
+ in the same directory that p was run from.
+ Without a topic, a general introduction and a list of topics
+ is presented.  With a topic, help on that topic is presented.
+
+purge
+ Usage: p purge
+
+ Make copy of the current patch in .patches/last-purge (just
+ in case) and then purge the current patch complete.

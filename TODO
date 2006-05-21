@@ -1,0 +1,29 @@
+
+- extract.c should be able to extract half of a word-diff
+- extract.c should work on word-merges
+- review all test output to make sure it looks right
+- document 'p' DOING
+- can find_best be optimised more?
+- --verbose flag ?? what should it do?
+- review commented code and discard some of it
+- test on raid code
+- possibly encourage "###...####" onto line by itself in diff output
+- possibly remember match information while reading patch/merge
+  to help matching.
+- is there anything useful to be done with linenumber information?
+- document diff algorithm
+- document best-match algorithm
+- document merge algorithm
+- enhance 'p'
+  - editmail?  reviewmail
+  - review wiggle failures
+
+- Application of patch-03-MdRaid5Works caused some odd matches
+
+- possible verbosity:
+     report lines at which each patch was applied.??
+- add examples to man page
+
+- Design viewer.
+   Maybe:
+    3 windows: before, patch, after

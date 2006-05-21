@@ -1,0 +1,11 @@
+
+To build and install wiggle, simply type:
+
+   make install
+
+This will install /usr/bin/wiggle and /usr/share/man/man1/wiggle.1
+
+You might like to inspect the Makefile and change
+   OptDbg=-ggdb
+to something that will compile faster code on your compter, such as
+   OptDbg=-O3 -march=pentium2

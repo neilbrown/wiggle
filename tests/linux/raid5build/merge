@@ -1,0 +1,30 @@
+static void raid5_build_block (struct stripe_head *sh, int i)
+{
+	raid5_conf_t *conf = sh->raid_conf;
+	struct r5dev *dev = &sh->dev[i];
+
+	bio_init(&dev->req);
+	dev->req.bi_io_vec = &dev->vec;
+	dev->req.bi_vcnt++;
+	dev->vec.bv_page = dev->page;
+	dev->vec.bv_len = STRIPE_SIZE;
+	dev->vec.bv_offset = 0;
+
+	dev->req.bi_bdev = conf->disks[i].bdev;
+<<<<<<<
+|||||||
+	/* FIXME - later we will need bdev here */
+=======
+	dev->req.bi_sector = sh->sector;
+>>>>>>>
+	dev->req.bi_private = sh;
+
+	dev->flags = 0;
+	if (i != sh->pd_idx)
+<<<<<<<
+	bh->b_list	= BUF_LOCKED;
+|||||||
+=======
+		dev->sector = compute_blocknr(sh, i);
+>>>>>>>
+}

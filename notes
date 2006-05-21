@@ -1,0 +1,101 @@
+
+Wiggle - wiggle a mis-match patch into a file.
+
+Given 
+  1/ a file
+  2/ a patch - which is two file fragments
+
+ find the minimal differences between the fragments in the patch
+ and apply those to the file.
+ This requires us to do a word-diff of file with frag-A, and 
+ frag-A with frag-B, and the merge the result.
+
+ We read in the file and 2 frags and break them into words and keeping
+ an index and hash for each.
+
+ We then perform the two diffs producing lists of inserts and deletes.
+
+
+
+ToDo
+
+ implement --replace
+ describe and implement correct replacement procedure
+ Reject matches that have a dis-proportionate cost
+ implement testing structure. DONE
+
+
+
+Testing:
+ A directory tree containing tests.  We look for key files
+ and run the appropriate test.
+ Key files are:
+   script : run that script in that directory
+   diff   : if new exists, diff orig with new
+            else diff 'orig' with -1 of 'patch'
+   ldiff  : as above, but lines
+   rediff : rediff 'patch'
+   merge  : if 'patch'  merge 'orig' with 'patch'
+	    else merge 'orig' 'new' 'new2'
+
+
+Replacement procedure:
+
+ Goal: Every change between A' and B' must be merged into
+       A somehow to produce B.
+
+	We can think of changes as additions, deletions, or replacements.
+
+	Every addition must be inserted somewhere, at the site of 
+	best match for the context.  If there is no good match...
+	I guess we insert at start or finish.
+
+	Every deletion is merged either by deleting matching text,
+	or inserting the string <<<---deleted-text--->>> and some
+	reasonably appropriate location.
+
+	Every replacement is merged either by removing the original 
+	and replacing by the new, or by inserting 
+	<<<---oldtext///newtext+++>>>
+
+
+       For each difference b->c between B and C:
+         if b precisely aligns with a in A, then replace a with c
+	 else find some set of lines that b maybe is in and produce:
+
+              	<<<<<<<<<<
+		segment from A
+		||||||||||
+		b, upto newlines
+		==========
+		c, upto newlines
+		>>>>>>>>>>
+
+
+	Maybe several (two?) passes.
+
+-mw orig new new2 in tests/test dies. - FIXED
+
+in test5, -dw orig new
+ produces strange output FIXED
+
+
+if no matches are found, core is domps as lcsl is NULL FIXED
+
+wdiff to look more like udiff
+ unchanged
++addition
+-deletion
+|change<<<+++additions+++>>> and <<<---deletions--->>>>
+
+
+@@ line,numbers @@ in diff output
+
+Speed: us aproxword for pdiff lineup.DONE
+
+"refine" takes a diff and refines it, sortof
+
+return a lcsl when reading a patch and refine that
+rather than computing from scratch.
+
+FIXME: pdiff should pick best bit, and rediff the two sides. DONE

@@ -1,0 +1,8 @@
+#!/bin/sh
+#
+# make sure all p commands are in the help file
+
+sed -n -e '/^case/,/^esac/p' p | grep ')$' | grep -v '(' |
+  tr '\011' '@' | grep -v '@' | tr -cs '[A-Za-z0-9]' '\n' | sort > /tmp/p.cmds
+sed -n -e '/^[a-z]/p' p.help | sort > /tmp/p.hlp
+comm -3 /tmp/p.cmds /tmp/p.hlp

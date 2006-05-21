@@ -1,0 +1,7 @@
+<<<<<<<
+		clear_bit(BH_Uptodate, &sh->bh_cache[i]->b_state);
+|||||||
+		clear_buffer_uptodate(sh->bh_cache[i]);
+=======
+		dev->flags = 0;
+>>>>>>>

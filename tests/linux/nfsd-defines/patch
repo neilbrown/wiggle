@@ -1,0 +1,24 @@
+Status: trivial
+
+Fix errors with MAY_* value checking
+
+Typos and sillyness...
+
+ ----------- Diffstat output ------------
+ ./include/linux/nfsd/nfsd.h |    4 ++--
+ 1 files changed, 2 insertions(+), 2 deletions(-)
+
+diff ./include/linux/nfsd/nfsd.h~current~ ./include/linux/nfsd/nfsd.h
+--- ./include/linux/nfsd/nfsd.h~current~	2003-04-17 10:31:15.000000000 +1000
++++ ./include/linux/nfsd/nfsd.h	2003-04-17 10:31:08.000000000 +1000
+@@ -39,8 +39,8 @@
+ #define MAY_LOCK		32
+ #define MAY_OWNER_OVERRIDE	64
+ #define	MAY_LOCAL_ACCESS	128 /* IRIX doing local access check on device special file*/
+-#if (MAY_SATTR | MAY_TRUNC | MAY_LOCK | MAX_OWNER_OVERRIDE | MAY_LOCAL_ACCESS) & (MAY_READ | MAY_WRITE | MAY_EXEC | MAY_OWNER_OVERRIDE)
+-# error "please use a different value for MAY_SATTR or MAY_TRUNC or MAY_LOCK or MAY_OWNER_OVERRIDE."
++#if (MAY_SATTR | MAY_TRUNC | MAY_LOCK | MAY_OWNER_OVERRIDE | MAY_LOCAL_ACCESS) & (MAY_READ | MAY_WRITE | MAY_EXEC)
++# error "please use a different value for MAY_SATTR or MAY_TRUNC or MAY_LOCK or MAY_LOCAL_ACCESS or MAY_OWNER_OVERRIDE."
+ #endif
+ #define MAY_CREATE		(MAY_EXEC|MAY_WRITE)
+ #define MAY_REMOVE		(MAY_EXEC|MAY_WRITE|MAY_TRUNC)

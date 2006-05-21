@@ -1,0 +1,15 @@
+static struct buffer_head *raid5_build_block (struct stripe_head *sh, int i)
+{
+	raid5_conf_t *conf = sh->raid_conf;
+	struct buffer_head *bh = sh->bh_cache[i];
+	unsigned long block = sh->sector / (sh->size >> 9);
+
+	init_buffer(bh, raid5_end_read_request, sh);
+	bh->b_dev       = conf->disks[i].dev;
+	bh->b_blocknr   = block;
+
+	bh->b_state	= (1 << BH_Req) | (1 << BH_Mapped);
+	bh->b_size	= sh->size;
+	bh->b_list	= BUF_LOCKED;
+	return bh;
+}

@@ -1,0 +1,93 @@
+@@ -1,90 +1,90 @@
+|	return <<<--0-->>><<<++1++>>>;
+|<<<--abort:-->>><<<++}++>>>
+|<<<--	return-->>><<<++
+|#undef++>>> <<<--1;
+|}-->>><<<++OLD_LEVEL++>>>
+ 
+ static int device_size_calculation(mddev_t * mddev)
+ {
+ 	int data_disks = 0;
+ 	unsigned int readahead;
+ 	struct list_head *tmp;
+ 	mdk_rdev_t *rdev;
+ 
+ 	/*
+ 	 * Do device size calculation. Bail out if too small.
+ 	 * (we have to do this after having validated chunk_size,
+ 	 * because device size has to be modulo chunk_size)
+ 	 */
+ 
+ 	ITERATE_RDEV(mddev,rdev,tmp) {
+ 		if (rdev->faulty)
+ 			continue;
+ 		if (rdev->size < mddev->chunk_size / 1024) {
+ 			printk(KERN_WARNING
+ 				"md: Dev %s smaller than chunk_size:"
+ 				" %lluk < %dk\n",
+ 				bdev_partition_name(rdev->bdev),
+ 				(unsigned long long)rdev->size,
+ 				mddev->chunk_size / 1024);
+ 			return -EINVAL;
+ 		}
+ 	}
+ 
+ 	switch (mddev->level) {
+ 		case LEVEL_MULTIPATH:
+ 			data_disks = 1;
+ 			break;
+ 		case -3:
+ 			data_disks = 1;
+ 			break;
+ 		case -2:
+ 			data_disks = 1;
+ 			break;
+ 		case LEVEL_LINEAR:
+ 			zoned_raid_size(mddev);
+ 			data_disks = 1;
+ 			break;
+ 		case 0:
+ 			zoned_raid_size(mddev);
+ 			data_disks = mddev->raid_disks;
+ 			break;
+ 		case 1:
+ 			data_disks = 1;
+ 			break;
+ 		case 4:
+ 		case 5:
+ 			data_disks = mddev->raid_disks-1;
+ 			break;
+ 		default:
+ 			printk(KERN_ERR "md: md%d: unsupported raid level %d\n",
+ 				mdidx(mddev), mddev->level);
+ 			goto abort;
+ 	}
+ 	if (!md_size[mdidx(mddev)])
+ 		md_size[mdidx(mddev)] = mddev->size * data_disks;
+ 
+ 	readahead = (VM_MAX_READAHEAD * 1024) / PAGE_SIZE;
+ 	if (!mddev->level || (mddev->level == 4) || (mddev->level == 5)) {
+ 		readahead = (mddev->chunk_size>>PAGE_SHIFT) * 4 * data_disks;
+ 		if (readahead < data_disks * (MAX_SECTORS>>(PAGE_SHIFT-9))*2)
+ 			readahead = data_disks * (MAX_SECTORS>>(PAGE_SHIFT-9))*2;
+ 	} else {
+ 		// (no multipath branch - it uses the default setting)
+ 		if (mddev->level == -3)
+ 			readahead = 0;
+ 	}
+ 
+ 	printk(KERN_INFO "md%d: max total readahead window set to %ldk\n",
+ 		mdidx(mddev), readahead*(PAGE_SIZE/1024));
+ 
+ 	printk(KERN_INFO
+ 		"md%d: %d data-disks, max readahead per data-disk: %ldk\n",
+ 		mdidx(mddev), data_disks, readahead/data_disks*(PAGE_SIZE/1024));
+ 	return 0;
+ abort:
+ 	return 1;
+ }
+ 
+ static struct gendisk *md_probe(dev_t dev, int *part, void *data)
+ {
+ 	static DECLARE_MUTEX(disks_sem);
+|<<<--	-->>>

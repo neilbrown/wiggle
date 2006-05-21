@@ -1,0 +1,1 @@
+		clear_bit(BH_Uptodate, &sh->bh_cache[i]->b_state);

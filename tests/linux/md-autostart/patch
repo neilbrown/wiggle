@@ -1,0 +1,27 @@
+***************
+*** 2584,2601 ****
+  					printk(KERN_WARNING "md: couldnt set array info. %d\n", err);
+  					goto abort_unlock;
+  				}
+- 			}
+- 			goto done_unlock;
+- 
+- 		case START_ARRAY:
+- 			/*
+- 			 * possibly make it lock the array ...
+- 			 */
+- 			err = autostart_array(val_to_kdev(arg));
+- 			if (err) {
+- 				printk(KERN_WARNING "md: autostart %s failed!\n",
+- 					partition_name(val_to_kdev(arg)));
+- 				goto abort_unlock;
+  			}
+  			goto done_unlock;
+  
+--- 2598,2603 ----
+  					printk(KERN_WARNING "md: couldnt set array info. %d\n", err);
+  					goto abort_unlock;
+  				}
+  			}
+  			goto done_unlock;
+  
