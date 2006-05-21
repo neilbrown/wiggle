@@ -207,7 +207,7 @@ int split_merge(struct stream f, struct stream *f1, struct stream *f2, struct st
 		lineno++;
 		switch(state) {
 		case 0:
-			if (len>8 &&
+			if (len>=8 &&
 			    strncmp(cp, "<<<<<<<", 7)==0 &&
 			    (cp[7] == ' ' || cp[7] == '\n')
 				) {
@@ -222,7 +222,7 @@ int split_merge(struct stream f, struct stream *f1, struct stream *f2, struct st
 			}
 			break;
 		case 1:
-			if (len>8 &&
+			if (len>=8 &&
 			    strncmp(cp, "|||||||", 7)==0 &&
 			    (cp[7] == ' ' || cp[7] == '\n')
 				) {
@@ -232,7 +232,7 @@ int split_merge(struct stream f, struct stream *f1, struct stream *f2, struct st
 				copyline(&r1, &cp, end);
 			break;
 		case 2:
-			if (len>8 &&
+			if (len>=8 &&
 			    strncmp(cp, "=======", 7)==0 &&
 			    (cp[7] == ' ' || cp[7] == '\n')
 				) {
@@ -242,7 +242,7 @@ int split_merge(struct stream f, struct stream *f1, struct stream *f2, struct st
 				copyline(&r2, &cp, end);
 			break;
 		case 3:
-			if (len>8 &&
+			if (len>=8 &&
 			    strncmp(cp, ">>>>>>>", 7)==0 &&
 			    (cp[7] == ' ' || cp[7] == '\n')
 				) {

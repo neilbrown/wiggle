@@ -170,7 +170,7 @@ commit_one()
 {
 	rm -f "$1~current~"
 	mv "$1" "$1~current~"
-	cp "$1~current~" $1
+	cp -p "$1~current~" $1
 	chmod u+w $1
 }
 
