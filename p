@@ -596,6 +596,33 @@ case $cmd in
   openall )
         while p open last && p discard ; do : ; done
 	;;
+  recommit )
+	make_diff
+	get_meta
+	if [ -s .patches/patch ]
+	then
+	    echo >&2 Patch $name already open - please commit ; exit 1;
+	fi
+	if [ $# -eq 0 ]
+	then
+	    echo "Unapplied patches are:"
+	    ls .patches/removed
+	    exit 0
+	fi
+	if [ $# -ne 1 ]
+	then echo >&2 "Usage: p recommit patchname"; exit 1
+	fi
+	case $1 in
+	    last ) pfile=`ls -d .patches/removed/[0-9]* | tail -1` ; echo last is "$pfile";;
+	    */* ) pfile=$1 ;;
+	    * ) pfile=`echo .patches/removed/*$1*`
+	esac
+	if [ ! -f "$pfile" ]
+	then echo >&2 "Cannot find unique patch '$1' - found: $pfile"; exit 1
+	fi
+	while [ -s "$pfile" ]  &&
+	     p apply last && p commit ; do : ; done
+	;;
   snapshot )
 	all_files snap_one
 	;;

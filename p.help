@@ -248,6 +248,14 @@ openall
  discarded.  This is part of the preparation for incorporating
  upstream changes.
 
+recommit
+ Usage: p recommit patchname
+
+ This command will re-apply and re-commit removed patches
+ that successfully apply until the names patch has been applied.
+ Patches are applied in reverse order, which is consistant with
+ the order in which they were removed.
+
 snapshot
  Usage: p snapshot
 
