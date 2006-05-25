@@ -167,11 +167,13 @@ int main(int argc, char *argv[])
 
 	base0 = strrchr(argv[0], '/');
 	if (base0) base0++; else base0=argv[0];
+#if 0
+	/* The name 'vpatch' seems to be used elsewhere */
 	if (strcmp(base0, "vpatch")==0) {
 		Cmd = base0;
 		mode = 'B';
 	}
-
+#endif
 	while ((opt = getopt_long(argc, argv,
 				  short_options(mode), long_options,
 				  &option_index)) != -1)
