@@ -1436,12 +1436,6 @@ abort:
 	return 1;
 }
 
-<<<<<<<
-|||||||
-#undef OLD_LEVEL
-
-=======
->>>>>>>
 static struct gendisk *md_probe(dev_t dev, int *part, void *data)
 {
 	static DECLARE_MUTEX(disks_sem);

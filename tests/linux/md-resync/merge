@@ -1148,7 +1148,11 @@ abort:
 		mempool_destroy(conf->r1buf_pool);
 		conf->r1buf_pool = NULL;
 	}
+
+	print_conf(conf);
 =======
+
+	print_conf(conf);
 >>>>>>>
 	return err;
 }
@@ -1314,6 +1318,10 @@ static int init_resync (conf_t *conf)
 			return -ENOMEM;
 
 <<<<<<<
+	close_sync(conf);
+
+}
+
 /*
  * perform a "sync" on one "block"
  *
@@ -1472,6 +1480,10 @@ static int raid1_sync_request (mddev_t *mddev, unsigned long sector_nr)
 
 	return (bsize >> 9);
 |||||||
+	close_sync(conf);
+
+}
+
 static int init_resync(conf_t *conf)
 {
 *** 1170,9 **** 8
@@ -1485,6 +1497,19 @@ nomem:
 	raid1_shrink_buffers(conf);
 	return -ENOMEM;
 }
+|||||||
+	if (!sector_nr)
+		if (init_resync(conf))
+			return -ENOMEM;
+	/*
+=======
+	if (sector_nr >= max_sector) {
+		close_sync(conf);
+		return 0;
+	}
+
+	/*
+>>>>>>>
 
 static void end_sync_read(struct buffer_head *bh, int uptodate)
 {
@@ -1513,37 +1538,7 @@ static void end_sync_write(struct buffer_head *bh, int uptodate)
 		int size = bh->b_size;
 		raid1_free_buf(r1_bh);
 		sync_request_done(sect, mddev_to_conf(mddev));
-		md_done_sync(mddev,size>>9, uptodate);
-|||||||
-	if (!sector_nr)
-		if (init_resync(conf))
-			return -ENOMEM;
-	/*
-	 * If there is non-resync activity waiting for us then
-	 * put in a delay to throttle resync.
-*** 1209,10 **** 9
-	r1_bio->sector = sector_nr;
-	r1_bio->cmd = SPECIAL;
-
-	max_sector = mddev->sb->size << 1;
-	if (sector_nr >= max_sector)
-		BUG();
-
-=======
-	if (sector_nr >= max_sector) {
-		close_sync(conf);
-		return 0;
-	}
-
-	/*
-	 * If there is non-resync activity waiting for us then
-	 * put in a delay to throttle resync.
-*** 1190,6 **** 9
-	r1_bio->sector = sector_nr;
-	r1_bio->cmd = SPECIAL;
-
->>>>>>>
-	}
+		md_done_sync(mddev,size>>9, uptodate	}
 }
 
 #define INVALID_LEVEL KERN_WARNING \

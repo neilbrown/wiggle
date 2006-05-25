@@ -94,6 +94,13 @@ inline int isolate_conflicts(struct file af, struct file bf, struct file cf,
 	 * Also, unless 'words', we need to include any partial lines
 	 * in the Unchanged text that forms the border of a conflict.
 	 *
+	 * A Changed text may also border a conflict, but it can
+	 * only border one conflict (where as an Unchanged can border
+	 * a preceeding and a following conflict).
+	 * The 'new' section of a Changed text appears in the
+	 * conflict as does any part of the original before
+	 * a newline.
+	 *
 	 */
 	int i,j,k;
 	int cnt = 0;
@@ -115,7 +122,14 @@ inline int isolate_conflicts(struct file af, struct file bf, struct file cf,
 				if (!m[j].in_conflict) {
 					m[j].in_conflict = 1;
 					m[j].lo = 0;
+				} else if (m[j].type == Changed) {
+					/* This can no longer form a border */
+					m[j].lo = 0; m[j].hi = -1;
+					/* We merge these conflicts and stop searching */
+					cnt--;
+					break;
 				}
+
 				if (m[j].type == Unchanged || m[j].type == Changed) {
 					if (words) {
 						m[j].hi = m[j].al;
@@ -125,23 +139,40 @@ inline int isolate_conflicts(struct file af, struct file bf, struct file cf,
 					 * might be after the last newline, if there
 					 * is one, or might be at the start
 					 */
-					for (k=m[j].al; k>0; k--) 
+					for (k=m[j].al; k>0; k--)
 						if (ends_line(af.list[m[j].a+k-1]))
 							break;
-					if (k>0) {
+					if (k > 0)
 						m[j].hi = k;
-						break;
-					}
-					if ((m[j].a == 0 || ends_line(af.list[m[j].a-1])) &&
-					    (m[j].b == 0 || ends_line(bf.list[m[j].b-1])) &&
-					    (m[j].c == 0 || ends_line(cf.list[m[j].c-1]))){
+					else if ((m[j].a == 0 || ends_line(af.list[m[j].a-1])) &&
+						 (m[j].b == 0 || ends_line(bf.list[m[j].b-1])) &&
+						 (m[j].c == 0 || ends_line(cf.list[m[j].c-1])))
 						m[j].hi = 0;
-						break;
+					else
+						/* no start-of-line found... */
+						m[j].hi = -1;
+					if (m[j].hi > 0 && m[j].type == Changed) {
+						/* this can only work if start is also a linke break */
+						if ((m[j].a == 0 || ends_line(af.list[m[j].a-1])) &&
+						    (m[j].b == 0 || ends_line(bf.list[m[j].b-1])) &&
+						    (m[j].c == 0 || ends_line(cf.list[m[j].c-1])))
+							/* ok */;
+						else
+							m[j].hi = -1;
 					}
-					/* no start-of-line found... */
-					m[j].hi = -1;
+					if (m[j].hi >= 0)
+						break;
 				}
 			}
+#if 0
+			if (j>=0 && m[j].in_conflict && m[j].type == Unchanged &&
+			    m[j].hi == m[j].lo) {
+				/* nothing to separate conflicts, merge them */
+				m[j].lo = 0;
+				m[j].hi = -1;
+				cnt--;
+			}
+#endif
 			/* now the forward search */
 			for (j=i+1; m[j].type != End; j++) {
 				m[j].in_conflict = 1;
@@ -157,19 +188,29 @@ inline int isolate_conflicts(struct file af, struct file bf, struct file cf,
 					 */
 					if ((m[j].a == 0 || ends_line(af.list[m[j].a-1])) &&
 					    (m[j].b == 0 || ends_line(bf.list[m[j].b-1])) &&
-					    (m[j].c == 0 || ends_line(cf.list[m[j].c-1]))){
+					    (m[j].c == 0 || ends_line(cf.list[m[j].c-1])))
 						m[j].lo = 0;
-						break;
+					else {
+						for (k = 0 ; k < m[j].al ; k++)
+							if (ends_line(af.list[m[j].a+k]))
+								break;
+						if (k<m[j].al)
+							m[j].lo = k+1;
+						else
+							/* no start-of-line found */
+							m[j].lo = m[j].al+1;
 					}
-					for (k=0; k<m[j].al; k++)
-						if (ends_line(af.list[m[j].a+k]))
-							break;
-					if (k<m[j].al) {
-						m[j].lo = k+1;
-						break;
+					if (m[j].lo <= m[j].al+1 && m[j].type == Changed) {
+						/* this can only work if the end is a line break */
+						if (ends_line(af.list[m[j].a+m[j].al-1]) &&
+						    ends_line(bf.list[m[j].b+m[j].bl-1]) &&
+						    ends_line(cf.list[m[j].c+m[j].cl-1]))
+							/* ok */;
+						else
+							m[j].lo = m[j].al+1;
 					}
-					/* no start-of-line found */
-					m[j].lo = m[j].al+1;
+					if (m[j].lo < m[j].al+1)
+						break;
 				}
 			}
 			i = j;
@@ -346,11 +387,11 @@ struct ci print_merge2(FILE *out, struct file *a, struct file *b, struct file *c
 			 * Unchanged which is < it's hi
 			 */
 			int st = m->hi;
+			if (m->hi <= m->lo)
+				st = 0;
 
 			if (m->type == Unchanged)
 				printrange(out, a, m->a+m->lo, m->hi - m->lo);
-			else
-				printrange(out, c, m->c, m->cl);
 
 #if 1
 		if (v)
@@ -366,7 +407,7 @@ struct ci print_merge2(FILE *out, struct file *a, struct file *b, struct file *c
 				       cm->b, cm->b+cm->bl-1,
 				       cm->c, cm->c+cm->cl-1, cm->in_conflict?" in_conflict":"",
 				       cm->lo, cm->hi);
-				if (cm->type == Unchanged && cm != m && cm->lo < cm->hi)
+				if ((cm->type == Unchanged ||cm->type == Changed) && cm != m && cm->lo < cm->hi)
 					break;
 			}
 #endif
@@ -393,17 +434,19 @@ struct ci print_merge2(FILE *out, struct file *a, struct file *b, struct file *c
 			fputs(words?"===":"=======\n", out);
 			st = m->hi;
 			for (cm=m; cm->in_conflict; cm++) {
-				if ((cm->type == Unchanged || cm->type == Changed) && cm != m && cm->lo < cm->hi) {
-					if (cm->type == Unchanged)
-						printrange(out, c, cm->c, cm->lo);
+				if (cm->type == Unchanged && cm != m && cm->lo < cm->hi) {
+					printrange(out, c, cm->c, cm->lo);
 					break;
 				}
+				if (cm->type == Changed)
+					st = 0; /* All of result of change must be printed */
 				printrange(out, c, cm->c+st, cm->cl-st);
 				st = 0;
 			}
 			fputs(words?"--->>>":">>>>>>>\n", out);
 			m = cm;
-			if (m->type == Unchanged && m->in_conflict && m->hi >= m->al) {
+			if (m->in_conflict && m->hi >= m->al) {
+				assert(m->type == Unchanged);
 				printrange(out, a, m->a+m->lo, m->hi-m->lo);
 				m++;
 			}
@@ -414,6 +457,21 @@ struct ci print_merge2(FILE *out, struct file *a, struct file *b, struct file *c
 		 */
 		if (m->type == End)
 			break;
+#if 1
+		if (v) {
+			printf("<<%s: %d-%d,%d-%d,%d-%d%s(%d,%d)>>\n",
+			       m->type==Unmatched?"Unmatched":
+			       m->type==Unchanged?"Unchanged":
+			       m->type==Extraneous?"Extraneous":
+			       m->type==Changed?"Changed":
+			       m->type==AlreadyApplied?"AlreadyApplied":
+			       m->type==Conflict?"Conflict":"unknown",
+			       m->a, m->a+m->al-1,
+			       m->b, m->b+m->bl-1,
+			       m->c, m->c+m->cl-1, m->in_conflict?" in_conflict":"",
+			       m->lo, m->hi);
+		}
+#endif
 		switch(m->type) {
 		case Unchanged:
 		case AlreadyApplied:

@@ -22,8 +22,12 @@ static void raid5_build_block (struct stripe_head *sh, int i)
 	dev->flags = 0;
 	if (i != sh->pd_idx)
 <<<<<<<
+	bh->b_size	= sh->size;
 	bh->b_list	= BUF_LOCKED;
+	return bh;
 |||||||
+	bh->b_size	= sh->size;
+	return bh;
 =======
 		dev->sector = compute_blocknr(sh, i);
 >>>>>>>
