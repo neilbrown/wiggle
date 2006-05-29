@@ -506,7 +506,7 @@ case $cmd in
 	echo "Using $pfile..."
 
 	# make sure patch applies in reverse
-	if patch -s --fuzz=0  -l --dry-run -f -p0 -R < "$pfile"
+	if patch -s --fuzz=2  -l --dry-run -f -p0 -R < "$pfile"
 	then echo "Yep, that seems to be included"
 	elif [ -n "$force" ]
 	then echo "It doesn't apply reverse-out cleanly, but you asked for it..."
