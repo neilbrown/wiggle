@@ -1499,14 +1499,36 @@ void merge_window(struct plist *p, FILE *f, int reverse)
 			}
 			break;
 		case 'N':
-			/* Next 'patch' */
-			while (pos.p.m >= 0 && ci.merger[pos.p.m].type == Unmatched)
-				next_mline(&pos,fm,fb,fa,ci.merger, mode);
-			row = -10;
+			/* Next diff */
+			tpos = pos; row--;
+			do {
+				pos = tpos; row++;
+				next_mline(&tpos, fm,fb,fa,ci.merger, mode);
+			} while (pos.side != 0 && ci.merger[tpos.p.m].type != End);
+			tpos = pos; row--;
+			do {
+				pos = tpos; row++;
+				next_mline(&tpos, fm,fb,fa,ci.merger, mode);
+			} while (pos.side == 0 && ci.merger[tpos.p.m].type != End);
+
 			break;
+		case 'P':
+			/* Previous diff */
+			tpos = pos; row++;
+			do {
+				pos = tpos; row--;
+				prev_mline(&tpos, fm,fb,fa,ci.merger, mode);
+			} while (tpos.side == 0 && tpos.p.m >= 0);
+			tpos = pos; row++;
+			do {
+				pos = tpos; row--;
+				prev_mline(&tpos, fm,fb,fa,ci.merger, mode);
+			} while (tpos.side != 0 && tpos.p.m >= 0);
+
+			break;
+
 		case 'k':
 		case 'p':
-		case 'P':
 		case 'P'-64:
 		case KEY_UP:
 			if (tnum < 0) tnum = 1;

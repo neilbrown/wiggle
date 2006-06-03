@@ -174,13 +174,13 @@ TODO
 DONE - implemented Grouped diffs
 DONE - at same time, lines with no diff should show no diff.
  - put line/col number is status bar
- - allow cursor to move left/right an scroll-on-demand.
+ - allow cursor to move left/right and scroll-on-demand.
  - If we have selected 'before', then don't show 'after' lines..
 DONE - blank after end and before begining
  - better movement:
      DONE   top
      DONE   bottom
-        next/prev diff
+     DONE   next/prev diff
         next/prev conflict
         incr-search
      DONE   page up/down
