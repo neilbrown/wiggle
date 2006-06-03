@@ -1594,6 +1594,17 @@ void merge_window(struct plist *p, FILE *f, int reverse)
 			target = col + 1;
 			break;
 
+		case '^':
+		case 'A'-64:
+			/* Start of line */
+			target = 0;
+			break;
+		case '$':
+		case 'E'-64:
+			/* End of line */
+			target = 1000;
+			break;
+
 		case 'a': /* 'after' view in patch window */
 			if (mode & AFTER)
 				mode &= ~BEFORE;

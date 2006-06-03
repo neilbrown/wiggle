@@ -184,7 +184,7 @@ DONE - blank after end and before begining
         next/prev conflict
         incr-search
      DONE   page up/down
-        beginning/end of line
+     DONE   beginning/end of line
         left-right to handle line breaks.
  - handle single .rej file
  - allow updates to be saved
