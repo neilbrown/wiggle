@@ -174,7 +174,7 @@ TODO
 DONE - implemented Grouped diffs
 DONE - at same time, lines with no diff should show no diff.
  - put line/col number is status bar
- - allow cursor to move left/right and scroll-on-demand.
+DONE - allow cursor to move left/right and scroll-on-demand.
  - If we have selected 'before', then don't show 'after' lines..
 DONE - blank after end and before begining
  - better movement:
@@ -184,6 +184,8 @@ DONE - blank after end and before begining
         next/prev conflict
         incr-search
      DONE   page up/down
+        beginning/end of line
+        left-right to handle line breaks.
  - handle single .rej file
  - allow updates to be saved
  - allow editing???

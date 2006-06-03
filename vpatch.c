@@ -1165,7 +1165,8 @@ int check_line(struct mpos pos, struct file fm, struct file fb, struct file fa,
 
 void draw_mside(int mode, int row, int offset, int start, int cols,
 		struct file fm, struct file fb, struct file fa, struct merge *m,
-		struct mpos pos)
+		struct mpos pos,
+		int target, int *colp)
 {
 	/* find previous visible newline, or start of file */
 	struct elmnt e;
@@ -1181,6 +1182,7 @@ void draw_mside(int mode, int row, int offset, int start, int cols,
 		e = next_melmnt(&pos, fm,fb,fa,m);
 		if (e.start == NULL ||
 		    (ends_mline(e) && visible(mode, m[pos.p.m].type, pos.p.s) != -1)) {
+			if (colp) *colp = col;
 			if (col < start) col = start;
 			if (e.start && e.start[0] == 0) {
 				attrset(visible(mode, m[pos.p.m].type, pos.p.s));
@@ -1215,6 +1217,10 @@ void draw_mside(int mode, int row, int offset, int start, int cols,
 				col++;
 			}
 			c++;
+			if (colp && target <= col) {
+				*colp = col;
+				colp = NULL;
+			}
 			l--;
 		}
 	}
@@ -1223,7 +1229,8 @@ void draw_mside(int mode, int row, int offset, int start, int cols,
 void draw_mline(int row, struct mpos pos,
 		struct file fm, struct file fb, struct file fa,
 		struct merge *m,
-		int start, int cols, int mode)
+		int start, int cols, int mode,
+		int target, int *colp)
 {
 	/*
 	 * Draw the left and right images of this line
@@ -1254,14 +1261,16 @@ void draw_mline(int row, struct mpos pos,
 	if (visible(mode&(ORIG|RESULT), m[pos.p.m].type, pos.p.s) >= 0)
 		/* visible on left */
 		draw_mside(mode&(ORIG|RESULT), row, 1, start, lcols,
-			   fm,fb,fa,m, pos);
-	else
+			   fm,fb,fa,m, pos, target, colp);
+	else {
 		blank(row, 0, lcols+1, a_void);
+		if (colp) *colp = 0;
+	}
 
 	if (visible(mode&(BEFORE|AFTER), m[pos.p.m].type, pos.p.s) >= 0)
 		/* visible on right */
 		draw_mside(mode&(BEFORE|AFTER), row, lcols+3, start, rcols,
-			   fm,fb,fa,m, pos);
+			   fm,fb,fa,m, pos, 0, NULL);
 	else
 		blank(row, lcols+2, rcols+1, a_void);
 }
@@ -1293,7 +1302,7 @@ void merge_window(struct plist *p, FILE *f, int reverse)
 	 * 'pos' is always a newline (or eof).
 	 * For each side that this newline is visible on, we
 	 * rewind the previous newline visible on this side, and
-	 * the display the stuff inbetween
+	 * the display the stuff in between
 	 *
 	 * A 'position' is an offset in the merger, a stream
 	 * choice (a,b,c - some aren't relevant) and an offset in
@@ -1312,6 +1321,7 @@ void merge_window(struct plist *p, FILE *f, int reverse)
 	int mode = ORIG|RESULT | BEFORE|AFTER;
 
 	int row,start = 0;
+	int col=0, target=0;
 	struct mpos pos;
 	struct mpos tpos, toppos, botpos;
 	int toprow,botrow;
@@ -1372,9 +1382,9 @@ void merge_window(struct plist *p, FILE *f, int reverse)
 		}
 		if (row < 1 || row >= rows)
 			refresh = 1;
-		if (refresh) {
 
-			refresh = 0;
+
+		if (refresh) {
 			getmaxyx(stdscr, rows, cols);
 			rows--; /* keep last row clear */
 			if (row < -3)
@@ -1385,7 +1395,36 @@ void merge_window(struct plist *p, FILE *f, int reverse)
 				row = (rows-1)/2+1;
 			if (row >= rows)
 				row = rows-1;
+		}
+
+		/* Always refresh the line */
+		while (start > target) { start -= 8; refresh = 1;}
+		if (start < 0) start = 0;
+	retry:
+		mode2 = check_line(pos, fm,fb,fa,ci.merger,mode);
+		if ((pos.side <= 0) && (mode2 & (ORIG|BEFORE)))
+			draw_mline(row,pos,fm,fb,fa,ci.merger,start,cols, mode2&(ORIG|BEFORE|CHANGED|CHANGES), target, &col);
+		else if (pos.side > 0 && (mode2 & (RESULT|AFTER))) {
+			if (mode2 & CHANGED)
+				draw_mline(row,pos,fm,fb,fa,ci.merger,start,cols, mode2&(RESULT|AFTER|CHANGED|CHANGES), target, &col);
+			else if (mode2 & CHANGES)
+				draw_mline(row,pos,fm,fb,fa,ci.merger,start,cols, mode2&(AFTER|CHANGED|CHANGES), target, &col);
+		}
+		if (col > (cols-3)/2+start) {
+			start += 8;
+			refresh = 1;
+			goto retry;
+		}
+		if (col < start) {
+			start -= 8;
+			refresh = 1;
+			if (start < 0) start = 0;
+			goto retry;
+		}
+		if (refresh) {
+			refresh = 0;
 			tpos = pos;
+
 			for (i=row-1; i>=1 && tpos.p.m >= 0; ) {
 				prev_mline(&tpos, fm,fb,fa,ci.merger, mode);
 				mode2 = check_line(tpos, fm,fb,fa, ci.merger, mode);
@@ -1393,13 +1432,13 @@ void merge_window(struct plist *p, FILE *f, int reverse)
 				if (tpos.side == 1 &&
 				    (mode2 & (RESULT|AFTER)) &&
 				    (mode2 & (CHANGED)))
-					draw_mline(i--,tpos,fm,fb,fa,ci.merger,start,cols, mode2&(RESULT|AFTER|CHANGED|CHANGES));
+					draw_mline(i--,tpos,fm,fb,fa,ci.merger,start,cols, mode2&(RESULT|AFTER|CHANGED|CHANGES), 0, NULL);
 				else if (tpos.side == 1 &&
 					 (mode2 & (RESULT|AFTER)) &&
 				    (mode2 & (CHANGES)))
-					draw_mline(i--,tpos,fm,fb,fa,ci.merger,start,cols, mode2&(AFTER|CHANGED|CHANGES));
+					draw_mline(i--,tpos,fm,fb,fa,ci.merger,start,cols, mode2&(AFTER|CHANGED|CHANGES), 0, NULL);
 				else if ((tpos.side == 0 || tpos.side == -1) && (mode2 & (ORIG|BEFORE)))
-					draw_mline(i--,tpos,fm,fb,fa,ci.merger,start,cols, mode2&(ORIG|BEFORE|CHANGED|CHANGES));
+					draw_mline(i--,tpos,fm,fb,fa,ci.merger,start,cols, mode2&(ORIG|BEFORE|CHANGED|CHANGES), 0, NULL);
 			}
 			toppos = tpos; toprow = i;
 			while (i >= 1)
@@ -1408,24 +1447,25 @@ void merge_window(struct plist *p, FILE *f, int reverse)
 			for (i=row; i<rows && ci.merger[tpos.p.m].type != End; ) {
 				mode2 = check_line(tpos, fm,fb,fa,ci.merger,mode);
 				if ((tpos.side <= 0) && (mode2 & (ORIG|BEFORE)))
-					draw_mline(i++,tpos,fm,fb,fa,ci.merger,start,cols, mode2&(ORIG|BEFORE|CHANGED|CHANGES));
+					draw_mline(i++,tpos,fm,fb,fa,ci.merger,start,cols, mode2&(ORIG|BEFORE|CHANGED|CHANGES), 0, NULL);
 				else if (tpos.side > 0 && (mode2 & (RESULT|AFTER))) {
 					if (mode2 & CHANGED)
-						draw_mline(i++,tpos,fm,fb,fa,ci.merger,start,cols, mode2&(RESULT|AFTER|CHANGED|CHANGES));
+						draw_mline(i++,tpos,fm,fb,fa,ci.merger,start,cols, mode2&(RESULT|AFTER|CHANGED|CHANGES), 0, NULL);
 					else if (mode2 & CHANGES)
-						draw_mline(i++,tpos,fm,fb,fa,ci.merger,start,cols, mode2&(AFTER|CHANGED|CHANGES));
+						draw_mline(i++,tpos,fm,fb,fa,ci.merger,start,cols, mode2&(AFTER|CHANGED|CHANGES), 0, NULL);
 				}
 				next_mline(&tpos, fm,fb,fa,ci.merger, mode);
 			}
 			botpos = tpos; botrow = i;
 			while (i<rows)
 				blank(i++, 0, cols, a_void);
+		} else {
 		}
 		move(rows,0);
 		if (num>=0) { char buf[10]; sprintf(buf, "%d ", num); addstr(buf);}
 		if (meta) addstr("ESC...");
 		clrtoeol();
-		move(row,0);
+		move(row,col-start);
 		c = getch();
 		tmeta = meta; meta = 0;
 		tnum = num; num = -1;
@@ -1542,6 +1582,18 @@ void merge_window(struct plist *p, FILE *f, int reverse)
 			}
 			break;
 
+		case KEY_LEFT:
+		case 'h':
+			/* left */
+			target = col - 1;
+			if (target < 0) target = 0;
+			break;
+		case KEY_RIGHT:
+		case 'l':
+			/* right */
+			target = col + 1;
+			break;
+
 		case 'a': /* 'after' view in patch window */
 			if (mode & AFTER)
 				mode &= ~BEFORE;
@@ -1570,7 +1622,7 @@ void merge_window(struct plist *p, FILE *f, int reverse)
 				mode |= RESULT;
 			refresh = 1;
 			break;
-
+#if 0
 		case 'h':
 		case KEY_LEFT:
 			if (start > 0) start--;
@@ -1581,6 +1633,7 @@ void merge_window(struct plist *p, FILE *f, int reverse)
 			if (start < cols) start++;
 			refresh = 1;
 			break;
+#endif
 		}
 	}
 }
