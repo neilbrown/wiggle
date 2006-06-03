@@ -768,7 +768,8 @@ void diff_window(struct plist *p, FILE *f)
 		move(row,0);
 		c = getch();
 		switch(c) {
-		case 27:
+		case 27: /* escape */
+			break;
 		case 'q':
 			return;
 		case 'L'-64:
@@ -1312,6 +1313,8 @@ void merge_window(struct plist *p, FILE *f, int reverse)
 	struct mpos pos;
 	struct mpos tpos, tpos2;
 	int mode2;
+	int meta = 0, tmeta;
+	int num= -1, tnum;
 
 	sp = load_segment(f, p->start, p->end);
 	if (reverse)
@@ -1364,12 +1367,13 @@ void merge_window(struct plist *p, FILE *f, int reverse)
 			attrset(A_NORMAL);
 			refresh = 1;
 		}
-		if (row < 1 || rows >= rows)
+		if (row < 1 || row >= rows)
 			refresh = 1;
 		if (refresh) {
 
 			refresh = 0;
 			getmaxyx(stdscr, rows, cols);
+			rows--; /* keep last row clear */
 			if (row < -3)
 				row = (rows-1)/2+1;
 			if (row < 1)
@@ -1412,10 +1416,45 @@ void merge_window(struct plist *p, FILE *f, int reverse)
 			while (i<rows)
 				blank(i++, 0, cols, a_void);
 		}
+		move(rows,0);
+		if (num>=0) { char buf[10]; sprintf(buf, "%d ", num); addstr(buf);}
+		if (meta) addstr("ESC...");
+		clrtoeol();
 		move(row,0);
 		c = getch();
-		switch(c) {
-		case 27:
+		tmeta = meta; meta = 0;
+		tnum = num; num = -1;
+#define META(c) ((c)|0x1000)
+		switch(c | tmeta) {
+		case 27: /* escape */
+		case META(27):
+			meta = META(0);
+			break;
+		case META('<'): /* start of file */
+		start:
+			tpos = pos; row++;
+			do {
+				pos = tpos; row--;
+				prev_mline(&tpos, fm,fb,fa,ci.merger,mode);
+			} while (tpos.p.m >= 0);
+			if (row <= 0)
+				row = 0;
+			break;
+		case META('>'): /* end of file */
+		case 'G':
+			if (tnum >=0) goto start;
+			tpos = pos; row--;
+			do {
+				pos = tpos; row++;
+				next_mline(&tpos, fm,fb,fa,ci.merger,mode);
+			} while (ci.merger[tpos.p.m].type != End);
+			if (row >= rows)
+				row = rows;
+			break;
+		case '0' ... '9':
+			if (tnum < 0) tnum = 0;
+			num = tnum*10 + (c-'0');
+			break;
 		case 'q':
 			return;
 		case 'L'-64:
@@ -1427,11 +1466,14 @@ void merge_window(struct plist *p, FILE *f, int reverse)
 		case 'n':
 		case 'N'-64:
 		case KEY_DOWN:
-			tpos = pos;
-			next_mline(&tpos, fm,fb,fa,ci.merger, mode);
-			if (ci.merger[tpos.p.m].type != End) {
-				pos = tpos;
-				row++;
+			if (tnum < 0) tnum = 1;
+			for (; tnum > 0 ; tnum--) {
+				tpos = pos;
+				next_mline(&tpos, fm,fb,fa,ci.merger, mode);
+				if (ci.merger[tpos.p.m].type != End) {
+					pos = tpos;
+					row++;
+				}
 			}
 			break;
 		case 'N':
@@ -1445,11 +1487,14 @@ void merge_window(struct plist *p, FILE *f, int reverse)
 		case 'P':
 		case 'P'-64:
 		case KEY_UP:
-			tpos = pos;
-			prev_mline(&tpos, fm,fb,fa,ci.merger, mode);
-			if (tpos.p.m >= 0) {
-				pos = tpos;
-				row--;
+			if (tnum < 0) tnum = 1;
+			for (; tnum > 0 ; tnum--) {
+				tpos = pos;
+				prev_mline(&tpos, fm,fb,fa,ci.merger, mode);
+				if (tpos.p.m >= 0) {
+					pos = tpos;
+					row--;
+				}
 			}
 			break;
 
@@ -1614,6 +1659,11 @@ void main_window(struct plist *pl, int n, FILE *f, int reverse)
 			}
 			break;
 		case 27: /* escape */
+			mvaddstr(0,70,"ESC..."); clrtoeol();
+			c = getch();
+			switch(c) {
+			}
+			break;
 		case 'q':
 			return;
 

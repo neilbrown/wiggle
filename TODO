@@ -178,8 +178,8 @@ DONE - at same time, lines with no diff should show no diff.
  - If we have selected 'before', then don't show 'after' lines..
 DONE - blank after end and before begining
  - better movement:
-        top
-        bottom
+     DONE   top
+     DONE   bottom
         next/prev diff
         next/prev conflict
         incr-search
