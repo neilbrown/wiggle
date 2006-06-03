@@ -863,7 +863,9 @@ struct elmnt next_melmnt(struct mpos *pos,
 	int l;
 	pos->p.o++;
 	while(1) {
-		switch(pos->p.s) {
+		if (pos->p.m < 0)
+			l = 0;
+		else switch(pos->p.s) {
 		case 0: l = m[pos->p.m].al; break;
 		case 1: l = m[pos->p.m].bl; break;
 		case 2: l = m[pos->p.m].cl; break;
