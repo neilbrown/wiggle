@@ -107,3 +107,193 @@ other things
         If it does, expand both chunks with common data from the other
          then run the diff code, then extract the new middle
 
+----------------------------
+27May2006
+
+I need to improve the browsing mode. Displaying before and
+after on the one line doesn't work very well.
+I think both the orignal/result and the before/after views need to
+to have  -/+ lines for any difference.
+So, for each newline we need to record whether there are any differences
+on the line or not.  If there are, we will need to display that
+line twice, once before and once after.
+This means we need to acknowledge two 'line' cursor positions?
+   Yes, if we are ever to have an edit cursor...
+  But don't we only need to edit the 'after'
+   Probably safer to provide for editing both as we might want to
+   do that before reapplying the diff.
+
+When we have consecutive newlines that are flagged, how do we display them?
+Grouped or interleaved?
+Grouped:
+   - AAA
+   - BBB
+   + aaa
+   + bbb
+Interleaved
+   - AAA
+   + aaa
+   - BBB
+   + bbb
+Grouped is what 'diff -u' generally does, however we know more about the 
+content of the lines an whether it is a line that has been changed or a larger
+chunk.  Maybe try one and see...
+
+If a line only has additions, or only has deletions it might be safe to just
+display the more complete line.. maybe leave that for wait-and-see too.
+
+For Grouped diff, we need to locate a group. Maybe we flag newlines as
+group-begin and group-end.
+
+Need to think this through..
+
+A 'pos' is the end of a line.  We only 'sit' on eols that are visible
+We know the merger entry that covers this eol, and a position in one stream.
+If whole line is in
+    Unmatched, Unchange, Extraneous,
+Then we just show the line undecorated.
+If the line contins Changed, we show orig/result as separate lines.
+If line contains Changed, AlreadyApplied or Conflict, we show before/after as separate lines
+
+We, when we 'draw_mline'. We first do the 'before/orig' lines.
+If there is a Changed we signal that we need a RESULT and put in a '-'
+If there is a Changed, AlreadyApplied or Conflict, we signal the need for
+        an AFTER and put in a '-'.
+If either were needed, we put in another line
+
+Grouped diff:
+ as well as 'pos' we have start and end, and 'side'.
+   start is the first line in the set containing pos that have CHANGES set.
+   end is the last line in the same set
+   size is either 0 if row is a ' ', -1 if a '-' or 1 if row is a '+'
+
+ We need to allow for all of this when walking up and down for drawing lines.
+
+TODO
+ - what is 'cleanlist' meant to do - it seems to badly break things.
+DONE - implemented Grouped diffs
+DONE - at same time, lines with no diff should show no diff.
+ - put line/col number is status bar
+ - allow cursor to move left/right an scroll-on-demand.
+ - If we have selected 'before', then don't show 'after' lines..
+ - blank after end and before begining
+ - better movement:
+        top
+        bottom
+        next/prev diff
+        next/prev conflict
+        incr-search
+        page up/down
+ - handle single .rej file
+ - allow updates to be saved
+ - allow editing???
+
+
+- extract.c should be able to extract half of a word-diff
+- extract.c should work on word-merges
+- review all test output to make sure it looks right
+- document 'p' DOING
+- can find_best be optimised more?
+- --verbose flag ?? what should it do?
+- review commented code and discard some of it
+- test on raid code
+- possibly encourage "###...####" onto line by itself in diff output
+- possibly remember match information while reading patch/merge
+  to help matching.
+- is there anything useful to be done with linenumber information?
+- document diff algorithm
+- document best-match algorithm
+- document merge algorithm
+- enhance 'p'
+  - editmail?  reviewmail
+  - review wiggle failures
+
+- Application of patch-03-MdRaid5Works caused some odd matches
+
+- possible verbosity:
+     report lines at which each patch was applied.??
+- add examples to man page
+
+- Design viewer.
+   Maybe:
+    3 windows: before, patch, after
+
+-----------------------------------
+p - md.c - wait_event_interruptible
+  The preceeding tabs aren't noticed as being the same...
+
+
+-----------------------------------
+31 March 2005
+Some possible targets:
+
+ - check new marge code on all tests
+ - output merge as a diff from original
+ - handle multi-file patchs, producing new patch or updating files
+ - improve diff3 markers
+ - modified
+ - preserve permissions in created file
+ - allow output to have just one stream selected of conflicts.
+ - allow 'output' to include .rej files
+ - fix "produced this was" -> "produced this way" in man page
+
+other things
+ - Read a series of patches and determine dependancies
+   Then push a given patch forward or backward in the list.
+   Possibly full determination of dependancies isn't needed.
+   Just pust the target patch until it hits a wall, then
+   push the wall as far as it goes.
+   A potential 'wall' happens when inserted text is deleted.
+   We refine A -> B -> C and see if it can be broken up with
+   common a->a->a sections and between them,
+    x->x->y or p->q->q
+   There can then become x->y->y and p->p->q
+   But suppose we find x->x->y and p->q->q with no
+   a->a->a in between.  Are we allowed to handle that?
+
+   This is a sentence
+    (is -> was)
+   This was a sentence
+    (a -> my)
+   This was my sentence
+ 
+   Commutine the patches give
+   This is a sentence
+    (a -> my)
+   This is my sentence
+    (is -> was)
+   This was my sentence
+
+   That seems safe enough.  How about insertions and deletions?
+    This a sentence 
+     (add is)
+    This is a sentence
+      (remove a)
+    This is sentence 
+
+    This a sentence
+      (remove a)
+    This setence
+      (add is)
+    This is sentence
+
+    Seems ok... Maybe the fact that we have perfect matches (no extraneous stuff)
+    make it easier....
+
+
+    So: first sort the blocks (well, the files) and see if there is any overlap
+    of after-A with before-B.
+    If not, we update offsets.  Maybe store each chunk as offset-from-end-of-last.
+    If so, we extend both blocks, possibly including other blocks, to get two blocks
+    that start and end at the same place.
+    Then run a word-wise merge-like thing.  If there are no conflicts, extract the new
+    intermediate file and create the new diff from that.
+
+    So: each patch is a list of files with hunks
+      the hunks may grow extra context as it is found in other hunks
+       and may even merge.
+     To commute two patches:
+        If a chunk doesn't match any chunk in other file, just retain it.
+        If it does, expand both chunks with common data from the other
+         then run the diff code, then extract the new middle
+
