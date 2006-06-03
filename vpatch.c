@@ -1361,6 +1361,7 @@ void merge_window(struct plist *p, FILE *f, int reverse)
 	char search[80];
 	int searchlen = 0;
 	int search_notfound = 0;
+	int searchdir;
 	struct search_anchor {
 		struct search_anchor *next;
 		struct mpos pos;
@@ -1507,6 +1508,7 @@ void merge_window(struct plist *p, FILE *f, int reverse)
 		if (num>=0) { char buf[10]; sprintf(buf, "%d ", num); addstr(buf);}
 		if (meta & META(0)) addstr("ESC...");
 		if (meta & SEARCH(0)) {
+			if (searchdir) addstr("Backwards ");
 			addstr("Search: ");
 			addstr(search);
 			if (search_notfound)
@@ -1557,14 +1559,28 @@ void merge_window(struct plist *p, FILE *f, int reverse)
 			meta = SEARCH(0);
 			searchlen = 0;
 			search[searchlen] = 0;
+			searchdir = 0;
+			break;
+		case '\\':
+		case 'R'-64:
+			/* incr search backwards */
+			meta = SEARCH(0);
+			searchlen = 0;
+			search[searchlen] = 0;
+			searchdir = 1;
 			break;
 		case SEARCH('G'-64):
 		case SEARCH('S'-64):
 			/* search again */
 			meta = SEARCH(0);
 			tpos = pos; trow = row;
-			trow++;
-			next_mline(&tpos, fm,fb,fa,ci.merger,mode);
+			if (searchdir) {
+				trow--;
+				prev_mline(&tpos, fm,fb,fa,ci.merger,mode);
+			} else {
+				trow++;
+				next_mline(&tpos, fm,fb,fa,ci.merger,mode);
+			}
 			goto search_again;
 
 		case SEARCH('H'-64):
@@ -1605,9 +1621,14 @@ void merge_window(struct plist *p, FILE *f, int reverse)
 					search_notfound = 0;
 					break;
 				}
-				trow++;
-				next_mline(&tpos, fm,fb,fa,ci.merger,mode);
-			} while (ci.merger[tpos.p.m].type != End);
+				if (searchdir) {
+					trow--;
+					prev_mline(&tpos, fm,fb,fa,ci.merger,mode);
+				} else {
+					trow++;
+					next_mline(&tpos, fm,fb,fa,ci.merger,mode);
+				}
+			} while (tpos.p.m >= 0 && ci.merger[tpos.p.m].type != End);
 
 			break;
 		case 'L'-64:

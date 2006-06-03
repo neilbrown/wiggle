@@ -183,6 +183,9 @@ DONE - blank after end and before begining
      DONE   next/prev diff
         next/prev conflict
         incr-search
+        find char pos in search and highlight
+        multiple finds per line
+	switch from forward to reverse.
      DONE   page up/down
      DONE   beginning/end of line
         left-right to handle line breaks.
