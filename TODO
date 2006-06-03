@@ -176,7 +176,7 @@ DONE - at same time, lines with no diff should show no diff.
  - put line/col number is status bar
  - allow cursor to move left/right an scroll-on-demand.
  - If we have selected 'before', then don't show 'after' lines..
- - blank after end and before begining
+DONE - blank after end and before begining
  - better movement:
         top
         bottom
@@ -187,7 +187,7 @@ DONE - at same time, lines with no diff should show no diff.
  - handle single .rej file
  - allow updates to be saved
  - allow editing???
-
+ - better colours?
 
 - extract.c should be able to extract half of a word-diff
 - extract.c should work on word-merges

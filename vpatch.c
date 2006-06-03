@@ -1394,6 +1394,8 @@ void merge_window(struct plist *p, FILE *f, int reverse)
 				else if ((tpos.side == 0 || tpos.side == -1) && (mode2 & (ORIG|BEFORE)))
 					draw_mline(i--,tpos,fm,fb,fa,ci.merger,start,cols, mode2&(ORIG|BEFORE|CHANGED|CHANGES));
 			}
+			while (i >= 1)
+				blank(i--, 0, cols, a_void);
 			tpos = pos; tpos2.p = pos.lo;
 			for (i=row; i<rows && ci.merger[tpos.p.m].type != End; ) {
 				mode2 = check_line(tpos, fm,fb,fa,ci.merger,mode);
@@ -1407,6 +1409,8 @@ void merge_window(struct plist *p, FILE *f, int reverse)
 				}
 				next_mline(&tpos, fm,fb,fa,ci.merger, mode);
 			}
+			while (i<rows)
+				blank(i++, 0, cols, a_void);
 		}
 		move(row,0);
 		c = getch();
