@@ -1313,7 +1313,8 @@ void merge_window(struct plist *p, FILE *f, int reverse)
 
 	int row,start = 0;
 	struct mpos pos;
-	struct mpos tpos, tpos2;
+	struct mpos tpos, toppos, botpos;
+	int toprow,botrow;
 	int mode2;
 	int meta = 0, tmeta;
 	int num= -1, tnum;
@@ -1384,7 +1385,7 @@ void merge_window(struct plist *p, FILE *f, int reverse)
 				row = (rows-1)/2+1;
 			if (row >= rows)
 				row = rows-1;
-			tpos = pos; tpos2.p = pos.hi;
+			tpos = pos;
 			for (i=row-1; i>=1 && tpos.p.m >= 0; ) {
 				prev_mline(&tpos, fm,fb,fa,ci.merger, mode);
 				mode2 = check_line(tpos, fm,fb,fa, ci.merger, mode);
@@ -1400,9 +1401,10 @@ void merge_window(struct plist *p, FILE *f, int reverse)
 				else if ((tpos.side == 0 || tpos.side == -1) && (mode2 & (ORIG|BEFORE)))
 					draw_mline(i--,tpos,fm,fb,fa,ci.merger,start,cols, mode2&(ORIG|BEFORE|CHANGED|CHANGES));
 			}
+			toppos = tpos; toprow = i;
 			while (i >= 1)
 				blank(i--, 0, cols, a_void);
-			tpos = pos; tpos2.p = pos.lo;
+			tpos = pos;
 			for (i=row; i<rows && ci.merger[tpos.p.m].type != End; ) {
 				mode2 = check_line(tpos, fm,fb,fa,ci.merger,mode);
 				if ((tpos.side <= 0) && (mode2 & (ORIG|BEFORE)))
@@ -1415,6 +1417,7 @@ void merge_window(struct plist *p, FILE *f, int reverse)
 				}
 				next_mline(&tpos, fm,fb,fa,ci.merger, mode);
 			}
+			botpos = tpos; botrow = i;
 			while (i<rows)
 				blank(i++, 0, cols, a_void);
 		}
@@ -1461,8 +1464,25 @@ void merge_window(struct plist *p, FILE *f, int reverse)
 			return;
 		case 'L'-64:
 			refresh = 2;
+			if (toprow >= 1) row -= (toprow+1);
 			break;
 
+		case 'V'-64: /* page down */
+			pos = botpos;
+			if (botrow < rows)
+				row = botrow;
+			else
+				row = 2;
+			refresh = 1;
+			break;
+		case META('v'): /* page up */
+			pos = toppos;
+			if (toprow >= 1)
+				row = toprow+1;
+			else
+				row = rows-2;
+			refresh = 1;
+			break;
 
 		case 'j':
 		case 'n':

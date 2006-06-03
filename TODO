@@ -183,7 +183,7 @@ DONE - blank after end and before begining
         next/prev diff
         next/prev conflict
         incr-search
-        page up/down
+     DONE   page up/down
  - handle single .rej file
  - allow updates to be saved
  - allow editing???
