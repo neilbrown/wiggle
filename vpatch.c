@@ -841,6 +841,13 @@ struct mpos {
 		   * 0 if on an unchanged (lo/hi not meaningful)
 		   */
 };
+int same_mpos(struct mpos a, struct mpos b)
+{
+	return a.p.m == b.p.m &&
+		a.p.s == b.p.s &&
+		a.p.o == b.p.o &&
+		a.side == b.side;
+}
 
 int invalid(int s, enum mergetype type)
 {
@@ -1163,6 +1170,28 @@ int check_line(struct mpos pos, struct file fm, struct file fb, struct file fa,
 	return rv & (mode | CHANGED | CHANGES);
 }
 
+int mcontains(struct mpos pos,
+	      struct file fm, struct file fb, struct file fa, struct merge *m,
+	      int mode, char *search)
+{
+	/* See if and of the files, between start of this line and here,
+	 * contain the search string
+	 */
+	struct elmnt e;
+	int len = strlen(search);
+	do {
+		e = prev_melmnt(&pos, fm,fb,fa,m);
+		if (e.start) {
+			int i;
+			for (i=0; i<e.len; i++)
+				if (strncmp(e.start+i, search, len)==0)
+					return 1;
+		}
+	} while (e.start != NULL &&
+		 (!ends_mline(e) || visible(mode, m[pos.p.m].type, pos.p.s)==-1));
+	return 0;
+}
+
 void draw_mside(int mode, int row, int offset, int start, int cols,
 		struct file fm, struct file fb, struct file fa, struct merge *m,
 		struct mpos pos,
@@ -1321,6 +1350,7 @@ void merge_window(struct plist *p, FILE *f, int reverse)
 	int mode = ORIG|RESULT | BEFORE|AFTER;
 
 	int row,start = 0;
+	int trow;
 	int col=0, target=0;
 	struct mpos pos;
 	struct mpos tpos, toppos, botpos;
@@ -1328,6 +1358,15 @@ void merge_window(struct plist *p, FILE *f, int reverse)
 	int mode2;
 	int meta = 0, tmeta;
 	int num= -1, tnum;
+	char search[80];
+	int searchlen = 0;
+	int search_notfound = 0;
+	struct search_anchor {
+		struct search_anchor *next;
+		struct mpos pos;
+		int notfound;
+		int row, col, searchlen;
+	} *anchor = NULL;
 
 	sp = load_segment(f, p->start, p->end);
 	if (reverse)
@@ -1461,15 +1500,24 @@ void merge_window(struct plist *p, FILE *f, int reverse)
 				blank(i++, 0, cols, a_void);
 		} else {
 		}
+#define META(c) ((c)|0x1000)
+#define	SEARCH(c) ((c)|0x2000)
 		move(rows,0);
+		attrset(A_NORMAL);
 		if (num>=0) { char buf[10]; sprintf(buf, "%d ", num); addstr(buf);}
-		if (meta) addstr("ESC...");
+		if (meta & META(0)) addstr("ESC...");
+		if (meta & SEARCH(0)) {
+			addstr("Search: ");
+			addstr(search);
+			if (search_notfound)
+				addstr(" - Not Found.");
+			search_notfound = 0;
+		}
 		clrtoeol();
 		move(row,col-start);
 		c = getch();
 		tmeta = meta; meta = 0;
 		tnum = num; num = -1;
-#define META(c) ((c)|0x1000)
 		switch(c | tmeta) {
 		case 27: /* escape */
 		case META(27):
@@ -1502,6 +1550,66 @@ void merge_window(struct plist *p, FILE *f, int reverse)
 			break;
 		case 'q':
 			return;
+
+		case '/':
+		case 'S'-64:
+			/* incr search forward */
+			meta = SEARCH(0);
+			searchlen = 0;
+			search[searchlen] = 0;
+			break;
+		case SEARCH('G'-64):
+		case SEARCH('S'-64):
+			/* search again */
+			meta = SEARCH(0);
+			tpos = pos; trow = row;
+			trow++;
+			next_mline(&tpos, fm,fb,fa,ci.merger,mode);
+			goto search_again;
+
+		case SEARCH('H'-64):
+			meta = SEARCH(0);
+			if (anchor) {
+				struct search_anchor *a;
+				a = anchor;
+				anchor = a->next;
+				free(a);
+			}
+			if (anchor) {
+				struct search_anchor *a;
+				a = anchor;
+				anchor = a->next;
+				pos = a->pos;
+				row = a->row;
+				col = a->col;
+				search_notfound = a->notfound;
+				searchlen = a->searchlen;
+				search[searchlen] = 0;
+				free(a);
+				refresh = 1;
+			}
+			break;
+		case SEARCH(' ') ... SEARCH('~'):
+		case SEARCH('\t'):
+			meta = SEARCH(0);
+			if (searchlen < sizeof(search)-1)
+				search[searchlen++] = c & (0x7f);
+			search[searchlen] = 0;
+			tpos = pos; trow = row;
+		search_again:
+			search_notfound = 1;
+			do {
+				if (mcontains(tpos, fm,fb,fa,ci.merger,mode,search)) {
+					pos = tpos;
+					row = trow;
+					search_notfound = 0;
+					break;
+				}
+				trow++;
+				next_mline(&tpos, fm,fb,fa,ci.merger,mode);
+			} while (ci.merger[tpos.p.m].type != End);
+
+			break;
 		case 'L'-64:
 			refresh = 2;
 			if (toprow >= 1) row -= (toprow+1);
@@ -1645,6 +1753,28 @@ void merge_window(struct plist *p, FILE *f, int reverse)
 			refresh = 1;
 			break;
 #endif
+		}
+
+		if (meta == SEARCH(0)) {
+			if (anchor == NULL ||
+			    !same_mpos(anchor->pos, pos) ||
+			    anchor->searchlen != searchlen ||
+			    anchor->col != col) {
+				struct search_anchor *a = malloc(sizeof(*a));
+				a->pos = pos;
+				a->row = row;
+				a->col = col;
+				a->searchlen = searchlen;
+				a->notfound = search_notfound;
+				a->next = anchor;
+				anchor = a;
+			}
+		} else {
+			while (anchor) {
+				struct search_anchor *a = anchor;
+				anchor = a->next;
+				free(a);
+			}
 		}
 	}
 }
