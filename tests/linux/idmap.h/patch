@@ -1,0 +1,17 @@
+***************
+*** 55,60 ****
+  #define IDMAP_STATUS_LOOKUPFAIL IDMAP_STATUS_FAIL
+  
+  
+  /* XXX get (include) from bits/utmp.h */
+  #define IDMAP_NAMESZ  128
+  
+--- 55,62 ----
+  #define IDMAP_STATUS_LOOKUPFAIL IDMAP_STATUS_FAIL
+  
+  
++ #define IDMAP_MAXMSGSZ   256
++ 
+  /* XXX get (include) from bits/utmp.h */
+  #define IDMAP_NAMESZ  128
+  

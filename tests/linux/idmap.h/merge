@@ -1,0 +1,2 @@
+#define IDMAP_MAXMSGSZ   256
+
