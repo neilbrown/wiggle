@@ -39,7 +39,7 @@
  *    or single char.
  *
  * A line is any string that ends with \n
- * 
+ *
  * As a special case to allow proper aligning of multiple chunks
  * in a patch, a word starting \0 will include 5 chars and a newline
  *

@@ -59,14 +59,14 @@
  * We have a concept of a 'point'
  * The start and end of the file are each points.
  * Also the start and end of any conflict is a point.
- * Outside of a conflict, we can move points forwards or backwards 
+ * Outside of a conflict, we can move points forwards or backwards
  * through the merger.  Inside a conflict movement is not well defined.
  * Any point is 'forward looking' or 'backward looking'.
  * A forward looking point can be moved forward but not backward.
  * A backward looking point can be moved backward, not forward.
  *
  * If a forward looking point is a tri-point, in a double-coincidence,
- * then c1/c2 will be set to the furthest forward double coincidence that is before 
+ * then c1/c2 will be set to the furthest forward double coincidence that is before
  * or contains the point, thus it well-defines the start of a double coincidence
  * or that end of a conflict.
  * inversely, a BL point well-defines the end of a DC or start of a conflict.
@@ -74,7 +74,7 @@
  * The start of a conflict is a backward looking point.
  * The end of a conflict is a forward looking point.
  *
- * In normal (Word/line) mode, we move the boundaries of a conflict out 
+ * In normal (Word/line) mode, we move the boundaries of a conflict out
  * until they are at end-of-line.
  * When moving forward, this is until we cross over a newline word.
  * When moving backward, this is until one step before crossing over
@@ -83,9 +83,9 @@
  * Away from a conflict, every point can be clearly defined as a
  * location either in A or in C.  The 'point' is immediately before
  * the word at that location.
- * At the end of a conflict, this is still well defined as the 'next word' 
+ * At the end of a conflict, this is still well defined as the 'next word'
  * is outside a conflict.
- * At the start of a conflict this may not be well defined as there may not 
+ * At the start of a conflict this may not be well defined as there may not
  * be a clear 'next' word.  We choose the point the would be reached by
  * the step-forward algorithm so that it is easy to test if at start-of-conflict.
  *
@@ -94,8 +94,8 @@
  * 3 texts.  To allow for conflicts at start and end of file, we consider the
  * start and end of the three texts to each be double co-incidences.
  *
- * Each double co-incidence has a start and an end.  When we find a conflict, it 
- * is taken to extend from the end of the previous double coincidence to the 
+ * Each double co-incidence has a start and an end.  When we find a conflict, it
+ * is taken to extend from the end of the previous double coincidence to the
  * start of the next double co-incidence.
  * Between conflicts we can mergers which can be printed simply be advancing the start
  * point and printing each word as we go.
@@ -133,7 +133,7 @@
  *      slide down to a, increment c1 and advance c2, then repeat.
  *
  * To retreat a backward facing point
- *   if in_a and at end of c1 and c1!=-1, 
+ *   if in_a and at end of c1 and c1!=-1,
  *      slide up to c and if at start of c2, retreat c2, thenc 1, and repeat
  *   if in_c and within c2 and corresponding a at start of c1
  *      slide down to a, decrement c1 and retreat c2, then repeat.
@@ -142,14 +142,14 @@
  * We never actually compare points for ordering.  We should 'know' the likely order
  * and only compare equal or not.  This can be tested independant of direction,
  * and done by simply comparing in_a and pos.
- */ 
+ */
 
 
 /* Each point involves a location in each of A, B, and C.
  * There is a conflict for each change in B-C where the B section
  * is not wholey contained in an A-B co-incidence.
  * The start point of a conflict is determined as:
- *   C is the end of the C side of the  previous B-C coincidence (or 
+ *   C is the end of the C side of the  previous B-C coincidence (or
  *       start of file
  *   B is the end of the B side of the matching A-B coincidence if
  *       the point is in an A-B coincidence, or the end of the previous
@@ -158,7 +158,7 @@
  *      a B-C coincidence, C is moved backwards too.
  *   A is the matching point to B in the A-B coincidence that B is in.
  *
- * The end point of a conflict is determined in a similar way, 
+ * The end point of a conflict is determined in a similar way,
  * except that B is in a coincidence that is at, or *follows* the
  * end of the next B-C coincidence.
  *
@@ -186,7 +186,7 @@
  *
  * At the start of the file c1 and c2 will be the firsts match in A-B and B-C
  * If [c1]->a is 0, then !in_a and pos is [c2]->b+x where x is
- * chosen such that [c1]->b == [c2]->a+x and x < [c2]->len.  If such choice 
+ * chosen such that [c1]->b == [c2]->a+x and x < [c2]->len.  If such choice
  * is not possible, there is a conflict at the start of the file and so we choose
  * a point as if [c1]->a were not 0.
  *
@@ -226,7 +226,7 @@ static int tripoint(struct point *here,
 			*c = 0;
 		} else if (c2->a <= *b && c2->a + c2->len >= *b)
 			*c = c2->b + *b - c2->a;
-		else 
+		else
 			return 0;
 	} else {
 		*c = here->pos;
@@ -236,7 +236,7 @@ static int tripoint(struct point *here,
 			*b = 0;
 		} else if (c2->b <= *c && c2->b +c2->len >= *c)
 			*b = c2->a + *c - c2->b;
-		else	
+		else
 			return 0;
 
 
@@ -262,7 +262,7 @@ static int retreat(struct csl *c1, struct csl *c2, struct point *p)
 		a = p->pos;
 		while ((p->c1 == 0 && a == 0) ||
 		       (p->c1 > 0 && c1[p->c1-1].a + c1[p->c1-1].len >= a)) {
-			if (!slid) 
+			if (!slid)
 				if ( a >= c1[p->c1].a)
 					break;
 			p->c1--;
@@ -426,7 +426,7 @@ static int advance(struct csl *c1, struct csl *c2, struct point *p)
 			 * if we've slid, make sure not to skip over
 			 * the stuff in c2.
 			 */
-			if(slid && p->c2 != -1 && c2[p->c2].a == b && 
+			if(slid && p->c2 != -1 && c2[p->c2].a == b &&
 			   c2[p->c2].b > c2[p->c2].a) {
 				c -= c2[p->c2].b - c2[p->c2].a;
 			}
@@ -440,7 +440,7 @@ static int advance(struct csl *c1, struct csl *c2, struct point *p)
 		c = p->pos;
 		while ((p->c2 == -1 || c2[p->c2].len) &&
 		       c2[p->c2+1].b <= c) {
-			if (!slid) 
+			if (!slid)
 				if ((p->c2 == -1 && c == 0) ||
 				    (p->c2 >= 0 && c <= c2[p->c2].b+c2[p->c2].len))
 					break;
@@ -468,7 +468,7 @@ static int advance(struct csl *c1, struct csl *c2, struct point *p)
 
 		a = c1[p->c1].a + b - c1[p->c1].b;
 
-		/* ok, this is the furthest forward double coincidence 
+		/* ok, this is the furthest forward double coincidence
 		 * If it is the end of an A-B coincidence but not EOF,
 		 * slide down to A
 		 */
@@ -489,7 +489,7 @@ static int advance(struct csl *c1, struct csl *c2, struct point *p)
 	return 1;
 }
 
-static int point_crossed(struct point first, struct point second, 
+static int point_crossed(struct point first, struct point second,
 		      struct csl *cs1, struct csl *cs2)
 {
 	int a1,b1,c1;
@@ -530,13 +530,13 @@ static void print_merger(FILE *out, struct file *a, struct file *c,
 
 static int inline at_sol(struct file *f, int i)
 {
-	return i == 0 || i == f->elcnt || 
+	return i == 0 || i == f->elcnt ||
 		ends_line(f->list[i-1]);
 }
 
 static void print_range(FILE *out, struct file *f, int start, int end)
 {
-	for (; start < end ; start++) 
+	for (; start < end ; start++)
 		printword(out, f->list[start]);
 }
 
@@ -557,7 +557,7 @@ static int print_conflict(FILE *out, struct file *a, struct file *b, struct file
 		abort();
 	if (!tripoint(&end,   c1,c2, &aend,   &bend,   &cend))
 		abort();
-	
+
 
 	/* Now contract the conflict if possible, but insist on
 	 * an end-of-line boundary unless 'words'.
@@ -621,14 +621,14 @@ static int end_of_file(struct point p, struct csl *c1, struct csl *c2)
 	return advance(c1,c2,&p)==0;
 }
 
-static int next_conflict(struct point here, struct csl *start_c1, struct csl *start_c2, 
-			 struct point *start, struct point *end, 
+static int next_conflict(struct point here, struct csl *start_c1, struct csl *start_c2,
+			 struct point *start, struct point *end,
 			 struct file *a, struct file *b, struct file *c)
 {
 	/* We want to find the start and end of the 'next' conflict.
 	 * There may not be another conflict, in which case set start and
 	 * end to the end of the files.
-	 * The start and end of a conflict must be the end and start of 
+	 * The start and end of a conflict must be the end and start of
 	 * regions where A matches B and B matches C - except for
 	 * The start which might be the start of the file.
 	 * 'here' is a potentially valid starting point. Any other starting
@@ -652,7 +652,7 @@ static int next_conflict(struct point here, struct csl *start_c1, struct csl *st
 	 * If we step c2 forward and the new coincidence is beyond or at the
 	 * end of c1, or we step forward c1 and it's start is beyond or at the end of c2,
 	 * then that is a conflict.
-	 * Also, we can detect a conflict at start-of-file (here.in_a, here.pos==0) if 
+	 * Also, we can detect a conflict at start-of-file (here.in_a, here.pos==0) if
 	 * c2 doesn't start at 0.
 	 *
 	 * 'here' is significant only for its c1/c2 values. They will contain a
@@ -666,7 +666,7 @@ static int next_conflict(struct point here, struct csl *start_c1, struct csl *st
 	struct csl *c1 = start_c1;
 	struct csl *c2 = start_c2;
 
-	
+
 	c1 += here.c1;
 	c2 += here.c2;
 
@@ -692,9 +692,9 @@ static int next_conflict(struct point here, struct csl *start_c1, struct csl *st
 				conflict_found = 1;
 		} else if (c1->b+c1->len == c2->a+c2->len) {
 			/* both coincidences end at same place. There is
-			 * a conflict if there is a gap in c1->b or 
+			 * a conflict if there is a gap in c1->b or
 			 * c2->a has no gap but c2->b does (implying insertion
-			 * at undefined location 
+			 * at undefined location
 			 */
 			if (c1->len && c2->len) {
 				if (c1[1].b > c1->b + c1->len ||
@@ -703,7 +703,7 @@ static int next_conflict(struct point here, struct csl *start_c1, struct csl *st
 					conflict_found = 1;
 			}
 			if (c1->len)
-				c1++; 
+				c1++;
 			if (c2->len)
 				c2++;
 		} else if (c2->len ==0 || (c1->len && c1->b+c1->len < c2->a+c2->len)) {
@@ -730,7 +730,7 @@ static int next_conflict(struct point here, struct csl *start_c1, struct csl *st
 			) {
 			/* double coincidence !
 			 * It starts at max of c1->b and c2->a, in c
-			 * and ends at min of c1->b+len (in a), c2->a+len (in c) 
+			 * and ends at min of c1->b+len (in a), c2->a+len (in c)
 			 */
 			end->c1 = c1-start_c1;
 			end->c2 = c2-start_c2;
@@ -780,7 +780,7 @@ static int next_conflict(struct point here, struct csl *start_c1, struct csl *st
 				 */
 				start->in_a = end->in_a = 0;
 				start->pos = end->pos = c2->b;
-				return 0; 
+				return 0;
 			}
 		}
 	}
@@ -816,7 +816,7 @@ static int Startofline(struct point p, struct csl *cs1, struct csl *cs2,
 		       struct file *a, struct file *b, struct file *c)
 {
 	int a1,b1,c1;
-	return 
+	return
 		tripoint(&p,cs1,cs2,&a1,&b1,&c1) &&
 		at_sol(a,a1) && at_sol(b,b1) && at_sol(c,c1);
 

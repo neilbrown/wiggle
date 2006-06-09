@@ -60,7 +60,7 @@ struct v {
 
 static int find_common(struct file *a, struct file *b,
 		       int *alop, int *ahip,
-		       int *blop, int *bhip, 
+		       int *blop, int *bhip,
 		       int mid,
 		       struct v *v)
 {
@@ -73,7 +73,7 @@ static int find_common(struct file *a, struct file *b,
 	 * v is scratch space each is indexable from
 	 * alo-bhi to ahi-blo inclusive
 	 */
-		
+
 	int klo, khi;
 	int k;
 	int alo = *alop;
@@ -108,7 +108,7 @@ static int find_common(struct file *a, struct file *b,
 			vnew.l += snake;
 			dist = (ahi-x)+(bhi-y);
 			if (dist < best) best = dist;
-			if (x+y >= mid && 
+			if (x+y >= mid &&
 			    v[k].x+v[k].x-k <= mid) {
 				vnew.md = k;
 			}
@@ -165,7 +165,7 @@ static int find_common(struct file *a, struct file *b,
 			v[khi+1] = v[khi];
 			v[khi+1].x++;
 			khi ++;
-		} else 
+		} else
 			while (dist > best) {
 				khi --;
 				x = v[khi].x+1; y = x - (khi+1);
@@ -187,7 +187,7 @@ static struct csl *lcsl(struct file *a, int alo, int ahi,
 	struct csl *rv = NULL;
 	int k;
 
-	if (ahi <= alo || bhi <= blo) 
+	if (ahi <= alo || bhi <= blo)
 		return csl;
 
 
@@ -205,7 +205,7 @@ static struct csl *lcsl(struct file *a, int alo, int ahi,
 		csl->len = 0;
 	}
 	if (len) {
-		csl = lcsl(a,alo,alo1,	
+		csl = lcsl(a,alo,alo1,
 			   b,blo,blo1,
 			   csl, v);
 
@@ -245,7 +245,7 @@ static struct csl *lcsl(struct file *a, int alo, int ahi,
 
 /* if two common sequences are separated by only an add or remove,
  * and the first common ends the same as the middle text,
- * extend the second and contract the first in the hope that the 
+ * extend the second and contract the first in the hope that the
  * first might become empty.  This ameliorates against the greedyness
  * of the 'diff' algorithm.
  * Once this is done, repeat the process but extend the first
@@ -335,7 +335,7 @@ struct csl *diff(struct file a, struct file b)
 	return csl;
 }
 
-struct csl *diff_partial(struct file a, struct file b, 
+struct csl *diff_partial(struct file a, struct file b,
 			 int alo, int ahi, int blo, int bhi)
 {
 	struct v *v;

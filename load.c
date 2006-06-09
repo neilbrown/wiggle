@@ -76,7 +76,7 @@ static struct stream load_regular(int fd)
 	struct stat stb;
 	struct stream s;
 	fstat(fd, &stb);
-	
+
 	s.len = stb.st_size;
 	s.body = malloc(s.len);
 	if (s.body) {

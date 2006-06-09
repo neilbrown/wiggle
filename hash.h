@@ -48,7 +48,7 @@ static inline unsigned long hash_long(unsigned long val, unsigned int bits)
 	/* High bits are more random, so use them. */
 	return hash >> (BITS_PER_LONG - bits);
 }
-	
+
 static inline unsigned long hash_ptr(void *ptr, unsigned int bits)
 {
 	return hash_long((unsigned long)ptr, bits);

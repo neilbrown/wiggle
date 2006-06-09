@@ -43,7 +43,7 @@
  * the conflicts match the csl lists.
  *
  * This can all be achieved with a list of (a,b,c,c1,c1) 5-tuples.
- * If two consecutive differ in more than one of a,b,c, it is a 
+ * If two consecutive differ in more than one of a,b,c, it is a
  * conflict.
  * If only 'a' differ, it is un-matched original.
  * If only 'b' differ, it is matched, unchanged original
@@ -89,7 +89,7 @@ inline int isolate_conflicts(struct file af, struct file bf, struct file cf,
 {
 	/* A conflict indicates that something is definitely wrong
 	 * and so we need to be a bit suspicious of nearby apparent matches.
-	 * To display a conflict effectively we expands it's effect to 
+	 * To display a conflict effectively we expands it's effect to
 	 * include any Extraneous, Unmatched or Changed text.
 	 * Also, unless 'words', we need to include any partial lines
 	 * in the Unchanged text that forms the border of a conflict.
@@ -105,13 +105,13 @@ inline int isolate_conflicts(struct file af, struct file bf, struct file cf,
 	int i,j,k;
 	int cnt = 0;
 
-	for (i=0; m[i].type != End; i++) 
+	for (i=0; m[i].type != End; i++)
 		if (m[i].type == Conflict) {
 			/* We have a conflict here.
 			 * First search backwards for an Unchanged marking
-			 * things as in_conflict.  Then find the 
-			 * cut-point in the Unchanged.  If there isn't one, 
-			 * keep looking. 
+			 * things as in_conflict.  Then find the
+			 * cut-point in the Unchanged.  If there isn't one,
+			 * keep looking.
 			 *
 			 * Then search forward doing the same thing.
 			 */
@@ -274,7 +274,7 @@ struct ci make_merger(struct file af, struct file bf, struct file cf,
 				 */
 				rv.merger[i].type = Extraneous;
 				rv.merger[i].al = 0;
-				rv.merger[i].cl = 
+				rv.merger[i].cl =
 					rv.merger[i].bl =
 					min(csl1[c1].b - b,
 					    csl2[c2].len - (b-csl2[c2].a));
@@ -293,7 +293,7 @@ struct ci make_merger(struct file af, struct file bf, struct file cf,
 			 * if 'c' is currently at a suitable cut-point, then
 			 * we can look for a triple-cut-point for start.
 			 * Also, if csl2[c2].b isn't in a conflict, and is
-			 * a suitable cut-point, then we could make a 
+			 * a suitable cut-point, then we could make a
 			 * triple-cut-point for end of a conflict.
 			 */
 
@@ -302,16 +302,16 @@ struct ci make_merger(struct file af, struct file bf, struct file cf,
 			rv.merger[i].al = rv.merger[i].bl;
 			rv.merger[i].cl = csl2[c2].b - c;
 		} else if (match1 && match2) {
-			/* Some unchanged text 
+			/* Some unchanged text
 			 */
 			rv.merger[i].type = Unchanged;
-			rv.merger[i].bl = 
+			rv.merger[i].bl =
 				min(csl1[c1].len - (b-csl1[c1].b),
 				    csl2[c2].len - (b-csl2[c2].a));
 			rv.merger[i].al = rv.merger[i].cl =
 				rv.merger[i].bl;
 		} else {
-			/* must be a conflict. 
+			/* must be a conflict.
 			 * Move a and c to next match, and b to closest of the two
 			 */
 			rv.merger[i].type = Conflict;

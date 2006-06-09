@@ -38,7 +38,7 @@ char Version[] = "wiggle - v0.6 - 20 May 2003\n";
 char short_options1[]="xdmwlrh123pVRvqB"; /* not mode B */
 char short_options2[]="xdmwlrh123p:VRvqB"; /* mode B */
 
-       
+
 struct option long_options[] = {
 	{"browse",	0, 0, 'B'},
 	{"extract",	0, 0, 'x'},

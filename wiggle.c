@@ -62,7 +62,7 @@
  *    part of the patch or merge to extract.
  *
  * Difference calculate and merging is performed on lines (-l) or words (-w).
- * In the case of -w, an initial diff is computed based on non-trivial words. 
+ * In the case of -w, an initial diff is computed based on non-trivial words.
  *  i.e. spaces are ignored
  * This diff is computed from the ends of the file and is used to find a suitable
  * starting point and range.  Then a more precise diff is computed over that
@@ -287,7 +287,7 @@ int main(int argc, char *argv[])
 	switch(mode) {
 	case 'x':
 		/* extract a branch of a diff or diff3 or merge output
-		 * We need one file 
+		 * We need one file
 		 */
 		if (optind == argc) {
 			fprintf(stderr, "wiggle: no file given for --extract\n");
@@ -463,7 +463,7 @@ int main(int argc, char *argv[])
 								}
 							}
 						} else printf("|");
-					} 
+					}
 					if (!sol) {
 						printf("<<<--");
 						do {
@@ -495,7 +495,7 @@ int main(int argc, char *argv[])
 								}
 							}
 						} else printf("|");
-					} 
+					}
 					if (!sol) {
 						printf("<<<++");
 						do {
@@ -528,7 +528,7 @@ int main(int argc, char *argv[])
 								printsep(fl[0].list[a], fl[1].list[b]);
 								a++; b++;
 							}
-						} 
+						}
 						else printf("|");
 					}
 					if (!sol) {
@@ -621,7 +621,7 @@ int main(int argc, char *argv[])
 			outfile = fdopen(fd, "w");
 
 		}
-			
+
 		if (obj == 'l') {
 			fl[0] = split_stream(flist[0], ByLine, 0);
 			fl[1] = split_stream(flist[1], ByLine, 0);
@@ -645,7 +645,7 @@ int main(int argc, char *argv[])
 		{
 			struct ci ci;
 
-			ci = print_merge2(outfile, &fl[0], &fl[1], &fl[2], 
+			ci = print_merge2(outfile, &fl[0], &fl[1], &fl[2],
 						   csl1, csl2, obj=='w');
 			if (!quiet && ci.conflicts)
 				fprintf(stderr, "%d unresolved conflict%s found\n", ci.conflicts, ci.conflicts==1?"":"s");

@@ -38,7 +38,7 @@
  *    - untouched are pale  A_DIM
  *    - matched/remaining are regular A_NORMAL
  *    - matched/removed are red/underlined A_UNDERLINE
- *    - unmatched in file are A_STANDOUT 
+ *    - unmatched in file are A_STANDOUT
  *    - unmatched in patch are A_STANDOUT|A_UNDERLINE ???
  *    - inserted are inverse/green ?? A_REVERSE
  *
@@ -71,7 +71,7 @@ struct plist {
 	int calced;
 };
 
-struct plist *patch_add_file(struct plist *pl, int *np, char *file, 
+struct plist *patch_add_file(struct plist *pl, int *np, char *file,
 	       unsigned int start, unsigned int end)
 {
 	/* size of pl is 0, 16, n^2 */
@@ -285,7 +285,7 @@ struct plist *sort_patches(struct plist *pl, int *np)
 	qsort(pl, *np, sizeof(struct plist), pl_cmp);
 	curr[0] = 0;
 	n = *np;
-	for (i=0; i<n; i++) 
+	for (i=0; i<n; i++)
 		pl = add_dir(pl, np, pl[i].file, curr);
 
 	qsort(pl, *np, sizeof(struct plist), pl_cmp);
@@ -381,9 +381,9 @@ int get_next(int pos, struct plist *pl, int n)
 	if (pl[pos].open) {
 		if (pos +1 < n)
 			return pos+1;
-		else 
+		else
 			return -1;
-	} 
+	}
 	while (pos >= 0 && pl[pos].next == -1)
 		pos = pl[pos].parent;
 	if (pos >= 0)
@@ -603,7 +603,7 @@ void prev_pos(struct pos *pos, int mode, struct file f1, struct file f2, struct 
 		}
 		*pos = tpos;
 		if (e.start[0] == 0) return;
-		
+
 	}
 }
 
@@ -629,7 +629,7 @@ void next_pos(struct pos *pos, int mode, struct file f1, struct file f2, struct 
 	}
 }
 
-void draw_line(int i, struct pos pos, int mode, 
+void draw_line(int i, struct pos pos, int mode,
 	       struct file f1, struct file f2, struct csl *csl, int start, int len)
 {
 	int col = 0;
@@ -971,7 +971,7 @@ int visible(int mode, enum mergetype type, int stream)
 		    (mode & (RESULT|AFTER)))
 			return a_added;
 		break;
-	case Conflict: 
+	case Conflict:
 		switch(stream) {
 		case 0:
 			if (mode & (ORIG|RESULT))
@@ -1030,7 +1030,7 @@ void prev_mline(struct mpos *pos, struct file fm, struct file fb, struct file fa
 		return;
 	while(1) {
 		struct elmnt e = prev_melmnt(pos, fm,fb,fa,m);
-		if (e.start == NULL || 
+		if (e.start == NULL ||
 		    (ends_mline(e) && visible(mode, m[pos->m].type, pos->s) >= 0))
 			return;
 	}
@@ -1099,7 +1099,7 @@ void draw_mside(int mode, int row, int offset, int start, int cols,
 		unsigned char *c;
 		int l;
 		e = next_melmnt(&pos, fm,fb,fa,m);
-		if (e.start == NULL || 
+		if (e.start == NULL ||
 		    (ends_mline(e) && visible(mode, m[pos.m].type, pos.s) != -1)) {
 			if (col < start) col = start;
 			if (e.start && e.start[0] == 0) {
@@ -1140,9 +1140,9 @@ void draw_mside(int mode, int row, int offset, int start, int cols,
 	}
 }
 
-void draw_mline(int row, struct mpos pos, 
+void draw_mline(int row, struct mpos pos,
 		struct file fm, struct file fb, struct file fa,
-		struct merge *m, 
+		struct merge *m,
 		int start, int cols, int mode)
 {
 	/*
@@ -1419,7 +1419,7 @@ void main_window(struct plist *pl, int n, FILE *f, int reverse)
 	 * screen line it is on.  We try to keep things stable while
 	 * moving.
 	 *
-	 * Counts are printed before the name using at most 2 digits. 
+	 * Counts are printed before the name using at most 2 digits.
 	 * Numbers greater than 99 are XX
 	 * Ch Wi Co File
 	 * 27 5   1 drivers/md/md.c
@@ -1434,7 +1434,7 @@ void main_window(struct plist *pl, int n, FILE *f, int reverse)
 	 *      Move to previous open object
 	 *  down: j, n, control-n, downarrow
 	 *      Move to next open object
-	 *  
+	 *
 	 */
 	int pos=0; /* position in file */
 	int row=1; /* position on screen */
@@ -1627,9 +1627,9 @@ int vpatch(int argc, char *argv[], int strip, int reverse, int replace)
 }
 #if 0
  WiggleVerbose=1 ~/work/wiggle/wiggle -mR fs/nfsd/nfs4callback.c .patches/removed/144NfsdV4-033 |less
-neilb@notabene:/home/src/mm$ 
+neilb@notabene:/home/src/mm$
 
-~/work/wiggle/wiggle -BR .patches/removed/144NfsdV4-033 
+~/work/wiggle/wiggle -BR .patches/removed/144NfsdV4-033
 
 
 #endif

@@ -84,7 +84,7 @@ struct v {
  * We would like symetry in our answers so that a good sequence with an out-rider on
  * one end is evaluated the same as a good sequence with an out-rider on the other end.
  * However to do this we cannot really use value of the good sequence to weigh in the
- * outriders favour as in the case of a leading outrider, we do not yet know the value of 
+ * outriders favour as in the case of a leading outrider, we do not yet know the value of
  * of the good sequence.
  * First, we need an arbitrary number, X, to say "Given a single symbol, after X errors, we
  * forget that symbol".  5 seems a good number.
@@ -231,8 +231,8 @@ void find_best(struct file *a, struct file *b,
 #endif
 			v[klo].val = 0;
 		}
-		while (klo+2 < (ahi-bhi) && 
-		       (y > bhi || 
+		while (klo+2 < (ahi-bhi) &&
+		       (y > bhi ||
 			(best_val(&v[klo], min(ahi-x,bhi-y)) < best[v[klo].c].val &&
 			 best_val(&v[klo+1], min(ahi-x,bhi-y+1)) < best[v[klo+1].c].val
 				)
@@ -299,7 +299,7 @@ static void printword(struct elmnt e)
  * reduce a file by discarding less interesting words
  * Words that end with a newline are interesting (so all words
  * in line-mode are interesting) and words that start with
- * and alphanumeric are interesting.  This excludes spaces and 
+ * and alphanumeric are interesting.  This excludes spaces and
  * special characters in word mode
  * Doing a best-fit comparision on only interesting words is
  * much fast than on all words, and it nearly as good
@@ -307,7 +307,7 @@ static void printword(struct elmnt e)
 
 static inline int is_skipped(struct elmnt e)
 {
-	return !( ends_line(e) || 
+	return !( ends_line(e) ||
 		  isalnum(e.start[0]) ||
 		  e.start[0] == '_');
 }
@@ -365,7 +365,7 @@ void remap(struct best *best, int cnt,
 		if (pb == b2.elcnt) abort();
 
 		/* pa,pb is the start of this best bit.  Step
-		 * backward over ignored words 
+		 * backward over ignored words
 		 */
 		while (pa>0 && is_skipped(a2.list[pa-1]))
 			pa--;
@@ -465,7 +465,7 @@ struct csl *pdiff(struct file a, struct file b, int chunks)
 
 	for (i=0; i<chunks+1; i++)
 		best[i].val = 0;
-	find_best_inorder(&asmall,&bsmall, 
+	find_best_inorder(&asmall,&bsmall,
 		  0, asmall.elcnt, 0, bsmall.elcnt,
 		  best, 1, chunks+1);
 #if 0
