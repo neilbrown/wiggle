@@ -423,7 +423,7 @@ case $cmd in
 	    echo >&2 remove trailing spaces/tabs first !!
 #	    exit 1
 	fi
-	if [ -s .patches/to-resolv ]
+	if [ -s .patches/to-resolve ]
 	then echo "Please resolve outstanding conflicts first with 'p resolve'"
 	    exit 1
 	fi
