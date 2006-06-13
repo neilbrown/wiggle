@@ -87,11 +87,26 @@ get_meta()
 	status=`cat .patches/status 2> /dev/null`
 }
 
+upgrade_one()
+{
+	# move $1~current~ to .patches/current/$1 and same for orig
+	fl=/$1
+	for f in current orig
+	do
+	    if [ -f "$1~$f~" ]
+		then
+		    mkdir -p ".patches/$f${fl%/*}"
+		    mv "$1~$f~" ".patches/$f/$1"
+	    fi
+	done
+}
+
+
 forget_one()
 {
-	if true # || cmp -s "$1" "$1~current~" && cmp -s "$1" "$1~orig~"
+	if true # || cmp -s "$1" ".patches/curent/$1~" && cmp -s "$1" ".patches/orgi/$1"
 	then
-            rm -f "$1~current~" "$1~orig~"
+            rm -f "./patches/current/$1" ".patches/orig/$1"
 	    chmod -w "$1"
 	else
 	    echo >&2 "ERROR $1 doesn't match original"
@@ -120,16 +135,16 @@ check_out()
 	[ -f $file ] || >> $file
 	if [ -f $file ]
 	    then
-	    if [ ! -f "$file~orig~" ] ; then
-		mv "$file" "$file~orig~"
-		cp "$file~orig~" "$file"
+	    if [ ! -f ".patches/orig/$file" ] ; then
+		mv "$file" ".patches/orig/$file"
+		cp ".patches/orig/$file" "$file"
 		echo $file >> .patches/files
 		sort -o .patches/files .patches/files
 		chmod u+w "$file"
 	    fi
-	    if [ ! -f "$file~current~" ] ; then
-		mv "$file" "$file~current~"
-		cp "$file~current~" "$file"
+	    if [ ! -f ".patches/current/$file" ] ; then
+		mv "$file" ".patches/current/$file"
+		cp ".patches/current/$file" "$file"
 	    fi
 	else
 	    echo >&2 Cannot checkout $file
@@ -146,57 +161,58 @@ all_files()
 
 diff_one()
 {
-	if cmp -s "$1~current~" "$1" || [ ! -f "$1" -a ! -f "$1~current~" ]
+	if cmp -s ".patches/current/$1" "$1" || [ ! -f "$1" -a ! -f ".patches/current/$1" ]
 	then :
 	else
 		echo
-		echo "diff ./$1~current~ ./$1"
+		echo "diff .prev/$1 ./$1"
 		if [ " $2" = " -R" ]
 		then
-		  diff -N --show-c-function -u ./$1 ./$1~current~
+		  diff -N --show-c-function -u "./$1" "./.patches/current/$1"
 		else
-		  diff -N --show-c-function -u ./$1~current~ ./$1
+		  diff -N --show-c-function -u "./.patches/current/$1" "./$1"
 		fi
 	fi
 }
 
 diff_one_orig()
 {
-	if cmp -s "$1~orig~" "$1"
+	if cmp -s ".patches/orig/$1" "$1"
 	then :
 	else
 		echo
-		echo "diff ./$1~orig~ ./$1"
-		diff --show-c-function -u ./$1~orig~ ./$1
+		echo "diff ./.patches/orig/$1 ./$1"
+		diff --show-c-function -u "./.patches/orig/$1" "./$1"
 	fi
 }
 
 commit_one()
 {
-    rm -f "$1~current~"
+    rm -f ".patches/current/$1"
     if [  -f "$1" ] ; then
-	mv "$1" "$1~current~"
-	cp -p "$1~current~" $1
+	mv "$1" ".patches/current/$1"
+	cp -p ".patches/current/$1" $1
 	chmod u+w $1
     fi
 }
 
 discard_one()
 {
-	cmp -s "$1~current~" $1 || { rm -f "$1" ; cp "$1~current~" $1; }
+	cmp -s ".patches/current/$1" $1 || { rm -f "$1" ; cp ".patches/current/$1" $1; }
 	chmod u+w $1
 }
 
 swap_one()
 {
 	mv "$1" "$1.tmp"
-	mv "$1~current~" "$1"
-	mv "$1.tmp" "$1~current~"
+	mv ".patches/current/$1" "$1"
+	mv "$1.tmp" ".patches/current/$1"
 }
 
 CERT='Signed-off-by: Neil Brown <neilb@suse.de>'
 make_diff()
 {
+	upgrade_one "$1"
    {
 	[ -s .patches/status ] && echo "Status: `cat .patches/status`"
 	[ -s .patches/notes ] && { echo; cat .patches/notes ; }
@@ -211,7 +227,7 @@ make_diff()
 	cat .patches/tmp
 	[ -s .patches/tmp ] || rm .patches/patch
 	rm .patches/tmp
-   } > .patches/patch
+   } | sed 's,^--- ./.patches/current/,--- .prev/,' > .patches/patch
 }
 
 save_patch()
@@ -778,6 +794,9 @@ case $cmd in
 	;;
   snapback )
 	all_files snap_back
+	;;
+  upgrade )
+	all_files upgrade_one
 	;;
   resolve )
         if [ ! -s .patches/resolving ]
