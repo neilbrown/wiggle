@@ -91,28 +91,28 @@ nl='
 '
 get_conf()
 {
-	name=$1
-	context=$2
-	result=
-	active=yes
-	sep=
+	_name=$1
+	_context=$2
+	_result=
+	_active=yes
+	_sep=
 	[ -f .patches/config ] || >> .patches/config
 	while read a b c
 	do
 	    case $a in
-		    '[global]' ) active=yes ;;
-		    "[$context]") active=yes ;;
-		    "["*"]" ) active= ;;
-		    * ) if [ " $b" == " =" -a " $a" = " $name" -a -n "$active" ];
+		    '[global]' ) _active=yes ;;
+		    "[$_context]") _active=yes ;;
+		    "["*"]" ) _active= ;;
+		    * ) if [ " $b" == " =" -a " $a" = " $_name" -a -n "$_active" ];
 			    then
-			    result="$result$sep$c"
-			    sep=$nl
+			    _result="$_result$_sep$c"
+			    _sep=$nl
 			    fi
 			    ;;
 	    esac
 	done < .patches/config
-	result=$(echo "$result" | sed 's/^"//' )
-	eval $name=\"\$result\"
+	_result=$(echo "$_result" | sed 's/^"//' )
+	eval $_name=\"\$_result\"
 }
 
 upgrade_one()
