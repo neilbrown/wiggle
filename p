@@ -902,6 +902,25 @@ case $cmd in
 	done
 	> .patches/resolving
 	;;
+
+  export )
+	# there must be only one patch.  We
+	# git commit, p commit, p rebase
+	if [ -n `ls .patches/applied` ]
+	then
+	    echo 'Cannot export when there are applied patches'
+	    exit 1;
+	fi
+	make_diff
+	if [ -s .patches/patch ]
+	then
+	    # Ok, go for it.
+	    git add `cat .patches/files`
+	    git commit -a -F .patches/notes
+	    $0 commit
+	    $0 rebase
+	fi
+	;;
   pull )
         cd .patches/SOURCE && bk pull
 	;;
