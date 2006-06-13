@@ -141,6 +141,15 @@ forget_one()
 	fi
 }
 
+rebase_one()
+{
+    f="/$1"
+    mkdir -p .patches/orig${f%/*}
+    mkdir -p .patches/current${f%/*}
+    rm -f .patches/orig$f .patches/current$f
+    cp -p $1 .patches/orig$f
+    cp -p $1 .patches/current$f
+}
 
 snap_one()
 {
@@ -287,7 +296,7 @@ find_prefix()
 	    prefix=`expr $prefix + 1`
 	done
 	if [ -z "$file" ]
-	then echo "Cannot find $orig" >&2 
+	then echo "Cannot find $orig" >&2
 	   if [ $n -gt 4 ]
 	   then exit 2;
 	   else find_prefix "$1" $[n+1]
@@ -846,6 +855,23 @@ case $cmd in
 	fi
 	while [ -s "$pfile" ]  &&
 	     $0 open last && $0 discard ; do : ; done
+	;;
+
+  rebase )
+	# move all applied patches to included, and
+	# copy current to orig and current
+	make_diff
+	if [ -s .patches/patch ]
+	then
+	    echo >&2 Patch already open - please commit; eixt 1;
+	fi
+	for p in `ls .patches/applied`
+	do
+	  name=${p##[0-9][0-9][0-9]}
+	  mv .patches/applied/$p .patches/patch
+	  save_patch included $name
+	done
+	all_files rebase_one
 	;;
   snapshot )
 	all_files snap_one
