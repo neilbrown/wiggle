@@ -185,6 +185,7 @@ DONE - blank after end and before begining
         incr-search
         find char pos in search and highlight
         multiple finds per line
+        search to loop around
 	switch from forward to reverse.
      DONE   page up/down
      DONE   beginning/end of line
@@ -192,7 +193,7 @@ DONE - blank after end and before begining
  - handle single .rej file
  - allow updates to be saved
  - allow editing???
- - better colours?
+ - better colours? configurable?
 
 - extract.c should be able to extract half of a word-diff
 - extract.c should work on word-merges
@@ -301,4 +302,7 @@ other things
         If a chunk doesn't match any chunk in other file, just retain it.
         If it does, expand both chunks with common data from the other
          then run the diff code, then extract the new middle
+
+ - move to left in tabs doesn't work right
+ - check out md.c and 383MDBlocked in demo directory
 
