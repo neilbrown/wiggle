@@ -564,7 +564,7 @@ case $cmd in
   review )
 	# there are some patches in .removed that may be included in the current source
 	# we try to backout each one. If it backs out successfully, we move it to
-	# .reviewed and conitnue, else  we abort
+	# .reviewed and continue, else  we abort
 	# Once this has been done often enough, 'reviewed' should be run to
 	# move stuff to 'included' and to revert those patches
 	force=
@@ -572,9 +572,20 @@ case $cmd in
 	    force=yes; shift
 	fi
 	make_diff; get_meta
-	if [ -s .patches/path ]
+	if [ -s .patches/patch ]
         then
 	    echo >&2 Patch $name already open, please deal with it; exit 1;
+	fi
+	if [ -f .patches/in-review ]
+	then :
+	else
+		applied=`ls .patches/applied`
+		if [ -n "$applied" ]
+		then
+			echo >&2 Cannot review patches while any are applied.
+			exit 1;
+		fi
+		> .patches/in-review
 	fi
 	if [ $# -eq 0 ]
 	then
@@ -644,6 +655,11 @@ case $cmd in
 	      # all the currently applied patches are patches that have been
 	      # reviewed as included.
 	      # rip them out and stick them (reversed) into included.
+	      if [ ! -f .patches/in-review ]
+		  then
+		      echo >&2 Not currently reviewing patches!
+		      exit 1;
+	      fi
 	      while p open last
 	      do
 		make_diff -R
@@ -653,6 +669,7 @@ case $cmd in
 		all_files discard_one
 		rm -f .patches/name .patches/status .patches/notes
 	      done
+	      rm .patches/in-review
 	      ;;
   list )
 	    echo "Applied patches are:"
@@ -663,6 +680,11 @@ case $cmd in
 	    exit 0
 	    ;;
  apply )
+	if [ -f .patches/in-review ]
+	then
+		echo >&2 Cannot apply patches while reviewing other - use p reviewed
+		exit 1
+	fi
 	force= append=
 	if [ " $1" = " -f" ]; then
 	    force=yes; shift
