@@ -818,7 +818,7 @@ case $cmd in
 	then echo >&2 "Cannot find unique patch '$1' - found: $pfile"; exit 1
 	fi
 	while [ -s "$pfile" ]  &&
-	     p apply last && p commit ; do : ; done
+		$0 apply last && $0 commit ; do : ; done
 	;;
   decommit )
 	make_diff
@@ -845,7 +845,7 @@ case $cmd in
 	then echo >&2 "Cannot find unique patch '$1' - found: $pfile"; exit 1
 	fi
 	while [ -s "$pfile" ]  &&
-	     p open last && p discard ; do : ; done
+	     $0 open last && $0 discard ; do : ; done
 	;;
   snapshot )
 	all_files snap_one
