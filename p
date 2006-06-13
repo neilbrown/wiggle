@@ -241,7 +241,7 @@ make_diff()
 {
 	get_conf tagline
 	upgrade_one "$1"
-   {
+   { {
 	[ -s .patches/status ] && echo "Status: `cat .patches/status`"
 	[ -s .patches/notes ] && { echo; cat .patches/notes ; }
 	if [ -z "$tagline" ] || grep -F "$tagline" .patches/notes > /dev/null 2>&1
@@ -255,7 +255,7 @@ make_diff()
 	cat .patches/tmp
 	[ -s .patches/tmp ] || rm .patches/patch
 	rm .patches/tmp
-   } | sed 's,^--- ./.patches/current/,--- .prev/,' > .patches/patch
+   } | sed 's,^--- ./.patches/current/,--- .prev/,' ; } > .patches/patch
 }
 
 save_patch()
