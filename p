@@ -237,16 +237,16 @@ swap_one()
 	mv "$1.tmp" ".patches/current/$1"
 }
 
-CERT='Signed-off-by: Neil Brown <neilb@suse.de>'
 make_diff()
 {
+	get_conf tagline
 	upgrade_one "$1"
    {
 	[ -s .patches/status ] && echo "Status: `cat .patches/status`"
 	[ -s .patches/notes ] && { echo; cat .patches/notes ; }
-	if grep -F "$CERT" .patches/notes > /dev/null 2>&1
+	if [ -z "$tagline" ] || grep -F "$tagline" .patches/notes > /dev/null 2>&1
 	then :
-        else echo "$CERT"
+        else echo "$tagline"
 	fi
 	echo
 	all_files diff_one $1 > .patches/tmp
