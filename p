@@ -724,11 +724,12 @@ case $cmd in
 	then echo OK, it seems to apply
 	elif [ -n "$force" ]
 	then echo "It doesn't apply cleanly, but you asked for it...."
-	    echo "Saving original at .patches/last-applied"
-	    cp $pfile .patches/last-applied
+	    echo "Saving original at .patches/last-conflict"
+	    cp $pfile .patches/last-conflict
 	else echo >&2 "Sorry, patch doesn't apply"; exit 1
 	fi
 	# lets go for it ...
+	cp $pfile .patches/last-applied
 	patch --fuzz=0 -f -p$prefix < "$pfile" | tee .patches/tmp
 	sed -n -e '2q' -e 's/^Status: *//p' $pfile > .patches/status
 	base=${pfile##*/}
@@ -751,6 +752,16 @@ case $cmd in
         esac
 	;;
 
+  unapply )
+	get_meta
+	mv .patches/last-applied .patches/patch
+	save_patch removed $name
+	echo Restored to $new$name
+	make_diff
+	mv .patches/patch .patches/last-purge
+	all_files discard_one
+	rm -f .patches/name .patches/status .patches/notes
+	;;
   publish )
 	name=`date -u +%Y-%m-%d-%H`
 	if [ -d .patches/dest ]
