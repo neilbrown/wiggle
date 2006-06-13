@@ -800,7 +800,7 @@ case $cmd in
 	> .patches/files
 	;;
   openall )
-        while p open last && p discard ; do : ; done
+        while $0 open last && $0 discard ; do : ; done
 	;;
   recommit )
 	make_diff
@@ -906,7 +906,7 @@ case $cmd in
   export )
 	# there must be only one patch.  We
 	# git commit, p commit, p rebase
-	if [ -n `ls .patches/applied` ]
+	if [ -n "`ls .patches/applied`" ]
 	then
 	    echo 'Cannot export when there are applied patches'
 	    exit 1;
