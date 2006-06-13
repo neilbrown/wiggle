@@ -87,6 +87,34 @@ get_meta()
 	status=`cat .patches/status 2> /dev/null`
 }
 
+nl='
+'
+get_conf()
+{
+	name=$1
+	context=$2
+	result=
+	active=yes
+	sep=
+	[ -f .patches/config ] || >> .patches/config
+	while read a b c
+	do
+	    case $a in
+		    '[global]' ) active=yes ;;
+		    "[$context]") active=yes ;;
+		    "["*"]" ) active= ;;
+		    * ) if [ " $b" == " =" -a " $a" = " $name" -a -n "$active" ];
+			    then
+			    result="$result$sep$c"
+			    sep=$nl
+			    fi
+			    ;;
+	    esac
+	done < .patches/config
+	result=$(echo "$result" | sed 's/^"//' )
+	eval $name=\"\$result\"
+}
+
 upgrade_one()
 {
 	# move $1~current~ to .patches/current/$1 and same for orig
@@ -842,14 +870,29 @@ case $cmd in
 	    exit 1;
 	fi
 	mkdir .patches/mail
-	if [ ! -s .patches/maintainer ] ; then
+
+	get_conf author $1
+	get_conf header $1
+	if [ -n "$author" ]
+	then
+		headers="From: $author$nl$header$nl"
+	elif [ -s .patches/owner ]; then
+		headers=`cat .patches/owner`;
+        else
+		echo Please add add auther information to .patches/config
+		exit 1
+	fi
+	get_conf maintainer $1
+	if [ -z "$maintainer" -a -s .patches/maintainer ]
+	    then
+		mantainer=`cat .patches/maintainer`
+	fi
+
+	if [ -z "$maintainer" ] ; then
 	    echo "No maintainer - please add one"
 	    exit 1;
 	fi
-	if [ ! -s .patches/owner ] ; then
-	    echo "Your address and other headers must be in .patches/owner"
-	    exit 1;
-	fi
+
 	messid="<`date +'%Y%m%d%H%M%S'`.$$.patches@`uname -n`>"
 	cnt=0
 	for patch in .patches/applied/???${1}*
@@ -860,16 +903,21 @@ case $cmd in
 	  if [ -n "$3" ] && [ $3 -lt $n ] ; then continue; fi
 	  cnt=$(expr $cnt + 1 )
 	done
+	get_conf cc $1
+	get_conf tag $1
 	this=1
 	if [ $cnt -gt 1 ]
 	then
 	{
-	    if [ -s .patches/owner.$1 ] ; then
-		cat .patches/owner.$1
-	    else
-		cat .patches/owner
+	    echo "$headers"
+	    echo "To: $maintainer"
+
+	    if [ -z "$cc" ]; then
+		    echo "Cc: $cc"
 	    fi
-	    echo "To: `cat .patches/maintainer`"
+	    if [ -z "$tag" ]; then
+		    sprefix="$tag: "
+	    fi
 	    if [ -s .patches/cc ] ; then
 		while read word prefix addr
 		  do if [ " $word" = " $1" ] ; then
@@ -898,12 +946,14 @@ case $cmd in
 	  if [ -n "$3" ] && [ $3 -lt $n ] ; then continue; fi
 	  {
 	      sprefix=
-	      if [ -s .patches/owner.$1 ] ; then
-		cat .patches/owner.$1
-	      else
-		cat .patches/owner
+	      echo "$headers"
+	      echo "To: $maintainer"
+	      if [ -z "$cc" ]; then
+		    echo "Cc: $cc"
 	      fi
-	      echo "To: `cat .patches/maintainer`"
+	      if [ -z "$tag" ]; then
+		    sprefix="$tag: "
+	      fi
 	      if [ -s .patches/cc ] ; then
 		  while read word prefix addr
 		    do if [ " $word" = " $1" ] ; then
