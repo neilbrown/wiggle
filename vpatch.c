@@ -265,7 +265,7 @@ struct plist *add_dir(struct plist *pl, int *np, char *file, char *curr)
 			*curr++ = '/';
 		while (*file && *file != '/')
 			*curr++ = *file++;
-		while (*file == '/') *file++;
+		while (*file == '/') file++;
 		*curr = '\0';
 		if (*file)
 			pl = patch_add_file(pl, np, strdup(buf),
