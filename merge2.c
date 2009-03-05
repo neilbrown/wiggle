@@ -213,7 +213,7 @@ inline int isolate_conflicts(struct file af, struct file bf, struct file cf,
 						break;
 				}
 			}
-			i = j;
+			i = j - 1;
 		}
 	return cnt;
 }
