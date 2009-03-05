@@ -105,8 +105,12 @@ get_conf()
 		    "["*"]" ) _active= ;;
 		    * ) if [ " $b" == " =" -a " $a" = " $_name" -a -n "$_active" ];
 			    then
-			    _result="$_result$_sep$c"
-			    _sep=$nl
+			    if [ -z "$c" ]; then
+				_result= _sep=
+			    else
+			        _result="$_result$_sep$c"
+			        _sep=$nl
+                            fi
 			    fi
 			    ;;
 	    esac
@@ -134,7 +138,7 @@ forget_one()
 {
 	if true # || cmp -s "$1" ".patches/curent/$1~" && cmp -s "$1" ".patches/orgi/$1"
 	then
-            rm -f "./patches/current/$1" ".patches/orig/$1"
+            rm -f ".patches/current/$1" ".patches/orig/$1"
 	    chmod -w "$1"
 	else
 	    echo >&2 "ERROR $1 doesn't match original"
@@ -169,10 +173,12 @@ check_out()
 {
 	file=$1
 	file=${file#./}
+	f=/$file; f=${f%/*}
 	[ -f $file ] || >> $file
 	if [ -f $file ]
 	    then
 	    if [ ! -f ".patches/orig/$file" ] ; then
+		mkdir -p .patches/orig/$f
 		mv "$file" ".patches/orig/$file"
 		cp ".patches/orig/$file" "$file"
 		echo $file >> .patches/files
@@ -180,6 +186,7 @@ check_out()
 		chmod u+w "$file"
 	    fi
 	    if [ ! -f ".patches/current/$file" ] ; then
+		mkdir -p .patches/current/$f
 		mv "$file" ".patches/current/$file"
 		cp ".patches/current/$file" "$file"
 	    fi
@@ -290,6 +297,9 @@ find_prefix()
 	file=`lsdiff $1 | head -$n | tail -1`
 	orig=$file
 	prefix=0
+	case $file in
+	    b/* ) prefix=1; return
+	esac
 	while [ \( -n "$file" -a ! -f "$file" \) -o " $file" != " ${file#/}" ]
 	do
 	    file=`expr "$file" : '[^/]*/\(.*\)'`
@@ -374,9 +384,10 @@ case $cmd in
 	if [ ! -f "$pfile" ]
 	then echo >&2 "Cannot find unique patch '$1' - found: $pfile"; exit 1;
 	fi
-	if grep -s '^+.*[ 	]$' $pfile > /dev/null
+	ptn='^\+.*((	|[^	].{7}){10}.|[ 	]$)'
+	if grep -E -s "$ptn" $pfile > /dev/null
 	then
-	    ${PAGER-less -p '^\+.*[ 	]$'} $pfile
+	    ${PAGER-less -p "$ptn"} $pfile
 	else
 	    ${PAGER-less} $pfile
 	fi
@@ -431,6 +442,9 @@ case $cmd in
 	then
 	    echo >&2 remove trailing spaces/tabs first !!
 #	    exit 1
+	fi
+	if [ $cmd == "commit" -a -f scripts/checkpatch.pl ] ; then
+	    perl scripts/checkpatch.pl .patches/patch
 	fi
 	if [ -s .patches/to-resolve ]
 	then echo "Please resolve outstanding conflicts first with 'p resolve'"
@@ -688,6 +702,11 @@ case $cmd in
 	    ls .patches/removed
 	    exit 0
 	    ;;
+  lista )
+	    echo "Applied patches are:"
+	    ls .patches/applied
+	    exit 0
+	    ;;
  apply )
 	if [ -f .patches/in-review ]
 	then
@@ -863,7 +882,7 @@ case $cmd in
 	make_diff
 	if [ -s .patches/patch ]
 	then
-	    echo >&2 Patch already open - please commit; eixt 1;
+	    echo >&2 Patch already open - please commit; exit 1;
 	fi
 	for p in `ls .patches/applied`
 	do
@@ -916,7 +935,11 @@ case $cmd in
 	then
 	    # Ok, go for it.
 	    git add `cat .patches/files`
-	    git commit -a -F .patches/notes
+	    author=`grep '^From:' .patches/notes | head -n 1 | sed 's/From: *//'`
+	    if [ -n "$author" ]
+		then git commit --author="$author" -a -F .patches/notes
+		else git commit -a -F .patches/notes
+	    fi
 	    $0 commit
 	    $0 rebase
 	fi
@@ -953,17 +976,20 @@ case $cmd in
 	get_conf header $1
 	if [ -n "$author" ]
 	then
-		headers="From: $author$nl$header$nl"
+		headers="From: $author"
+		if [ -n "$header" ] ; then
+		    headers="$headers$nl$header"
+		fi
 	elif [ -s .patches/owner ]; then
 		headers=`cat .patches/owner`;
         else
-		echo Please add add auther information to .patches/config
+		echo Please add author information to .patches/config
 		exit 1
 	fi
 	get_conf maintainer $1
 	if [ -z "$maintainer" -a -s .patches/maintainer ]
 	    then
-		mantainer=`cat .patches/maintainer`
+		maintainer=`cat .patches/maintainer`
 	fi
 
 	if [ -z "$maintainer" ] ; then
@@ -973,13 +999,18 @@ case $cmd in
 
 	messid="<`date +'%Y%m%d%H%M%S'`.$$.patches@`uname -n`>"
 	cnt=0
+	> .patches/.tmp.cc
 	for patch in .patches/applied/???${1}*
 	do
           n=${patch##*/}
 	  n=${n:0:3}
 	  if [ -n "$2" ] && [ $2 -gt $n ] ; then continue; fi
 	  if [ -n "$3" ] && [ $3 -lt $n ] ; then continue; fi
+	  if [ -n "$4" ]; then
+	      case ,$4,  in *,$n,* ) ;; *) continue; esac
+	  fi
 	  cnt=$(expr $cnt + 1 )
+	  sed -n -e 's/^\(Signed-[Oo]ff-[Bb]y\|Acked-[Bb]y\|Cc\|From\): */Cc: /p' $patch | grep -v neilb >> .patches/.tmp.cc
 	done
 	get_conf cc $1
 	get_conf tag $1
@@ -990,11 +1021,14 @@ case $cmd in
 	    echo "$headers"
 	    echo "To: $maintainer"
 
-	    if [ -z "$cc" ]; then
+	    if [ -n "$cc" ]; then
 		    echo "Cc: $cc"
 	    fi
-	    if [ -z "$tag" ]; then
+	    if [ -n "$tag" ]; then
 		    sprefix="$tag: "
+	    fi
+	    if [ -s .patches/.tmp.cc ]
+	    then sort -u .patches/.tmp.cc
 	    fi
 	    if [ -s .patches/cc ] ; then
 		while read word prefix addr
@@ -1008,7 +1042,7 @@ case $cmd in
 		  then
 		  echo "Subject: [PATCH] ${sprefix}Intro"
 		  else
-		  echo "Subject: [PATCH 000 of $cnt] ${sprefix}Introduction"
+		  echo "Subject: [PATCH 000 of $cnt] ${sprefix}Introduction EXPLAIN PATCH SET HERE"
 	    fi
 	    echo "Message-ID: $messid"
 	    echo
@@ -1022,14 +1056,21 @@ case $cmd in
 	  n=${n:0:3}
 	  if [ -n "$2" ] && [ $2 -gt $n ] ; then continue; fi
 	  if [ -n "$3" ] && [ $3 -lt $n ] ; then continue; fi
+	  if [ -n "$4" ]; then
+	      case ,$4,  in *,$n,* ) ;; *) continue; esac
+	  fi
+	  if [ -f ./scripts/checkpatch.pl ] 
+	  then perl ./scripts/checkpatch.pl $patch
+	  fi
 	  {
 	      sprefix=
 	      echo "$headers"
 	      echo "To: $maintainer"
-	      if [ -z "$cc" ]; then
+	      if [ -n "$cc" ]; then
 		    echo "Cc: $cc"
 	      fi
-	      if [ -z "$tag" ]; then
+	      sed -n -e 's/^\(Signed-[Oo]ff-[Bb]y\|Acked-[Bb]y\|Cc\|From\): */Cc: /p' $patch | grep -v neilb | sort -u
+	      if [ -n "$tag" ]; then
 		    sprefix="$tag: "
 	      fi
 	      if [ -s .patches/cc ] ; then
@@ -1077,6 +1118,16 @@ case $cmd in
 	    fi
 	  done
 	  ;;
+
+   test )
+     # test all removed patches to see which ones are clearly included
+     for p in .patches/removed/*
+     do
+        if patch -R --dry-run -p0 --fuzz=0 -s -f < "$p" > /dev/null 2>&1
+        then echo $p
+        fi
+     done
+     ;;
    help )
 	helpfile=$0.help
 	if [ ! -f $helpfile ]
