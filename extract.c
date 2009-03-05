@@ -67,6 +67,7 @@ int split_patch(struct stream f, struct stream *f1, struct stream *f2)
 	int acnt=0, bcnt=0;
 	int a,b,c,d;
 	int lineno = 0;
+	char before[100], after[100];
 
 	f1->body = f2->body = NULL;
 
@@ -89,10 +90,25 @@ int split_patch(struct stream f, struct stream *f1, struct stream *f2)
 		lineno++;
 		switch(state) {
 		case 0:
-			if (sscanf(cp, "@@ -%d,%d +%d,%d @@", &a, &b, &c, &d)==4) {
-				acnt = b;
-				bcnt = d;
-				state = 3;
+			if (sscanf(cp, "@@ -%s +%s @@", before, after)==2) {
+				int ok = 1;
+				if (sscanf(before, "%d,%d", &a, &b) == 2)
+					acnt = b;
+				else if (sscanf(before, "%d", &a) == 1)
+					acnt = 1;
+				else
+					ok = 0;
+
+				if (sscanf(after, "%d,%d", &c, &d) == 2)
+					bcnt = d;
+				else if (sscanf(after, "%d", &c) == 1)
+					bcnt = 1;
+				else
+					ok = 0;
+				if (ok)
+					state = 3;
+				else
+					state = 0;
 			} else if (sscanf(cp, "*** %d,%d ****", &a, &b)==2) {
 				acnt = b-a+1;
 				state = 1;
