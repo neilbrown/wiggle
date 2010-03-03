@@ -104,7 +104,7 @@ to apply some patch, and to collect a list of rejects by monitoring
 the error messages from patch.  Then for each file for which a
 reject was found, run
 .ti +5
-wiggle --replace originalfile originalfile.rej
+wiggle \-\-replace originalfile originalfile.rej
 
 Finally each file must be examined to resolve any unresolved
 conflicts, and to make sure the applied patch is semantically correct.
@@ -116,39 +116,39 @@ Some of these are explained in more detail in the following sections
 on MERGE, DIFF, and EXTRACT.
 
 .TP
-.BR -m ", " --merge
+.BR -m ", " \-\-merge
 Select the "merge" function.  This is the default function.
 
 .TP
-.BR -d ", " --diff
+.BR -d ", " \-\-diff
 Select the "diff" function.  This displays the differences between files.
 
 .TP
-.BR -x ", " --extract
+.BR -x ", " \-\-extract
 Select the "extract" function.  This extracts one branch of a patch or
 merge file.
 
 .TP
-.BR -w ", " --words
+.BR -w ", " \-\-words
 Request that all operations and display be word based.  This is the
 default for the "diff" function.
 
 .TP
-.BR -l ", " --lines
+.BR -l ", " \-\-lines
 Request that all operations and display be line based.
 
 .TP
-.BR -p ", " --patch
-Treat the last named file as a patch instead of a file (with --diff)
-or a merge (--extract).
+.BR -p ", " \-\-patch
+Treat the last named file as a patch instead of a file (with \-\-diff)
+or a merge (\-\-extract).
 
 .TP
-.BR -r ", " --replace
+.BR -r ", " \-\-replace
 Normally the merged output is written to standard-output.  With
---replace, the original file is replaced with the merge output.
+\-\-replace, the original file is replaced with the merge output.
 
 .TP
-.BR -R ", " --reverse
+.BR -R ", " \-\-reverse
 When used with the "diff" function, swap the files before calculating
 the differences.
 When used with the "merge" function,
@@ -156,22 +156,22 @@ When used with the "merge" function,
 attempts to revert changes rather than apply them.
 
 .TP
-.BR -h ", " --help
+.BR -h ", " \-\-help
 Print a simple help message.  If given after one of the function
-selectors (--merge, --diff, --extract) help specific to that function
+selectors (\-\-merge, \-\-diff, \-\-extract) help specific to that function
 is displayed.
 
 .TP
-.BR -V ", " --version
+.BR -V ", " \-\-version
 Display the version number of
 .IR wiggle .
 
 .TP
-.BR -v ", " --verbose
+.BR -v ", " \-\-verbose
 Enable verbose mode.  Currently this makes no difference.
 
 .TP
-.BR -q ", " --quiet
+.BR -q ", " \-\-quiet
 Enable quiet mode.  This suppresses the message from the merge
 function when there are unresolvable conflicts.
 
@@ -200,13 +200,13 @@ them may be a lone hyphen signifying standard-input.
 
 If one file is given, it is treated as a
 .B merge
-file, i.e. the output of "merge -A" or "wiggle".  Such a file
+file, i.e. the output of "merge \-A" or "wiggle".  Such a file
 implicitly contains three streams and these are extracted and
 compared.
 
 If two files are given, then the first simply contains the primary
-text, and the second is treated as a patch file (the output of "diff\ -u"
-or "diff\ -c", or a ".rej" file from
+text, and the second is treated as a patch file (the output of "diff\ \-u"
+or "diff\ \-c", or a ".rej" file from
 .IR patch )
 and the two other texts
 are extracted from that.
@@ -215,7 +215,7 @@ Finally if three files are listed, they are taken to contain the given
 text and the two other texts, in order.
 
 Normally the result of the merge is written to standard-output.
-However if the "-r" flag is given, the output is written to a file
+However if the "\-r" flag is given, the output is written to a file
 which replaces the original given file. In this case the original file
 is renamed to have a
 .B .porig
@@ -235,12 +235,12 @@ The merge function can operate in three different modes with respect
 to lines or words.
 
 With the
-.B --lines
+.B \-\-lines
 option, whole lines are compared and any conflicts
 are reported as whole lines that need to be replaced.
 
 With the
-.B --words
+.B \-\-words
 option, individual words are compared and any
 conflicts are reported just covering the words affected.  This used
 the \f(CW <<<|||===>>> \fP conflict format.
@@ -324,9 +324,9 @@ to be refined from a line-based patch to a word-based patch.
 If two files are given, then they are normally assumed to be simple
 texts to be compared.
 
-If two files are given along with the --patch option, then the second
-file is assumed to be a patch and either the first (with -1) or the
-second (with -2) branch is extracted and compared with text found in
+If two files are given along with the \-\-patch option, then the second
+file is assumed to be a patch and either the first (with \-1) or the
+second (with \-2) branch is extracted and compared with text found in
 the first file.
 
 This last option causes
@@ -348,7 +348,7 @@ a patch or a merge file.
 
 Precisely one file should be given, and it will be assumed to be a
 merge file unless
-.B  --patch
+.B  \-\-patch
 is given, in which case a patch is assumed.
 
 The choice of branch in made by providing one of
@@ -373,7 +373,7 @@ correct.
 
 .SH EXAMPLES
 
-.B "  wiggle --replace file file.rej"
+.B "  wiggle \-\-replace file file.rej"
 .br
 This is the normal usage of
 .I wiggle
@@ -395,7 +395,7 @@ branch of the diff in
 and display the differences.  This allows you to see where a given
 patch would apply.
 
-.B "   wiggle --merge --help"
+.B "   wiggle \-\-merge \-\-help"
 .br
 Get help about the merge function of
 .IR wiggle .
@@ -412,19 +412,19 @@ when I don't have file1.  But merge tools want to take
 I haven't seen a graphical tool which helps you to wiggle a patch
 into a file.
 
--- Andrew Morton - 2002
+\-\- Andrew Morton - 2002
 .fi
 
 .SH SHORTCOMINGS
 .IP -
 .I wiggle
 cannot read the extended unified-diff output that it produces for
---diff --words.
+\-\-diff \-\-words.
 
 .IP -
 .I wiggle
-cannot read the word-based merge format that it produces for --merge
---words.
+cannot read the word-based merge format that it produces for \-\-merge
+\-\-words.
 
 .SH AUTHOR
 
