@@ -200,7 +200,8 @@ int split_merge(struct stream f, struct stream *f1, struct stream *f2, struct st
 	int state = 0;
 	char *cp, *end;
 	struct stream r1,r2,r3;
-	f1->body = f2->body = f2->body = NULL;
+	f1->body = NULL;
+	f2->body = NULL;
 
 	r1.body = malloc(f.len);
 	r2.body = malloc(f.len);
