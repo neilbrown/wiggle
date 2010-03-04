@@ -28,7 +28,7 @@ wiggle.man : wiggle.1
 	nroff -man wiggle.1 > wiggle.man
 
 clean:
-	rm -f *.o *.man wiggle .version* version
+	rm -f *.o *.man wiggle .version*
 	find . -name core -o -name '*.tmp*' -o -name .tmp | xargs rm -f
 
 install : wiggle wiggle.1
