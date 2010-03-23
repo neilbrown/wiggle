@@ -1,0 +1,51 @@
+@@ -4503,29 +4508,45 @@
+       XSETFRAME (frame, f);
+       call1 (Qframe_update_face_colors, frame);
+ 
+-      lface = lface_from_face_name (f, Qdefault, 1);
++      face = Qdefault;
++      lface = lface_from_face_name (f, face, 1);
+       LFACE_BACKGROUND (lface) = (STRINGP (new_value)
+ 				  ? new_value : Qunspecified);
+       realize_basic_faces (f);
+     }
+-  if (EQ (param, Qborder_color))
++  else if (EQ (param, Qborder_color))
+     {
+-      lface = lface_from_face_name (f, Qborder, 1);
++      face = Qborder;
++      lface = lface_from_face_name (f, face, 1);
+       LFACE_BACKGROUND (lface) = (STRINGP (new_value)
+ 				  ? new_value : Qunspecified);
+     }
+   else if (EQ (param, Qcursor_color))
+     {
+-      lface = lface_from_face_name (f, Qcursor, 1);
++      face = Qcursor;
++      lface = lface_from_face_name (f, face, 1);
+       LFACE_BACKGROUND (lface) = (STRINGP (new_value)
+ 				  ? new_value : Qunspecified);
+     }
+   else if (EQ (param, Qmouse_color))
+     {
+-      lface = lface_from_face_name (f, Qmouse, 1);
++      face = Qmouse;
++      lface = lface_from_face_name (f, face, 1);
+       LFACE_BACKGROUND (lface) = (STRINGP (new_value)
+ 				  ? new_value : Qunspecified);
+     }
++
++  /* Changing a named face means that all realized faces depending on
++     that face are invalid.  Since we cannot tell which realized faces
++     depend on the face, make sure they are all removed.  This is done
++     by incrementing face_change_count.  The next call to
++     init_iterator will then free realized faces.  */
++  if (!NILP (face)
++      && NILP (Fget (face, Qface_no_inherit)))
++    {
++      ++face_change_count;
++      ++windows_or_buffers_changed;
++    }
+ }
+ 
+ 
