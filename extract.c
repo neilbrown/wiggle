@@ -219,6 +219,8 @@ int split_merge(struct stream f, struct stream *f1, struct stream *f2, struct st
 		 *  1 in file 1 of conflict
 		 *  2 in file 2 of conflict
 		 *  3 in file 3 of conflict
+		 *  4 in file 2 but expecting 1/3 next
+		 *  5 in file 1/3
 		 */
 		int len = end-cp;
 		lineno++;
@@ -228,8 +230,35 @@ int split_merge(struct stream f, struct stream *f1, struct stream *f2, struct st
 			    strncmp(cp, "<<<<<<<", 7)==0 &&
 			    (cp[7] == ' ' || cp[7] == '\n')
 				) {
+				char *peek;
 				state = 1;
 				skip_eol(&cp, end);
+				/* diff3 will do something a bit strange in
+				 * the 1st and 3rd sections are the same.
+				 * it reports
+				 * <<<<<<<
+				 * 2nd
+				 * =======
+				 * 1st and 3rd
+				 * >>>>>>>
+				 * Without a ||||||| at all.
+				 * so to know if we are in '1' or '2', skip forward
+				 * having a peek.
+				 */
+				peek = cp;
+				while (peek < end) {
+					if (end-peek >= 8 &&
+					    (peek[7] == ' ' || peek[7] == '\n')) {
+						if (strncmp(peek, "|||||||", 7) == 0 ||
+						    strncmp(peek, ">>>>>>>", 7) == 0)
+							break;
+						else if (strncmp(peek, "=======", 7) == 0) {
+							state = 4;
+							break;
+						}
+					}
+					skip_eol(&peek, end);
+				}
 			} else {
 				char *cp2= cp;
 				copyline(&r1, &cp2, end);
@@ -267,6 +296,29 @@ int split_merge(struct stream f, struct stream *f1, struct stream *f2, struct st
 				skip_eol(&cp, end);
 			} else
 				copyline(&r3, &cp, end);
+			break;
+		case 4:
+			if (len>=8 &&
+			    strncmp(cp, "=======", 7)==0 &&
+			    (cp[7] == ' ' || cp[7] == '\n')
+				) {
+				state = 5;
+				skip_eol(&cp, end);
+			} else
+				copyline(&r2, &cp, end);
+			break;
+		case 5:
+			if (len>=8 &&
+			    strncmp(cp, ">>>>>>>", 7)==0 &&
+			    (cp[7] == ' ' || cp[7] == '\n')
+				) {
+				state = 0;
+				skip_eol(&cp, end);
+			} else {
+				char *t = cp;
+				copyline(&r1, &t, end);
+				copyline(&r3, &cp, end);
+			}
 			break;
 		}
 	}
