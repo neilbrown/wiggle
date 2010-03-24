@@ -647,7 +647,7 @@ void draw_line(int i, struct pos pos, int mode,
 			int d,e,f;
 			struct elmnt e2 = f2.list[pos.b-1];
 			char buf[50];
-			attrset(a_sep);
+			(void)attrset(a_sep);
 			sscanf(e1.start+1, "%d %d %d", &a, &b, &c);
 			sscanf(e2.start+1, "%d %d %d", &d, &e, &f);
 			sprintf(buf, "@@ -%d,%d +%d,%d @@\n", b,c, e,f);
@@ -656,7 +656,7 @@ void draw_line(int i, struct pos pos, int mode,
 		} else {
 			unsigned char *c;
 			int l;
-			attrset(attr);
+			(void)attrset(attr);
 			if (e1.start[0] == '\n') {
 				break;
 			}
@@ -1126,7 +1126,7 @@ void prev_mline(struct mpos *pos, struct file fm, struct file fb, struct file fa
 
 void blank(int row, int start, int cols, int attr)
 {
-	attrset(attr);
+	(void)attrset(attr);
 	move(row,start);
 	while (cols-- > 0)
 		addch(' ');
@@ -1214,7 +1214,7 @@ void draw_mside(int mode, int row, int offset, int start, int cols,
 			if (colp) *colp = col;
 			if (col < start) col = start;
 			if (e.start && e.start[0] == 0) {
-				attrset(visible(mode, m[pos.p.m].type, pos.p.s));
+				(void)attrset(visible(mode, m[pos.p.m].type, pos.p.s));
 				mvaddstr(row, col-start+offset, "SEP");
 				col += 3;
 			}
@@ -1226,7 +1226,7 @@ void draw_mside(int mode, int row, int offset, int start, int cols,
 		}
 		if (e.start[0] == 0)
 			continue;
-		attrset(visible(mode, m[pos.p.m].type, pos.p.s));
+		(void)attrset(visible(mode, m[pos.p.m].type, pos.p.s));
 		c = (unsigned char *)e.start;
 		l = e.len;
 		while(l) {
