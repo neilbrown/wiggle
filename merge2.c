@@ -220,7 +220,8 @@ inline int isolate_conflicts(struct file af, struct file bf, struct file cf,
 
 
 struct ci make_merger(struct file af, struct file bf, struct file cf,
-		      struct csl *csl1, struct csl *csl2, int words)
+		      struct csl *csl1, struct csl *csl2, int words,
+		      int ignore_already)
 {
 	/* find the wiggles and conflicts between csl1 and csl2
 	 */
@@ -318,7 +319,8 @@ struct ci make_merger(struct file af, struct file bf, struct file cf,
 			rv.merger[i].al = csl1[c1].a - a;
 			rv.merger[i].cl = csl2[c2].b - c;
 			rv.merger[i].bl = min(csl1[c1].b, csl2[c2].a) - b;
-			if (check_alreadyapplied(af,cf,&rv.merger[i]))
+			if (ignore_already &&
+			    check_alreadyapplied(af,cf,&rv.merger[i]))
 				rv.ignored ++;
 		}
 		a += rv.merger[i].al;
@@ -353,10 +355,11 @@ void printrange(FILE *out, struct file *f, int start, int len)
 }
 
 struct ci print_merge2(FILE *out, struct file *a, struct file *b, struct file *c,
-		 struct csl *c1, struct csl *c2,
-		 int words)
+		       struct csl *c1, struct csl *c2,
+		       int words, int ignore_already)
 {
-	struct ci rv = make_merger(*a, *b, *c, c1, c2, words);
+	struct ci rv = make_merger(*a, *b, *c, c1, c2, 
+				   words, ignore_already);
 	struct merge *m;
 
 	for (m=rv.merger; m->type != End ; m++) {

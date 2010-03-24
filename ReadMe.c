@@ -31,8 +31,8 @@
 
 char Version[] = "wiggle - v0.7 - 24 March 2010\n";
 
-char short_options1[]="xdmwlrh123pVRvqB"; /* not mode B */
-char short_options2[]="xdmwlrh123p:VRvqB"; /* mode B */
+char short_options1[]="xdmwlrhi123pVRvqB"; /* not mode B */
+char short_options2[]="xdmwlrhi123p:VRvqB"; /* mode B */
 
 
 struct option long_options[] = {
@@ -50,6 +50,7 @@ struct option long_options[] = {
 	{"verbose",	0, 0, 'v'},
 	{"quiet",	0, 0, 'q'},
 	{"strip",	1, 0, 'p'},
+	{"no-ignore",	0, 0, 'i'},
 	{0, 0, 0, 0}
 };
 

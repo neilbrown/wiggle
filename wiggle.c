@@ -157,6 +157,7 @@ int main(int argc, char *argv[])
 	int strip = -1;
 	int chunks1=0, chunks2=0, chunks3=0;
 	int exit_status = 0;
+	int ignore = 1;
 	FILE *outfile = stdout;
 	char *helpmsg;
 	char *base0;
@@ -224,6 +225,10 @@ int main(int argc, char *argv[])
 			continue;
 		case 'R':
 			reverse = 1;
+			continue;
+
+		case 'i':
+			ignore = 0;
 			continue;
 
 		case '1':
@@ -646,7 +651,8 @@ int main(int argc, char *argv[])
 			struct ci ci;
 
 			ci = print_merge2(outfile, &fl[0], &fl[1], &fl[2],
-						   csl1, csl2, obj=='w');
+					  csl1, csl2, obj=='w',
+					  ignore);
 			if (!quiet && ci.conflicts)
 				fprintf(stderr, "%d unresolved conflict%s found\n", ci.conflicts, ci.conflicts==1?"":"s");
 			if (!quiet && ci.ignored)

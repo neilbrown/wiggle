@@ -157,6 +157,12 @@ When used with the "merge" function,
 attempts to revert changes rather than apply them.
 
 .TP
+.BR -i ", " \-\-no\-ignore
+Normally wiggle with ignore changes in the patch which appear to
+already have been applied in the original.  With this flag those
+changes are reported as conflicts rather than being ignored.
+
+.TP
 .BR -h ", " \-\-help
 Print a simple help message.  If given after one of the function
 selectors (\-\-merge, \-\-diff, \-\-extract) help specific to that function
@@ -290,6 +296,9 @@ in the original, then it is assumed that this change has already been
 applied, and the change is ignored.  When this happens, a message
 reflected the number of ignored changes is printed by
 .IR wiggle .
+This optimisation can be suppressed with the
+.B \-i
+flag.
 
 .IP 4
 If a change is found that does not fit any of the above possibilities,

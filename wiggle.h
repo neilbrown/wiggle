@@ -121,12 +121,13 @@ extern struct ci print_merge(FILE *out, struct file *a, struct file *b, struct f
 		       struct csl *c1, struct csl *c2,
 		       int words);
 extern struct ci print_merge2(FILE *out, struct file *a, struct file *b, struct file *c,
-		       struct csl *c1, struct csl *c2,
-		       int words);
+			      struct csl *c1, struct csl *c2,
+			      int words, int ignore_already);
 extern void printword(FILE *f, struct elmnt e);
 
 extern struct ci make_merger(struct file a, struct file b, struct file c,
-			       struct csl *c1, struct csl *c2, int words);
+			     struct csl *c1, struct csl *c2, int words,
+			     int ignore_already);
 
 extern void die(void);
 

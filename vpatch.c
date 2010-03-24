@@ -425,7 +425,7 @@ void draw_one(int row, struct plist *pl, FILE *f, int reverse)
 			fp2 = split_stream(s2, ByWord, 0);
 			csl1 = pdiff(ff, fp1, pl->chunks);
 			csl2 = diff(fp1,fp2);
-			ci = make_merger(ff, fp1, fp2, csl1, csl2, 0);
+			ci = make_merger(ff, fp1, fp2, csl1, csl2, 0, 1);
 			pl->wiggles = ci.wiggles;
 			pl->conflicts = ci.conflicts;
 			free(csl1);
@@ -1387,7 +1387,7 @@ void merge_window(struct plist *p, FILE *f, int reverse)
 	cleanlist(fb, fa, csl2);
 #endif
 
-	ci = make_merger(fm, fb, fa, csl1, csl2, 0);
+	ci = make_merger(fm, fb, fa, csl1, csl2, 0, 1);
 
 	row = 1;
 	pos.p.m = 0; /* merge node */
