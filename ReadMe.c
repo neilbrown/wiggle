@@ -29,7 +29,7 @@
 
 #include "wiggle.h"
 
-char Version[] = "wiggle - v0.7 - 24 March 2010\n";
+char Version[] = "wiggle - v0.8 - 24 March 2010\n";
 
 char short_options1[]="xdmwlrhi123pVRvqB"; /* not mode B */
 char short_options2[]="xdmwlrhi123p:VRvqB"; /* mode B */
