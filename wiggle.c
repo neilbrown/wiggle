@@ -318,7 +318,9 @@ int main(int argc, char *argv[])
 				argv[optind], which);
 			exit(2);
 		} else {
-			write(1, flist[which-'1'].body, flist[which-'1'].len);
+			if (write(1, flist[which-'1'].body, flist[which-'1'].len)
+			    != flist[which-'1'].len)
+				exit(2);
 		}
 
 		break;

@@ -391,7 +391,7 @@ int a_delete, a_added, a_common, a_sep, a_void, a_unmatched, a_extra, a_already;
 
 void draw_one(int row, struct plist *pl, FILE *f, int reverse)
 {
-	char hdr[10];
+	char hdr[12];
 	hdr[0] = 0;
 
 	if (pl == NULL) {
@@ -706,7 +706,7 @@ void diff_window(struct plist *p, FILE *f)
 	struct csl *csl;
 	char buf[100];
 	int ch;
-	int row, rows, cols;
+	int row, rows=0, cols=0;
 	int start = 0;
 	int i;
 	int c;
@@ -731,7 +731,8 @@ void diff_window(struct plist *p, FILE *f)
 		if (refresh == 2) {
 			clear();
 			sprintf(buf, "File: %s\n", p->file);
-			attrset(A_BOLD); mvaddstr(0,0,buf); clrtoeol(); attrset(A_NORMAL);
+			(void)attrset(A_BOLD);
+			mvaddstr(0,0,buf); clrtoeol(); attrset(A_NORMAL);
 			refresh = 1;
 		}
 		if (row < 1 || row >= rows)
@@ -862,7 +863,7 @@ struct elmnt next_melmnt(struct mpos *pos,
 			 struct file fm, struct file fb, struct file fa,
 			 struct merge *m)
 {
-	int l;
+	int l = 0;
 	pos->p.o++;
 	while(1) {
 		if (pos->p.m < 0)
@@ -1267,10 +1268,10 @@ void draw_mline(int row, struct mpos pos,
 	lcols = (cols-1)/2-1;
 	rcols = cols - lcols - 3;
 
-	attrset(A_STANDOUT);
+	(void)attrset(A_STANDOUT);
 	mvaddch(row, lcols+1, '|');
 
-	attrset(A_NORMAL);
+	(void)attrset(A_NORMAL);
 	if (!(mode & CHANGES)) {
 		mvaddch(row, 0, ' ');
 		mvaddch(row, lcols+2, ' ');
@@ -1340,7 +1341,7 @@ void merge_window(struct plist *p, FILE *f, int reverse)
 	char buf[100];
 	int ch;
 	int refresh = 2;
-	int rows,cols;
+	int rows = 0, cols = 0;
 	int i, c;
 	int mode = ORIG|RESULT | BEFORE|AFTER;
 
@@ -1349,14 +1350,14 @@ void merge_window(struct plist *p, FILE *f, int reverse)
 	int col=0, target=0;
 	struct mpos pos;
 	struct mpos tpos, toppos, botpos;
-	int toprow,botrow;
+	int toprow = 0,botrow = 0;
 	int mode2;
 	int meta = 0, tmeta;
 	int num= -1, tnum;
 	char search[80];
 	int searchlen = 0;
 	int search_notfound = 0;
-	int searchdir;
+	int searchdir = 0;
 	struct search_anchor {
 		struct search_anchor *next;
 		struct mpos pos;
@@ -1410,9 +1411,9 @@ void merge_window(struct plist *p, FILE *f, int reverse)
 		if (refresh == 2) {
 			clear();
 			sprintf(buf, "File: %s%s\n", p->file,reverse?" - reversed":"");
-			attrset(A_BOLD); mvaddstr(0,0,buf);
+			(void)attrset(A_BOLD); mvaddstr(0,0,buf);
 			clrtoeol();
-			attrset(A_NORMAL);
+			(void)attrset(A_NORMAL);
 			refresh = 1;
 		}
 		if (row < 1 || row >= rows)
@@ -1499,7 +1500,7 @@ void merge_window(struct plist *p, FILE *f, int reverse)
 #define META(c) ((c)|0x1000)
 #define	SEARCH(c) ((c)|0x2000)
 		move(rows,0);
-		attrset(A_NORMAL);
+		(void)attrset(A_NORMAL);
 		if (num>=0) { char buf[10]; sprintf(buf, "%d ", num); addstr(buf);}
 		if (meta & META(0)) addstr("ESC...");
 		if (meta & SEARCH(0)) {
@@ -1827,15 +1828,15 @@ void main_window(struct plist *pl, int n, FILE *f, int reverse)
 	 */
 	int pos=0; /* position in file */
 	int row=1; /* position on screen */
-	int rows; /* size of screen in rows */
-	int cols;
+	int rows = 0; /* size of screen in rows */
+	int cols = 0;
 	int tpos, i;
 	int refresh = 2;
 	int c=0;
 
 	while(1) {
 		if (refresh == 2) {
-			clear(); attrset(0);
+			clear(); (void)attrset(0);
 			attron(A_BOLD);
 			mvaddstr(0,0,"Ch Wi Co Patched Files");
 			move(2,0);
@@ -1964,8 +1965,7 @@ int vpatch(int argc, char *argv[], int strip, int reverse, int replace)
 
 	if (f) {
 		if (fileno(in) == 0) {
-			close(0);
-			dup(2);
+			dup2(2,0);
 		} else
 			fclose(in);
 		in = f;
