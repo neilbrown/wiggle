@@ -1,11 +1,11 @@
 Summary: A tool for applying patches with conflicts
 Name: wiggle
-Version: 0.6
+Version: 0.7
 Release: 1
 License: GPL
 Group: Development/Tools 
-URL: http://www.cse.unsw.edu.au/~neilb/source/wiggle/
-Source0: http://www.cse.unsw.edu.au/~neilb/source/wiggle/%{name}-%{version}.tar.gz
+URL: http://neil.brown.name/wiggle/
+Source0: http://neil.brown.name/wiggle/%{name}-%{version}.tar.gz
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-buildroot
 
 %description
