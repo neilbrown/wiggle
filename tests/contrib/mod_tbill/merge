@@ -1,0 +1,36 @@
+#ifndef MOD_TBILL_H
+#define MOD_TBILL_H
+
+class DB;
+class ServerRequest;
+
+#include <time.h>
+#include <cbtcommon++/String.h>
+#include "functionHash.h"
+
+typedef struct _tbill_state
+{
+    /* settable via conf file */
+    char  *logon;
+    char  *template_dir;
+    char  *graph_dir;
+    char  *pdf_dir;
+    char  *http_proxy_server_addr; //for reverse lookups
+    int    http_proxy_server_port; //for reverse lookups
+    int    auth_d_reload_interval;
+    char  *debuglvl_path;
+
+    /* internal state */
+    DB    *db;
+    FunctionHash * fh;
+    int    available;
+    String *linkPathPrefix;
+    int    auth_d_pipe_fd;
+    int    auth_d_fd;
+    int    production_mode;
+} tbill_state;
+
+void generatePage(tbill_state *, ServerRequest *);
+
+#endif /* MOD_TBILL_H */
+

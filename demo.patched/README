@@ -1,0 +1,58 @@
+
+This is demo file for wiggle's --browse mode.
+
+Browse mode is intended to let you look through a patch
+to see how it will apply to a set of files.  It is 
+possible that the patch will have some conflicts.
+That is: the patch was created from a different version of
+the source to the version that you are applying the patch
+to.  This is what makes it interesting.
+
+You can use normal cursor motion to scroll around,
+both vertially and horizontally (both emacs and vi style).
+From the initial file-list patch, use space
+or <return> to open/close a directory or file.
+Form the file-view mode, use 'q' to get back to
+to file list.
+
+Differences applied by the patch are shown as
+RED for removal and BLUE for addition.
+Text with a pink background was not matched -
+maybe it has been changed since the patch was
+created.
+
+green-background text is text that the patch wants
+to change, but the exact correct change has already
+been made.
+
+Captial-N might go to the next interesting chunk
+of the file.
+
+You can use 'o' and 'r' to move between showing the
+original and result file in the left window.
+An intermediate shows both.
+
+You can use 'b' and 'a' to move between showing the
+before and after veiws of the patch in the right
+window.  Again, an intermediate shows both.
+
+Have fun.
+
+---------------------------------------
+This demonstrates where a diff on one line
+applies to text that is now split
+
+The quick brown fox jumps over the lazy hound.
+
+------------
+
+This demonstrates a diff which contains some
+extraneous lines.
+(this is an extra line)
+
+The quick brown fox jumps over the lazy cat.
+
+There will be extra lines in the diff
+(as is this)
+
+--------------

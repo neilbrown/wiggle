@@ -1,0 +1,57 @@
+***************
+*** 1140,1149 ****
+  DEFINEPARSER(pfkey_spirange_parse);
+  DEFINEPARSER(pfkey_x_kmprivate_parse);
+  DEFINEPARSER(pfkey_x_satype_parse);
+  DEFINEPARSER(pfkey_x_ext_debug_parse);
+  DEFINEPARSER(pfkey_x_ext_protocol_parse);
+  
+  struct pf_key_ext_parsers_def *ext_default_parsers[]=
+  {
+  	NULL,                 /* pfkey_msg_parse, */
+  	&pfkey_sa_parse_def,
+--- 1156,1169 ----
+  DEFINEPARSER(pfkey_spirange_parse);
+  DEFINEPARSER(pfkey_x_kmprivate_parse);
+  DEFINEPARSER(pfkey_x_satype_parse);
+  DEFINEPARSER(pfkey_x_ext_debug_parse);
+  DEFINEPARSER(pfkey_x_ext_protocol_parse);
++ #ifdef NAT_TRAVERSAL
++ DEFINEPARSER(pfkey_x_ext_nat_t_type_parse);
++ DEFINEPARSER(pfkey_x_ext_nat_t_port_parse);
++ #endif
+  
+  struct pf_key_ext_parsers_def *ext_default_parsers[]=
+  {
+  	NULL,                 /* pfkey_msg_parse, */
+  	&pfkey_sa_parse_def,
+***************
+*** 1170,1179 ****
+  	&pfkey_address_parse_def,
+  	&pfkey_address_parse_def,
+  	&pfkey_address_parse_def,
+  	&pfkey_x_ext_debug_parse_def,
+  	&pfkey_x_ext_protocol_parse_def
+  };
+  
+  int
+  pfkey_msg_parse(struct sadb_msg *pfkey_msg,
+  		struct pf_key_ext_parsers_def *ext_parsers[],
+--- 1190,1206 ----
+  	&pfkey_address_parse_def,
+  	&pfkey_address_parse_def,
+  	&pfkey_address_parse_def,
+  	&pfkey_x_ext_debug_parse_def,
+  	&pfkey_x_ext_protocol_parse_def
++ #ifdef NAT_TRAVERSAL
++ 	,
++ 	&pfkey_x_ext_nat_t_type_parse_def,
++ 	&pfkey_x_ext_nat_t_port_parse_def,
++ 	&pfkey_x_ext_nat_t_port_parse_def,
++ 	&pfkey_address_parse_def
++ #endif
+  };
+  
+  int
+  pfkey_msg_parse(struct sadb_msg *pfkey_msg,
+  		struct pf_key_ext_parsers_def *ext_parsers[],

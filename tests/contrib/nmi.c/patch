@@ -1,0 +1,8 @@
+@@ -26,6 +26,7 @@
+ #include <linux/nmi.h>
+ #include <linux/sysdev.h>
+ #include <linux/debugger.h>
++#include <linux/dump.h>
+ 
+ #include <asm/smp.h>
+ #include <asm/mtrr.h>

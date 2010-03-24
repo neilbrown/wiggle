@@ -1,0 +1,271 @@
+Status: ok
+
+Support 'blocked' flag on devices.
+
+MORE DETAILS and more code
+
+Signed-off-by: Neil Brown <neilb@suse.de>
+
+### Diffstat output
+ ./drivers/md/md.c           |   28 ++++++++++++++++++++++++++++
+ ./drivers/md/raid1.c        |   21 ++++++++++++++++++++-
+ ./drivers/md/raid10.c       |   24 +++++++++++++++++++++++-
+ ./drivers/md/raid5.c        |   14 ++++++++++++--
+ ./include/linux/raid/md_k.h |    7 +++++++
+ 5 files changed, 90 insertions(+), 4 deletions(-)
+
+diff ./drivers/md/md.c~current~ ./drivers/md/md.c
+--- ./drivers/md/md.c~current~	2006-04-18 13:00:05.000000000 +1000
++++ ./drivers/md/md.c	2006-04-11 15:44:12.000000000 +1000
+@@ -1724,6 +1724,18 @@ state_show(mdk_rdev_t *rdev, char *page)
+ 		len += sprintf(page+len, "%sin_sync",sep);
+ 		sep = ",";
+ 	}
++	if (test_bit(WriteMostly, &rdev->flags)) {
++		len += sprintf(page+len, "%swrite_mostly",sep);
++		sep = ",";
++	}
++	if (test_bit(ReadFault, &rdev->flags)) {
++		len += sprintf(page+len, "%sread_fault",sep);
++		sep = ",";
++	}
++	if (test_bit(Blocked, &rdev->flags)) {
++		len += sprintf(page+len, "%sblocked",sep);
++		sep = ",";
++	}
+ 	if (!test_bit(Faulty, &rdev->flags) &&
+ 	    !test_bit(In_sync, &rdev->flags)) {
+ 		len += sprintf(page+len, "%sspare", sep);
+@@ -1738,6 +1750,10 @@ state_store(mdk_rdev_t *rdev, const char
+ 	/* can write
+ 	 *  faulty  - simulates and error
+ 	 *  remove  - disconnects the device
++	 *  writemostly - sets write_mostly
++	 *  -writemostly - clears write_mostly
++	 *  blocked - sets Blocked flag
++	 *  -blocked - clears Blocked flag
+ 	 */
+ 	int err = -EINVAL;
+ 	if (cmd_match(buf, "faulty") && rdev->mddev->pers) {
+@@ -1753,6 +1769,17 @@ state_store(mdk_rdev_t *rdev, const char
+ 			md_new_event(mddev);
+ 			err = 0;
+ 		}
++	} else if (cmd_match(buf, "writemostly")) {
++		set_bit(WriteMostly, &rdev->flags);
++	} else if (cmd_match(buf, "-writemostly")) {
++		clear_bit(WriteMostly, &rdev->flags);
++	} else if (cmd_match(buf, "blocked")) {
++		set_bit(Blocked, &rdev->flags);
++	} else if (cmd_match(buf, "-blocked")) {
++		clear_bit(Blocked, &rdev->flags);
++		set_bit(MD_RECOVERY_NEEDED, &mddev->recovery);
++		md_wakeup_thread(mddev->thread);
++		wake_up(&??);
+ 	}
+ 	return err ? err : len;
+ }
+@@ -5459,6 +5486,7 @@ void md_check_recovery(mddev_t *mddev)
+ 		ITERATE_RDEV(mddev,rdev,rtmp)
+ 			if (rdev->raid_disk >= 0 &&
+ 			    (test_bit(Faulty, &rdev->flags) || ! test_bit(In_sync, &rdev->flags)) &&
++			    !test_bit(Blocked, &rdev->flags) &&
+ 			    atomic_read(&rdev->nr_pending)==0) {
+ 				if (mddev->pers->hot_remove_disk(mddev, rdev->raid_disk)==0) {
+ 					char nm[20];
+
+diff ./drivers/md/raid1.c~current~ ./drivers/md/raid1.c
+--- ./drivers/md/raid1.c~current~	2006-04-18 13:00:05.000000000 +1000
++++ ./drivers/md/raid1.c	2006-04-18 12:59:28.000000000 +1000
+@@ -428,7 +428,7 @@ static int read_balance(conf_t *conf, r1
+  retry:
+ 	if (conf->mddev->recovery_cp < MaxSector &&
+ 	    (this_sector + sectors >= conf->next_resync)) {
+-		/* Choose the first operation device, for consistancy */
++		/* Choose the first operational device, for consistency */
+ 		new_disk = 0;
+ 
+ 		for (rdev = rcu_dereference(conf->mirrors[new_disk].rdev);
+@@ -745,6 +745,7 @@ static int make_request(request_queue_t 
+ 	struct page **behind_pages = NULL;
+ 	const int rw = bio_data_dir(bio);
+ 	int do_barriers;
++	int blocked = 0;
+ 
+ 	/*
+ 	 * Register the new request and wait if the reconstruction
+@@ -824,12 +825,18 @@ static int make_request(request_queue_t 
+ 	first = 0;
+ 	}
+ #endif
++ retry_write:
+ 	rcu_read_lock();
+ 	for (i = 0;  i < disks; i++) {
+ 		if ((rdev=rcu_dereference(conf->mirrors[i].rdev)) != NULL &&
+ 		    !test_bit(Faulty, &rdev->flags)) {
+ 			atomic_inc(&rdev->nr_pending);
+ 			if (test_bit(Faulty, &rdev->flags)) {
++				if (unlikely(test_bit(Block??, &rdev->flags))) {
++					blocked = 1;
++					rdev_dec_pending(rdev, mddev);
++					break;
++				}
+ 				rdev_dec_pending(rdev, mddev);
+ 				r1_bio->bios[i] = NULL;
+ 			} else
+@@ -839,6 +846,18 @@ static int make_request(request_queue_t 
+ 			r1_bio->bios[i] = NULL;
+ 	}
+ 	rcu_read_unlock();
++	if (unlikely(blocked)) {
++		/* Have to wait for this device to get unblocked, then retry. */
++		int j;
++		for (j=0; j<i; i++)
++			if (r1_bio->bios[j])
++				rdev_dec_pending(conf->mirrors[j].rdev, mddev);
++		allow_barrier(conf);
++		wait_event(mddev->recovery_wait,
++			   !(test_bit(Faulty, &rdev->flags....);
++		wait_barrier(conf);
++		goto retry_write;
++	}
+ 
+ 	BUG_ON(targets == 0); /* we never fail the last device */
+ 
+
+diff ./drivers/md/raid10.c~current~ ./drivers/md/raid10.c
+--- ./drivers/md/raid10.c~current~	2006-04-18 13:00:05.000000000 +1000
++++ ./drivers/md/raid10.c	2006-04-12 14:19:51.000000000 +1000
+@@ -764,6 +764,7 @@ static int make_request(request_queue_t 
+ 	const int rw = bio_data_dir(bio);
+ 	struct bio_list bl;
+ 	unsigned long flags;
++	int blocked = 0;
+ 
+ 	if (unlikely(bio_barrier(bio))) {
+ 		bio_endio(bio, bio->bi_size, -EOPNOTSUPP);
+@@ -853,17 +854,22 @@ static int make_request(request_queue_t 
+ 	/*
+ 	 * WRITE:
+ 	 */
+-	/* first select target devices under spinlock and
++	/* first select target devices under rcu_lock and
+ 	 * inc refcount on their rdev.  Record them by setting
+ 	 * bios[x] to bio
+ 	 */
+ 	raid10_find_phys(conf, r10_bio);
++ retry_write:
+ 	rcu_read_lock();
+ 	for (i = 0;  i < conf->copies; i++) {
+ 		int d = r10_bio->devs[i].devnum;
+ 		mdk_rdev_t *rdev = rcu_dereference(conf->mirrors[d].rdev);
+ 		if (rdev &&
+ 		    !test_bit(Faulty, &rdev->flags)) {
++			if (unlikely(test_bit(Blocked, &rdev->flags))) {
++				blocked = 1;
++				break;
++			}
+ 			atomic_inc(&rdev->nr_pending);
+ 			r10_bio->devs[i].bio = bio;
+ 		} else {
+@@ -873,6 +879,22 @@ static int make_request(request_queue_t 
+ 	}
+ 	rcu_read_unlock();
+ 
++	if (unlikely(blocked)) {
++		/* Have to wait for this device to get unblocked, then retry */
++		int j;
++		int d;
++		for (j=0; j<i; j++)
++			if (r10_bio->devs[j].bio) {
++				d = r10_bio->devs[j].devnum;
++				rdev_dec_pending(conf->mirrors[d].rdev, mddev);
++			}
++		allow_barrier(conf);
++		d = r10_bio->devs[i].devnum;
++		wait_event(...);
++		wait_barrier(conf);
++		goto retry_write;
++	}
++
+ 	atomic_set(&r10_bio->remaining, 0);
+ 
+ 	bio_list_init(&bl);
+
+diff ./drivers/md/raid5.c~current~ ./drivers/md/raid5.c
+--- ./drivers/md/raid5.c~current~	2006-04-18 13:00:05.000000000 +1000
++++ ./drivers/md/raid5.c	2006-04-12 10:26:53.000000000 +1000
+@@ -1349,6 +1349,7 @@ static void handle_stripe5(struct stripe
+ 	int syncing, expanding, expanded;
+ 	int locked=0, uptodate=0, to_read=0, to_write=0, failed=0, written=0;
+ 	int non_overwrite = 0;
++	int blocked = 0;
+ 	int failed_num=0;
+ 	struct r5dev *dev;
+ 
+@@ -1400,7 +1401,6 @@ static void handle_stripe5(struct stripe
+ 		if (test_bit(R5_LOCKED, &dev->flags)) locked++;
+ 		if (test_bit(R5_UPTODATE, &dev->flags)) uptodate++;
+ 
+-		
+ 		if (dev->toread) to_read++;
+ 		if (dev->towrite) {
+ 			to_write++;
+@@ -1414,6 +1414,9 @@ static void handle_stripe5(struct stripe
+ 			clear_bit(R5_ReadError, &dev->flags);
+ 			clear_bit(R5_ReWrite, &dev->flags);
+ 		}
++		if (rdev && test_bit(Blocked, &rdev->flags) &&
++		    test_bit(Faulty, &rdev->flags))
++			blocked = 1;
+ 		if (!rdev || !test_bit(In_sync, &rdev->flags)
+ 		    || test_bit(R5_ReadError, &dev->flags)) {
+ 			failed++;
+@@ -1505,6 +1508,11 @@ static void handle_stripe5(struct stripe
+ 		clear_bit(STRIPE_SYNCING, &sh->state);
+ 		syncing = 0;
+ 	}
++	if (blocked) {
++		set_bit(STRIPE_DELAYED, &sh->state);
++		set_bit(STRIPE_HANDLE, &sh->state);
++		goto unlock;
++	}
+ 
+ 	/* might be able to return some write requests if the parity block
+ 	 * is safe, or on a failed drive
+@@ -1818,7 +1826,7 @@ static void handle_stripe5(struct stripe
+ 				release_stripe(sh2);
+ 			}
+ 	}
+-
++ unlock:
+ 	spin_unlock(&sh->lock);
+ 
+ 	while ((bi=return_bi)) {
+@@ -2454,6 +2462,8 @@ static void handle_stripe(struct stripe_
+ 
+ static void raid5_activate_delayed(raid5_conf_t *conf)
+ {
++	if (conf->blocked)
++		return;
+ 	if (atomic_read(&conf->preread_active_stripes) < IO_THRESHOLD) {
+ 		while (!list_empty(&conf->delayed_list)) {
+ 			struct list_head *l = conf->delayed_list.next;
+
+diff ./include/linux/raid/md_k.h~current~ ./include/linux/raid/md_k.h
+--- ./include/linux/raid/md_k.h~current~	2006-04-18 13:00:05.000000000 +1000
++++ ./include/linux/raid/md_k.h	2006-04-18 12:59:43.000000000 +1000
+@@ -82,6 +82,13 @@ struct mdk_rdev_s
+ #define	In_sync		2		/* device is in_sync with rest of array */
+ #define	WriteMostly	4		/* Avoid reading if at all possible */
+ #define	BarriersNotsupp	5		/* BIO_RW_BARRIER is not supported */
++#define	DoBlock		6		/* If an error occurs, block IO until
++					 * error or DoBlock is cleared
++					 */
++#define	Blocked		7		/* An error occurred and DoBlock was
++					 * set, so don't touch this device until
++					 * it is cleared.
++					 */
+ 
+ 	int desc_nr;			/* descriptor index in the superblock */
+ 	int raid_disk;			/* role of device in array */

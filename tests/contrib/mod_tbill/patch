@@ -1,0 +1,16 @@
+***************
+*** 22,27 ****
+      int    auth_d_reload_interval;
+      int    auth_d_fd;
+      char  *debuglvl_path;
+  } tbill_state;
+  
+  void generatePage(tbill_state *, ServerRequest *);
+--- 22,28 ----
+      int    auth_d_reload_interval;
+      int    auth_d_fd;
+      char  *debuglvl_path;
++     int    production_mode;
+  } tbill_state;
+  
+  void generatePage(tbill_state *, ServerRequest *);
