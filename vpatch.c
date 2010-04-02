@@ -464,17 +464,6 @@ void draw_one(int row, struct plist *pl, FILE *f, int reverse)
 	clrtoeol();
 }
 
-void addsep(struct elmnt e1, struct elmnt e2)
-{
-	int a,b,c,d,e,f;
-	char buf[50];
-	attron(a_sep);
-	sscanf(e1.start+1, "%d %d %d", &a, &b, &c);
-	sscanf(e2.start+1, "%d %d %d", &d, &e, &f);
-	sprintf(buf, "@@ -%d,%d +%d,%d @@\n", b,c,e,f);
-	addstr(buf);
-	attroff(a_sep);
-}
 #define BEFORE	1
 #define AFTER	2
 #define	ORIG	4
@@ -958,9 +947,21 @@ void draw_mside(int mode, int row, int offset, int start, int cols,
 			if (colp) *colp = col;
 			if (col < start) col = start;
 			if (e.start && e.start[0] == 0) {
-				(void)attrset(visible(mode, m[pos.p.m].type, pos.p.s));
-				mvaddstr(row, col-start+offset, "SEP");
-				col += 3;
+				char b[40];
+				struct elmnt e1;
+				if (pos.p.s == 2 && m[pos.p.m].type == Extraneous) {
+					int A,B,C,D,E,F;
+					e1 = fb.list[m[pos.p.m].b + pos.p.o];
+					sscanf(e1.start+1, "%d %d %d", &A, &B, &C);
+					sscanf(e.start+1, "%d %d %d", &D, &E, &F);
+					sprintf(b, "@@ -%d,%d +%d,%d @@\n", B,C,E,F);
+					(void)attrset(a_sep);
+				} else {
+					(void)attrset(visible(mode, m[pos.p.m].type, pos.p.s));
+					sprintf(b, "<%.17s>", e.start+1);
+				}
+				mvaddstr(row, col-start+offset, b);
+				col += strlen(b);
 			}
 			blank(row, col-start+offset, start+cols-col, e.start?visible(mode, m[pos.p.m].type, pos.p.s):A_NORMAL );
 			return;
@@ -1690,7 +1691,7 @@ int vpatch(int argc, char *argv[], int strip, int reverse, int replace)
 		a_added = COLOR_PAIR(2);
 		a_common = A_NORMAL;
 		init_pair(3, COLOR_WHITE, COLOR_GREEN);
-		a_sep = COLOR_PAIR(3);
+		a_sep = COLOR_PAIR(3); a_sep = A_STANDOUT;
 		init_pair(4, -1, COLOR_YELLOW);
 		a_void = COLOR_PAIR(4);
 		init_pair(5, COLOR_BLUE, -1);
