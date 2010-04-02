@@ -2,6 +2,7 @@
  * wiggle - apply rejected patches
  *
  * Copyright (C) 2005 Neil Brown <neilb@cse.unsw.edu.au>
+ * Copyright (C) 2010 Neil Brown <neilb@suse.de>
  *
  *
  *    This program is free software; you can redistribute it and/or modify
@@ -28,20 +29,12 @@
  * "files" display, lists all files with statistics
  *    - can hide various lines including subdirectories
  *      and files without wiggles or conflicts
- * "diff" display shows merged file with different parts
+ * "merge" display shows merged file with different parts
  *      in different colours
- *    - untouched are pale  A_DIM
- *    - matched/remaining are regular A_NORMAL
- *    - matched/removed are red/underlined A_UNDERLINE
- *    - unmatched in file are A_STANDOUT
- *    - unmatched in patch are A_STANDOUT|A_UNDERLINE ???
- *    - inserted are inverse/green ?? A_REVERSE
  *
  *  The window can be split horiz or vert and two different
  *  views displayed.  They will have different parts missing
  *
- *  So a display of NORMAL, underline, standout|underline reverse
- *   should show a normal patch.
  *
  */
 
@@ -56,6 +49,13 @@
 
 #define assert(x) do { if (!(x)) abort(); } while (0)
 
+/* plist stores a list of patched files in an array
+ * Each entry identifies a file, the range of the 
+ * original patch which applies to this file, some
+ * statistics concerning how many conflicts etc, and
+ * some linkage information so the list can be viewed
+ * as a directory-try.
+ */
 struct plist {
 	char *file;
 	unsigned int start, end;
@@ -73,13 +73,18 @@ struct plist *patch_add_file(struct plist *pl, int *np, char *file,
 	int n = *np;
 	int asize;
 
-	while (*file == '/') file++; /* leading '/' are bad... */
+	while (*file == '/')
+		/* leading '/' are bad... */
+		file++;
 
-/*	printf("adding %s at %d: %u %u\n", file, n, start, end); */
-	if (n==0) asize = 0;
-	else if (n<=16) asize = 16;
-	else if ((n&(n-1))==0) asize = n;
-	else asize = n+1; /* not accurate, but not too large */
+	if (n==0)
+		asize = 0;
+	else if (n<=16)
+		asize = 16;
+	else if ((n&(n-1))==0)
+		asize = n;
+	else
+		asize = n+1; /* not accurate, but not too large */
 	if (asize <= n) {
 		/* need to extend array */
 		struct plist *npl;
@@ -102,8 +107,6 @@ struct plist *patch_add_file(struct plist *pl, int *np, char *file,
 	*np = n+1;
 	return pl;
 }
-
-
 
 struct plist *parse_patch(FILE *f, FILE *of, int *np)
 {
@@ -139,29 +142,34 @@ struct plist *parse_patch(FILE *f, FILE *of, int *np)
 		while ((c=fgetc(f)) != EOF && c != '\t' && c != '\n' && c != ' ' &&
 		       pos - name < 1023) {
 			*pos++ = c;
-			if (of) fputc(c, of);
+			if (of)
+				fputc(c, of);
 		}
 		*pos = 0;
 		if (c == EOF)
 			break;
 		if (of) fputc(c, of);
-		while (c != '\n' && (c=fgetc(f)) != EOF) {
-			if (of) fputc(c, of);
-		}
-		start = of ? ftell(of) : ftell(f);
+		while (c != '\n' && (c=fgetc(f)) != EOF)
+			if (of)
+				fputc(c, of);
 
-		if (c == EOF) break;
+		start = ftell(of ?: f);
+
+		if (c == EOF)
+			break;
 
 		/* now skip to end - "\n--- " */
 		pos = target2+1;
 
 		while (*pos && (c=fgetc(f)) != EOF) {
-			if (of) fputc(c, of);
+			if (of)
+				fputc(c, of);
 			if (c == *pos)
 				pos++;
-			else pos = target2;
+			else
+				pos = target2;
 		}
-		end = of ? ftell(of) : ftell(f);
+		end = ftell(of ?: f);
 		if (pos > target2)
 			end -= (pos - target2) - 1;
 		plist = patch_add_file(plist, np,
@@ -169,14 +177,6 @@ struct plist *parse_patch(FILE *f, FILE *of, int *np)
 	}
 	return plist;
 }
-#if 0
-void die()
-{
-	fprintf(stderr,"vpatch: fatal error\n");
-	abort();
-	exit(3);
-}
-#endif
 
 static struct stream load_segment(FILE *f,
 				  unsigned int start, unsigned int end)
@@ -216,7 +216,7 @@ int pl_cmp(const void *av, const void *bv)
 
 int common_depth(char *a, char *b)
 {
-	/* find number of patch segments that these two have
+	/* find number of path segments that these two have
 	 * in common
 	 */
 	int depth = 0;
@@ -309,6 +309,10 @@ struct plist *sort_patches(struct plist *pl, int *np)
 	return pl;
 }
 
+/* determine how much we need to stripe of the front of
+ * paths to find them from current directory.  This is
+ * used to guess correct '-p' value.
+ */
 int get_strip(char *file)
 {
 	int fd;
@@ -329,6 +333,7 @@ int get_strip(char *file)
 	return -1;
 
 }
+
 int set_prefix(struct plist *pl, int n, int strip)
 {
 	int i;
@@ -459,10 +464,6 @@ void draw_one(int row, struct plist *pl, FILE *f, int reverse)
 	clrtoeol();
 }
 
-void addword(struct elmnt e)
-{
-	addnstr(e.start, e.len);
-}
 void addsep(struct elmnt e1, struct elmnt e2)
 {
 	int a,b,c,d,e,f;
@@ -478,352 +479,49 @@ void addsep(struct elmnt e1, struct elmnt e2)
 #define AFTER	2
 #define	ORIG	4
 #define	RESULT	8
-#define CHANGED 32 /* The RESULT is different to ORIG */
-#define CHANGES 64 /* AFTER is different to BEFORE */
-
-struct pos {
-	int a,b,c;
-};
-struct elmnt prev_elmnt(struct pos *pos, int mode,
-		     struct file f1, struct file f2, struct csl *csl)
-{
-	while(1) {
-		int a1, b1;
-		if (pos->a > csl[pos->c].a) {
-			assert(pos->b > csl[pos->c].b);
-			pos->a--;
-			pos->b--;
-			return f1.list[pos->a];
-		}
-		b1=0;
-		if (pos->c) b1 = csl[pos->c-1].b+csl[pos->c-1].len;
-		if (pos->b > b1) {
-			pos->b--;
-			if (!(mode&AFTER))
-				continue;
-			return f2.list[pos->b];
-		}
-		a1=0;
-		if (pos->c) a1 = csl[pos->c-1].a+csl[pos->c-1].len;
-		if (pos->a > a1) {
-			pos->a--;
-			if (!(mode&BEFORE))
-				continue;
-			return f1.list[pos->a];
-		}
-		/* must be time to go to previous common segment */
-		pos->c--;
-		if (pos->c < 0) {
-			struct elmnt e;
-			e.start = NULL; e.len = 0;
-			return e;
-		}
-	}
-}
-
-struct elmnt next_elmnt(struct pos *pos, int mode, int *type,
-		     struct file f1, struct file f2, struct csl *csl)
-{
-	if (pos->c < 0) {
-		struct elmnt e;
-		e.start = NULL; e.len = 0;
-		return e;
-	}
-	while(1) {
-		int a1;
-		*type = a_delete;
-		if (pos->a < csl[pos->c].a) {
-			if (mode & BEFORE)
-				return f1.list[pos->a++];
-			pos->a++;
-			continue;
-		}
-		*type = a_added;
-		if (pos->b < csl[pos->c].b) {
-			if (mode & AFTER)
-				return f2.list[pos->b++];
-			pos->b++;
-			continue;
-		}
-		*type = a_common;
-		a1 = csl[pos->c].a + csl[pos->c].len;
-		if (pos->a < a1) {
-			pos->b++;
-			return f1.list[pos->a++];
-		}
-		if (csl[pos->c].len == 0) {
-			struct elmnt e;
-			e.start = NULL; e.len = 0;
-			pos->c = -1;
-			return e;
-		}
-		pos->c++;
-	}
-}
-
-void pos_sol(struct pos *pos, int mode, struct file f1, struct file f2, struct csl *csl)
-{
-	/* find the start-of-line before 'pos' considering 'mode' only.
-	 */
-	if (pos->c < 0) return;
-	while(1) {
-		struct pos tpos = *pos;
-		struct elmnt e = prev_elmnt(&tpos, mode, f1, f2, csl);
-		if (e.start == NULL) {
-			return;
-		}
-		if (e.start[0] == '\n' || e.start[0] == 0)
-			return;
-		*pos = tpos;
-	}
-}
-
-void prev_pos(struct pos *pos, int mode, struct file f1, struct file f2, struct csl *csl)
-{
-	/* find the start-of-line before 'pos' considering 'mode' only.
-	 */
-	int eol=0;
-	if (pos->c < 0) return;
-	while(1) {
-		struct pos tpos = *pos;
-		struct elmnt e = prev_elmnt(&tpos, mode, f1, f2, csl);
-		if (e.start == NULL) {
-			pos->c = -1;
-			return;
-		}
-		if (e.start[0] == '\n' || e.start[0] == 0) {
-			if (eol == 1)
-				return;
-			eol=1;
-		}
-		*pos = tpos;
-		if (e.start[0] == 0) return;
-
-	}
-}
-
-void next_pos(struct pos *pos, int mode, struct file f1, struct file f2, struct csl *csl)
-{
-	/* find the start-of-line after 'pos' considering 'mode' only.
-	 */
-	int type;
-	if (pos->c < 0) return;
-	while(1) {
-		struct pos tpos = *pos;
-		struct elmnt e = next_elmnt(&tpos, mode, &type, f1, f2, csl);
-		if (e.start == NULL) {
-			pos->c = -1;
-			return;
-		}
-		*pos = tpos;
-		if (e.start[0] == '\n') {
-			return;
-		}
-		if (e.start[0] == 0)
-			return;
-	}
-}
-
-void draw_line(int i, struct pos pos, int mode,
-	       struct file f1, struct file f2, struct csl *csl, int start, int len)
-{
-	int col = 0;
-	int attr;
-	struct elmnt e1;
-	move(i, col);
-	while (1) {
-		e1 = next_elmnt(&pos, mode, &attr, f1, f2, csl);
-		if (e1.start == NULL) {
-			attr = a_void;
-			break;
-		}
-		if (e1.start[0] == '\0') {
-			int a,b,c;
-			int d,e,f;
-			struct elmnt e2 = f2.list[pos.b-1];
-			char buf[50];
-			(void)attrset(a_sep);
-			sscanf(e1.start+1, "%d %d %d", &a, &b, &c);
-			sscanf(e2.start+1, "%d %d %d", &d, &e, &f);
-			sprintf(buf, "@@ -%d,%d +%d,%d @@\n", b,c, e,f);
-			addstr(buf);
-			break;
-		} else {
-			unsigned char *c;
-			int l;
-			(void)attrset(attr);
-			if (e1.start[0] == '\n') {
-				break;
-			}
-			c = (unsigned char *)e1.start;
-			l = e1.len;
-			while (l) {
-				if (*c >= ' ' && *c != 0x7f) {
-					/* normal width char */
-					if (col >= start && col < len+start)
-						mvaddch(i,col-start, *c);
-					col++;
-				} else if (*c == '\t') {
-					do {
-						if (col >= start && col < len+start)
-							mvaddch(i, col-start, ' ');
-						col++;
-					} while ((col&7)!= 0);
-				} else {
-					if (col>=start && col < len+start)
-						mvaddch(i, col-start, *c=='\n'?'@':'?');
-					col++;
-				}
-				c++;
-				l--;
-			}
-		}
-	}
-	bkgdset(attr);
-	clrtoeol();
-	bkgdset(A_NORMAL);
-}
-
-void diff_window(struct plist *p, FILE *f)
-{
-	/* display just the diff, either 'before' or 'after' or all.
-	 *
-	 * In any case highlighting is the same
-	 *
-	 * Current pos is given as a,b,csl where a and b are
-	 * before or in the common segment, and one is  immediately
-	 * after a newline.
-	 * The current row is given by 'row'.
-	 * Lines do not wrap, be horizontal scrolling is supported.
-	 *
-	 * We don't insist that the top line lies at or above the top
-	 * of the screen, as that allows alignment of different views
-	 * more easily.
-	 */
-	struct stream s;
-	struct stream  s1, s2;
-	struct file f1, f2;
-	struct csl *csl;
-	char buf[100];
-	int ch;
-	int row, rows=0, cols=0;
-	int start = 0;
-	int i;
-	int c;
-	int refresh = 2;
-	int mode = BEFORE|AFTER;
-
-	struct pos pos, tpos;
-
-	s = load_segment(f, p->start, p->end);
-	ch = split_patch(s, &s1, &s2);
+#define CHANGED 16 /* The RESULT is different to ORIG */
+#define CHANGES 32 /* AFTER is different to BEFORE */
+#define WIGGLED 64 /* a conflict that was successfully resolved */
+#define CONFLICTED 128 /* a conflict that was not successfully resolved */
 
 
-	f1 = split_stream(s1, ByWord, 0);
-	f2 = split_stream(s2, ByWord, 0);
-
-	csl = diff(f1, f2);
-
-	pos.a=0; pos.b=0; pos.c=0;
-	row = 1;
-
-	while(1) {
-		if (refresh == 2) {
-			clear();
-			sprintf(buf, "File: %s\n", p->file);
-			(void)attrset(A_BOLD);
-			mvaddstr(0,0,buf); clrtoeol(); attrset(A_NORMAL);
-			refresh = 1;
-		}
-		if (row < 1 || row >= rows)
-			refresh = 1;
-		if (refresh) {
-			refresh = 0;
-			getmaxyx(stdscr,rows,cols);
-			if (row < -3)
-				row = (rows+1)/2;
-			if (row < 1)
-				row = 1;
-			if (row >= rows+3)
-				row = (rows+1)/2;
-			if (row >= rows)
-				row = rows-1;
-			tpos = pos;
-			pos_sol(&tpos, mode, f1, f2, csl);
-			draw_line(row, tpos, mode, f1, f2, csl, start, cols);
-			for (i=row-1; i>=1; i--) {
-				prev_pos(&tpos, mode, f1,f2,csl);
-				draw_line(i, tpos, mode, f1, f2,csl, start,cols);
-			}
-			tpos = pos;
-			for (i=row+1; i<rows; i++) {
-				next_pos(&tpos, mode, f1, f2, csl);
-				draw_line(i, tpos, mode, f1, f2, csl, start,cols);
-			}
-		}
-		move(row,0);
-		c = getch();
-		switch(c) {
-		case 27: /* escape */
-			break;
-		case 'q':
-			return;
-		case 'L'-64:
-			refresh = 2;
-			break;
-
-		case 'j':
-		case 'n':
-		case 'N':
-		case 'N'-64:
-		case KEY_DOWN:
-			tpos = pos;
-			next_pos(&tpos, mode, f1, f2, csl);
-			if (tpos.c >= 0) {
-				pos = tpos;
-				row++;
-			}
-			break;
-		case 'k':
-		case 'p':
-		case 'P':
-		case 'P'-64:
-		case KEY_UP:
-			tpos = pos;
-			prev_pos(&tpos, mode, f1, f2, csl);
-			if (tpos.c >= 0) {
-				pos = tpos;
-				row--;
-			}
-			break;
-
-		case 'a':
-			mode = AFTER;
-			refresh = 1;
-			break;
-		case 'b':
-			mode = BEFORE;
-			refresh = 1;
-			break;
-		case 'x':
-			mode = AFTER|BEFORE;
-			refresh = 1;
-			break;
-
-		case 'h':
-		case KEY_LEFT:
-			if (start > 0) start--;
-			refresh = 1;
-			break;
-		case 'l':
-		case KEY_RIGHT:
-			if (start < cols) start++;
-			refresh = 1;
-			break;
-		}
-	}
-}
-
+/* Displaying a Merge.
+ * The first step is to linearise the merge.  The merge in inherently 
+ * parallel with before/after streams.  However much of the whole document
+ * is linear as normally much of the original in unchanged.
+ * All parallelism comes from the patch.  This normally produces two
+ * parallel stream, but in the case of a conflict can produce three.
+ * For browsing the merge we only ever show two alternates in-line.
+ * When there are three we use two panes with 1 or 2 alternates in each.
+ * So to linearise the two streams we find lines that are completely
+ * unchanged (same or all 3 streams, or missing in 2nd and 3rd) which bound
+ * a region where there are changes.  We include everything between
+ * these twice, in two separate passes.  The exact interpretation of the
+ * passes is handled at a higher level but will be one of:
+ *  original and result
+ *  before and after
+ *  original and after (for a conflict)
+ *
+ * At any position in the merge we can be in one of 3 states:
+ *  0: unchanged section
+ *  1: first pass
+ *  2: second pass
+ *
+ * So to walk a merge in display order we need a position in the merge,
+ * a current state, and when in a changed section, we need to know the
+ * bounds of that changed section.
+ * This is all encoded in 'struct mpos'.
+ *
+ * Each location may or may not be visible depending on certain
+ * display options. 
+ *
+ * Also, some locations might be 'invalid' in that they don't need to be displayed.
+ * For example when the patch leaves a section of the original unchanged,
+ * we only need to see the original - the before/after sections are treated
+ * as invalid and are not displayed.
+ * The visibility of newlines is crucial and guides the display.  One line
+ * of displayed text is all the visible sections between two visible newlines.
+ */
 struct mpos {
 	struct mp {
 		int m; /* merger index */
@@ -832,48 +530,63 @@ struct mpos {
 	}       p, /* the current point */
 		lo, /* eol for start of the current group */
 		hi; /* eol for end of the current group */
-	int side; /* -1 if on the '-' of a diff,
-		   * +1 if on the '+',
-		   * 0 if on an unchanged (lo/hi not meaningful)
-		   */
+	int state; /*
+		    * 0 if on an unchanged (lo/hi not meaningful)
+		    * 1 if on the '-' of a diff,
+		    * 2 if on the '+' of a diff
+		    */
 };
+
+/* used for checking location during search */
 int same_mpos(struct mpos a, struct mpos b)
 {
 	return a.p.m == b.p.m &&
 		a.p.s == b.p.s &&
 		a.p.o == b.p.o &&
-		a.side == b.side;
+		a.state == b.state;
 }
 
-int invalid(int s, enum mergetype type)
+/* Check if a particular stream is meaningful in a particular merge
+ * section.  e.g. in an Unchanged section, only stream 0, the
+ * original, is meaningful.  This is used to avoid walking down
+ * pointless paths.
+ */
+int stream_valid(int s, enum mergetype type)
 {
 	switch(type) {
-	case End: return 0;
-	case Unmatched: return s>0;
-	case Unchanged: return s>0;
-	case Extraneous: return s<2;
-	case Changed: return s==1;
-	case Conflict: return 0;
-	case AlreadyApplied: return 0;
+	case End: return 1;
+	case Unmatched: return s == 0;
+	case Unchanged: return s == 0;
+	case Extraneous: return s == 2;
+	case Changed: return s != 1;
+	case Conflict: return 1;
+	case AlreadyApplied: return 1;
 	}
 	return 0;
 }
 
+/*
+ * Advance the 'pos' in the current mergepos returning the next
+ * element (word).
+ * This walks the merges in sequence, and the streams within
+ * each merge.
+ */
 struct elmnt next_melmnt(struct mpos *pos,
 			 struct file fm, struct file fb, struct file fa,
 			 struct merge *m)
 {
-	int l = 0;
 	pos->p.o++;
 	while(1) {
-		if (pos->p.m < 0)
-			l = 0;
-		else switch(pos->p.s) {
-		case 0: l = m[pos->p.m].al; break;
-		case 1: l = m[pos->p.m].bl; break;
-		case 2: l = m[pos->p.m].cl; break;
-		}
+		int l=0; /* Length remaining in current merge section */
+		if (pos->p.m >= 0)
+			switch(pos->p.s) {
+			case 0: l = m[pos->p.m].al; break;
+			case 1: l = m[pos->p.m].bl; break;
+			case 2: l = m[pos->p.m].cl; break;
+			}
 		if (pos->p.o >= l) {
+			/* Offset has reached length, choose new stream or
+			 * new merge */
 			pos->p.o = 0;
 			do {
 				pos->p.s++;
@@ -881,7 +594,7 @@ struct elmnt next_melmnt(struct mpos *pos,
 					pos->p.s = 0;
 					pos->p.m++;
 				}
-			} while (invalid(pos->p.s, m[pos->p.m].type));
+			} while (!stream_valid(pos->p.s, m[pos->p.m].type));
 		} else
 			break;
 	}
@@ -898,6 +611,7 @@ struct elmnt next_melmnt(struct mpos *pos,
 	}
 }
 
+/* step current position.p backwards */
 struct elmnt prev_melmnt(struct mpos *pos,
 			 struct file fm, struct file fb, struct file fa,
 			 struct merge *m)
@@ -910,7 +624,8 @@ struct elmnt prev_melmnt(struct mpos *pos,
 				pos->p.s = 2;
 				pos->p.m--;
 			}
-		} while (pos->p.m >= 0 && invalid(pos->p.s, m[pos->p.m].type));
+		} while (pos->p.m >= 0 &&
+			 !stream_valid(pos->p.s, m[pos->p.m].type));
 		if (pos->p.m>=0) {
 			switch(pos->p.s) {
 			case 0: pos->p.o = m[pos->p.m].al-1; break;
@@ -932,34 +647,12 @@ struct elmnt prev_melmnt(struct mpos *pos,
 	}
 }
 
+/* 'visible' not only checks if this stream in this merge should be
+ * visible in this mode, but also chooses which colour/highlight to use
+ * to display it.
+ */
 int visible(int mode, enum mergetype type, int stream)
 {
-#if 0
-	switch(side){
-	case 0: /* left - orig plus merge */
-		switch(type) {
-		case End: return A_NORMAL;
-		case Unmatched: return stream == 0 ? a_unmatched : -1;
-		case Unchanged: return stream == 0 ? a_common : -1;
-		case Extraneous: return -1;
-		case Changed: return stream == 0? a_delete:stream==1?-1:a_added;
-		case Conflict: return stream == 0 ? a_unmatched : -1;
-		case AlreadyApplied: return stream == 0 ? a_unmatched : -1;
-		}
-		break;
-	case 1: /* right - old plus new */
-		switch(type) {
-		case End: return A_NORMAL;
-		case Unmatched: return -1;
-		case Unchanged: return stream == 0 ? a_common : -1;
-		case Extraneous: return stream==2 ? a_extra : -1;
-		case Changed: return stream == 0? a_delete:stream==1?-1:a_added;
-		case Conflict: return stream==0?-1:stream==1?(a_delete|A_UNDERLINE):a_added;
-		case AlreadyApplied: return stream==0?-1:stream==1?a_delete:a_added;
-		}
-	}
-	return 1;
-#endif
 	if (mode == 0) return -1;
 	/* mode can be any combination of ORIG RESULT BEFORE AFTER */
 	switch(type) {
@@ -988,7 +681,7 @@ int visible(int mode, enum mergetype type, int stream)
 	case Conflict:
 		switch(stream) {
 		case 0:
-			if (mode & (ORIG|RESULT))
+			if (mode & ORIG)
 				return a_unmatched | A_REVERSE;
 			break;
 		case 1:
@@ -1022,8 +715,40 @@ int visible(int mode, enum mergetype type, int stream)
 }
 
 
+
+/* checkline creates a summary of the sort of changes that
+ * are in a line, returning an or of
+ *  CHANGED
+ *  CHANGES
+ *  WIGGLED
+ *  CONFLICTED
+ */
 int check_line(struct mpos pos, struct file fm, struct file fb, struct file fa,
-	       struct merge *m, int mode);
+	       struct merge *m, int mode)
+{
+	int rv = 0;
+	struct elmnt e;
+	int unmatched = 0;
+
+
+	do {
+		if (m[pos.p.m].type == Changed)
+			rv |= CHANGED | CHANGES;
+		else if ((m[pos.p.m].type == AlreadyApplied ||
+			  m[pos.p.m].type == Conflict))
+			rv |= CONFLICTED | CHANGES;
+		else if (m[pos.p.m].type == Extraneous)
+			rv |= WIGGLED;
+		else if (m[pos.p.m].type == Unmatched)
+			unmatched = 1;
+		e = prev_melmnt(&pos, fm,fb,fa,m);
+	} while (e.start != NULL &&
+		 (!ends_mline(e) || visible(mode, m[pos.p.m].type, pos.p.s)==-1));
+
+	if (unmatched && (rv & CHANGES))
+		rv |= WIGGLED;
+	return rv;
+}
 
 void next_mline(struct mpos *pos, struct file fm, struct file fb, struct file fa,
 	      struct merge *m, int mode)
@@ -1034,17 +759,6 @@ void next_mline(struct mpos *pos, struct file fm, struct file fb, struct file fa
 		int mode2;
 
 		prv = pos->p;
-#if 0
-		if (pos->p.m < 0 || m[pos->p.m].type == End) {
-			if (pos->side == -1) {
-				pos->side = 1;
-				pos->hi = prv;
-				pos->p = pos->lo;
-				continue;
-			} else
-				return;
-		}
-#endif
 		while (1) {
 			struct elmnt e = next_melmnt(pos, fm,fb,fa,m);
 			if (e.start == NULL)
@@ -1055,24 +769,29 @@ void next_mline(struct mpos *pos, struct file fm, struct file fb, struct file fa
 		}
 		mode2 = check_line(*pos, fm,fb,fa,m,mode);
 
-		if (pos->side == 1 && !(mode2 & CHANGES))
-			/* left a diff-set */
-			pos->side = 0;
-		else if (pos->side == -1 && !(mode2 & CHANGES)) {
-			/*flip from '-' to '+' - need to ensure still visible */
-			pos->side = 1;
-			pos->hi = prv;
-			pos->p = pos->lo;
-		} else if (pos->side == 0 && (mode2 & CHANGES)) {
-			/* entered a diff-set */
-			pos->side = -1;
+		if ((mode2 & CHANGES) && pos->state == 0) {
+			/* Just entered a diff-set */
 			pos->lo = pos->p;
+			pos->state = 1;
+		} else if (!(mode2 & CHANGES) && pos->state) {
+			/* Come to the end of a diff-set */
+			if (pos->state == 1)
+				/* Need to record the end */
+				pos->hi = prv;
+			if (pos->state == 2) {
+				/* finished final pass */
+				pos->state = 0;
+			} else {
+				/* time for another pass */
+				pos->p = pos->lo;
+				pos->state ++;
+			}
 		}
 		mask = ORIG|RESULT|BEFORE|AFTER|CHANGES|CHANGED;
-		if (pos->side == 1)
-			mask &= ~(ORIG|BEFORE);
-		if (pos->side == -1)
-			mask &= ~(RESULT|AFTER);
+		switch(pos->state) {
+		case 1: mask &= ~(RESULT|AFTER); break;
+		case 2: mask &= ~(ORIG|BEFORE); break;
+		}
 	} while (visible(mode&mask, m[pos->p.m].type, pos->p.s) < 0);
 
 }
@@ -1098,28 +817,33 @@ void prev_mline(struct mpos *pos, struct file fm, struct file fb, struct file fa
 		}
 		mode2 = check_line(*pos, fm,fb,fa,m,mode);
 
-		if (pos->side == -1 && !(mode2 & CHANGES))
-			/* we have stepped out of a diff-set */
-			pos->side = 0;
-		else if (pos->side == 1 && !(mode2 & CHANGES)) {
-			/* flipped from '+' to '-' */
-			pos->side = -1;
-			pos->lo = prv;
-			pos->p = pos->hi;
-		} else if (pos->side == 0 && (mode2 & CHANGES)) {
-			/* entered a diffset */
-			pos->side = 1;
+		if ((mode2 & CHANGES) && pos->state == 0) {
+			/* Just entered a diff-set */
 			pos->hi = pos->p;
+			pos->state = 2;
+		} else if (!(mode2 & CHANGES) && pos->state) {
+			/* Come to the end (start) of a diff-set */
+			if (pos->state == 2)
+				/* Need to record the start */
+				pos->lo = prv;
+			if (pos->state == 1) {
+				/* finished final pass */
+				pos->state = 0;
+			} else {
+				/* time for another pass */
+				pos->p = pos->hi;
+				pos->state --;
+			}
 		}
 		mask = ORIG|RESULT|BEFORE|AFTER|CHANGES|CHANGED;
-		if (pos->side == 1)
-			mask &= ~(ORIG|BEFORE);
-		if (pos->side == -1)
-			mask &= ~(RESULT|AFTER);
+		switch(pos->state) {
+		case 1: mask &= ~(RESULT|AFTER); break;
+		case 2: mask &= ~(ORIG|BEFORE); break;
+		}
 	} while (visible(mode&mask, m[pos->p.m].type, pos->p.s) < 0);
 }
 
-
+/* blank a whole row of display */
 void blank(int row, int start, int cols, int attr)
 {
 	(void)attrset(attr);
@@ -1128,49 +852,13 @@ void blank(int row, int start, int cols, int attr)
 		addch(' ');
 }
 
-/* Checkline determines how many screen lines are needed to display
- * a file line.
- * Options are:
- *     - one line that is before/original
- *     - one line that is after/result
- *     - one line that is unchanged/unmatched/extraneous
- *     - two lines, but only one on the left.
- *     - two lines, one before and one after.
- * CLARIFY/CORRECT this.
- */
-int check_line(struct mpos pos, struct file fm, struct file fb, struct file fa,
-	       struct merge *m, int mode)
-{
-	int rv = 0;
-	struct elmnt e;
-
-	if (visible(ORIG, m[pos.p.m].type, pos.p.s) >= 0)
-		rv |= ORIG;
-	if (visible(RESULT, m[pos.p.m].type, pos.p.s) >= 0)
-		rv |= RESULT;
-	if (visible(BEFORE, m[pos.p.m].type, pos.p.s) >= 0)
-		rv |= BEFORE;
-	if (visible(AFTER, m[pos.p.m].type, pos.p.s) >= 0)
-		rv |= AFTER;
-
-	do {
-		if (m[pos.p.m].type == Changed)
-			rv |= CHANGED | CHANGES;
-		else if ((m[pos.p.m].type == AlreadyApplied ||
-			  m[pos.p.m].type == Conflict))
-			rv |= CHANGES;
-		e = prev_melmnt(&pos, fm,fb,fa,m);
-	} while (e.start != NULL &&
-		 (!ends_mline(e) || visible(mode, m[pos.p.m].type, pos.p.s)==-1));
-
-	return rv & (mode | CHANGED | CHANGES);
-}
+/* search of a string on one display line - just report if found, not where */
 
 int mcontains(struct mpos pos,
 	      struct file fm, struct file fb, struct file fa, struct merge *m,
 	      int mode, char *search)
 {
-	/* See if and of the files, between start of this line and here,
+	/* See if any of the files, between start of this line and here,
 	 * contain the search string
 	 */
 	struct elmnt e;
@@ -1188,18 +876,78 @@ int mcontains(struct mpos pos,
 	return 0;
 }
 
+/* Drawing the display window.
+ * There are 7 different ways we can display the data, each
+ * of which can be configured by a keystroke:
+ *  o   original - just show the original file with no changes, but still
+ *                 which highlights of what is changed or unmatched
+ *  r   result   - show just the result of the merge.  Conflicts just show
+ *                 the original, not the before/after options
+ *  b   before   - show the 'before' stream of the patch
+ *  a   after    - show the 'after' stream of the patch
+ *  d   diff     - show just the patch, both before and after
+ *  m   merge    - show the full merge with -+ sections for changes.
+ *                 If point is in a wiggled or conflicted section the
+ *                 window is split  horizontally and the diff is shown
+ *                 in the bottom window
+ *  | sidebyside - two panes, left and right.  Left holds the merge,
+ *                 right holds the diff.  In the case of a conflict,
+ *                 left holds orig/after, right holds before/after
+ */
+
+
+
+/* draw_mside draws one text line or, in the case of sidebyside, one side
+ * of a textline.
+ * The 'mode' tells us what to draw via the 'visible()' function.
+ * It is one of ORIG RESULT BEFORE AFTER or ORIG|RESULT or BEFORE|AFTER
+ * It may also have WIGGLED or CONFLICTED ored in
+ */
 void draw_mside(int mode, int row, int offset, int start, int cols,
 		struct file fm, struct file fb, struct file fa, struct merge *m,
 		struct mpos pos,
 		int target, int *colp)
 {
-	/* find previous visible newline, or start of file */
 	struct elmnt e;
 	int col = 0;
-	do {
+	char tag;
+
+	switch(pos.state) {
+	case 0: /* unchanged line */
+		tag = ' ';
+		break;
+	case 1: /* 'before' text */
+		tag = '-';
+		if ((mode & ORIG) && (mode & CONFLICTED)) {
+			tag = '|';
+		}
+		mode &= (ORIG|BEFORE);
+		break;
+	case 2: /* the 'after' part */
+		tag = '+';
+		mode &= (AFTER|RESULT);
+		break;
+	}
+
+	if (visible(mode, m[pos.p.m].type, pos.p.s) < 0) {
+		/* Not visible, just draw a blank */
+		blank(row, offset, cols, a_void);
+		if (colp)
+			*colp = 0;
+		return;
+	}
+
+	(void)attrset(A_NORMAL);
+	mvaddch(row, offset, tag);
+	offset++;
+	cols--;
+
+	/* find previous visible newline, or start of file */
+	do
 		e = prev_melmnt(&pos, fm,fb,fa,m);
-	} while (e.start != NULL &&
-		 (!ends_mline(e) || visible(mode, m[pos.p.m].type, pos.p.s)==-1));
+	while (e.start != NULL &&
+	       (!ends_mline(e) ||
+		visible(mode, m[pos.p.m].type, pos.p.s)==-1));
 
 	while (1) {
 		unsigned char *c;
@@ -1243,7 +991,10 @@ void draw_mside(int mode, int row, int offset, int start, int cols,
 			}
 			c++;
 			if (colp && target <= col) {
-				*colp = col;
+				if (col-start >= cols)
+					*colp = 10*col;
+				else
+					*colp = col;
 				colp = NULL;
 			}
 			l--;
@@ -1251,53 +1002,36 @@ void draw_mside(int mode, int row, int offset, int start, int cols,
 	}
 }
 
-void draw_mline(int row, struct mpos pos,
+void draw_mline(int mode, int row, int start, int cols,
 		struct file fm, struct file fb, struct file fa,
 		struct merge *m,
-		int start, int cols, int mode,
+		struct mpos pos,
 		int target, int *colp)
 {
 	/*
 	 * Draw the left and right images of this line
 	 * One side might be a_blank depending on the
 	 * visibility of this newline
-	 * If Changed is found, return ORIG|RESULT | BEFORE|AFTER,
-	 * If AlreadyApplied or Conflict, return BEFORE|AFTER
 	 */
 	int lcols, rcols;
-	lcols = (cols-1)/2-1;
-	rcols = cols - lcols - 3;
 
-	(void)attrset(A_STANDOUT);
-	mvaddch(row, lcols+1, '|');
+	if ( (mode & (BEFORE|AFTER)) &&
+	     (mode & (ORIG|RESULT))) {
 
-	(void)attrset(A_NORMAL);
-	if (!(mode & CHANGES)) {
-		mvaddch(row, 0, ' ');
-		mvaddch(row, lcols+2, ' ');
-	} else if (mode & (ORIG|BEFORE)) {
-		mvaddch(row, 0, '-');
-		mvaddch(row, lcols+2, '-');
-	} else {
-		mvaddch(row, 0, '+');
-		mvaddch(row, lcols+2, '+');
-	}
+		lcols = (cols-1)/2;
+		rcols = cols - lcols - 1;
 
-	if (visible(mode&(ORIG|RESULT), m[pos.p.m].type, pos.p.s) >= 0)
-		/* visible on left */
-		draw_mside(mode&(ORIG|RESULT), row, 1, start, lcols,
+		(void)attrset(A_STANDOUT);
+		mvaddch(row, lcols, '|');
+
+		draw_mside(mode&~(BEFORE|AFTER), row, 0, start, lcols,
 			   fm,fb,fa,m, pos, target, colp);
-	else {
-		blank(row, 0, lcols+1, a_void);
-		if (colp) *colp = 0;
-	}
 
-	if (visible(mode&(BEFORE|AFTER), m[pos.p.m].type, pos.p.s) >= 0)
-		/* visible on right */
-		draw_mside(mode&(BEFORE|AFTER), row, lcols+3, start, rcols,
+		draw_mside(mode&~(ORIG|RESULT), row, lcols+1, start, rcols,
 			   fm,fb,fa,m, pos, 0, NULL);
-	else
-		blank(row, lcols+2, rcols+1, a_void);
+	} else
+		draw_mside(mode, row, 0, start, cols,
+			   fm,fb,fa,m, pos, target, colp);
 }
 
 extern void cleanlist(struct file a, struct file b, struct csl *list);
@@ -1344,6 +1078,7 @@ void merge_window(struct plist *p, FILE *f, int reverse)
 	int rows = 0, cols = 0;
 	int i, c;
 	int mode = ORIG|RESULT | BEFORE|AFTER;
+	char *modename = "sidebyside";
 
 	int row,start = 0;
 	int trow;
@@ -1378,10 +1113,6 @@ void merge_window(struct plist *p, FILE *f, int reverse)
 
 	csl1 = pdiff(fm, fb, ch);
 	csl2 = diff(fb, fa);
-#if 0
-	cleanlist(fm, fb, csl1);
-	cleanlist(fb, fa, csl2);
-#endif
 
 	ci = make_merger(fm, fb, fa, csl1, csl2, 0, 1);
 
@@ -1389,28 +1120,13 @@ void merge_window(struct plist *p, FILE *f, int reverse)
 	pos.p.m = 0; /* merge node */
 	pos.p.s = 0; /* stream number */
 	pos.p.o = -1; /* offset */
+	pos.state = 0;
 	next_mline(&pos, fm,fb,fa,ci.merger, mode);
-	mode2 = check_line(pos, fm,fb,fa, ci.merger, mode);
-	if (!(mode2 & CHANGES))
-		pos.side = 0;
-	else {
-		if (mode2 & (ORIG|BEFORE))
-			pos.side = -1;
-		else
-			pos.side = 1;
-		pos.lo = pos.p;
-		tpos = pos;
-		do {
-			pos.hi = tpos.p;
-			next_mline(&tpos, fm,fb,fa,ci.merger, mode);
-			mode2 = check_line(tpos, fm,fb,fa, ci.merger, mode);
-		} while ((mode2 & CHANGES) && ci.merger[tpos.p.m].type != End);
-	}
-
 	while(1) {
 		if (refresh == 2) {
 			clear();
-			sprintf(buf, "File: %s%s\n", p->file,reverse?" - reversed":"");
+			sprintf(buf, "File: %s%s Mode: %s\n",
+				p->file,reverse?" - reversed":"", modename);
 			(void)attrset(A_BOLD); mvaddstr(0,0,buf);
 			clrtoeol();
 			(void)attrset(A_NORMAL);
@@ -1438,15 +1154,10 @@ void merge_window(struct plist *p, FILE *f, int reverse)
 		if (start < 0) start = 0;
 	retry:
 		mode2 = check_line(pos, fm,fb,fa,ci.merger,mode);
-		if ((pos.side <= 0) && (mode2 & (ORIG|BEFORE)))
-			draw_mline(row,pos,fm,fb,fa,ci.merger,start,cols, mode2&(ORIG|BEFORE|CHANGED|CHANGES), target, &col);
-		else if (pos.side > 0 && (mode2 & (RESULT|AFTER))) {
-			if (mode2 & CHANGED)
-				draw_mline(row,pos,fm,fb,fa,ci.merger,start,cols, mode2&(RESULT|AFTER|CHANGED|CHANGES), target, &col);
-			else if (mode2 & CHANGES)
-				draw_mline(row,pos,fm,fb,fa,ci.merger,start,cols, mode2&(AFTER|CHANGED|CHANGES), target, &col);
-		}
-		if (col > (cols-3)/2+start) {
+		draw_mline(mode|mode2, row, start, cols, fm,fb,fa,ci.merger,
+			   pos, target, &col);
+
+		if (col > cols+start) {
 			start += 8;
 			refresh = 1;
 			goto retry;
@@ -1464,17 +1175,9 @@ void merge_window(struct plist *p, FILE *f, int reverse)
 			for (i=row-1; i>=1 && tpos.p.m >= 0; ) {
 				prev_mline(&tpos, fm,fb,fa,ci.merger, mode);
 				mode2 = check_line(tpos, fm,fb,fa, ci.merger, mode);
+				draw_mline(mode|mode2, i--, start, cols, fm,fb,fa,ci.merger,
+					   tpos, 0, NULL);
 
-				if (tpos.side == 1 &&
-				    (mode2 & (RESULT|AFTER)) &&
-				    (mode2 & (CHANGED)))
-					draw_mline(i--,tpos,fm,fb,fa,ci.merger,start,cols, mode2&(RESULT|AFTER|CHANGED|CHANGES), 0, NULL);
-				else if (tpos.side == 1 &&
-					 (mode2 & (RESULT|AFTER)) &&
-				    (mode2 & (CHANGES)))
-					draw_mline(i--,tpos,fm,fb,fa,ci.merger,start,cols, mode2&(AFTER|CHANGED|CHANGES), 0, NULL);
-				else if ((tpos.side == 0 || tpos.side == -1) && (mode2 & (ORIG|BEFORE)))
-					draw_mline(i--,tpos,fm,fb,fa,ci.merger,start,cols, mode2&(ORIG|BEFORE|CHANGED|CHANGES), 0, NULL);
 			}
 			toppos = tpos; toprow = i;
 			while (i >= 1)
@@ -1482,14 +1185,8 @@ void merge_window(struct plist *p, FILE *f, int reverse)
 			tpos = pos;
 			for (i=row; i<rows && ci.merger[tpos.p.m].type != End; ) {
 				mode2 = check_line(tpos, fm,fb,fa,ci.merger,mode);
-				if ((tpos.side <= 0) && (mode2 & (ORIG|BEFORE)))
-					draw_mline(i++,tpos,fm,fb,fa,ci.merger,start,cols, mode2&(ORIG|BEFORE|CHANGED|CHANGES), 0, NULL);
-				else if (tpos.side > 0 && (mode2 & (RESULT|AFTER))) {
-					if (mode2 & CHANGED)
-						draw_mline(i++,tpos,fm,fb,fa,ci.merger,start,cols, mode2&(RESULT|AFTER|CHANGED|CHANGES), 0, NULL);
-					else if (mode2 & CHANGES)
-						draw_mline(i++,tpos,fm,fb,fa,ci.merger,start,cols, mode2&(AFTER|CHANGED|CHANGES), 0, NULL);
-				}
+				draw_mline(mode|mode2, i++, start, cols, fm,fb,fa,ci.merger,
+					   tpos, 0, NULL);
 				next_mline(&tpos, fm,fb,fa,ci.merger, mode);
 			}
 			botpos = tpos; botrow = i;
@@ -1669,12 +1366,12 @@ void merge_window(struct plist *p, FILE *f, int reverse)
 			do {
 				pos = tpos; row++;
 				next_mline(&tpos, fm,fb,fa,ci.merger, mode);
-			} while (pos.side != 0 && ci.merger[tpos.p.m].type != End);
+			} while (pos.state != 0 && ci.merger[tpos.p.m].type != End);
 			tpos = pos; row--;
 			do {
 				pos = tpos; row++;
 				next_mline(&tpos, fm,fb,fa,ci.merger, mode);
-			} while (pos.side == 0 && ci.merger[tpos.p.m].type != End);
+			} while (pos.state == 0 && ci.merger[tpos.p.m].type != End);
 
 			break;
 		case 'P':
@@ -1683,12 +1380,12 @@ void merge_window(struct plist *p, FILE *f, int reverse)
 			do {
 				pos = tpos; row--;
 				prev_mline(&tpos, fm,fb,fa,ci.merger, mode);
-			} while (tpos.side == 0 && tpos.p.m >= 0);
+			} while (tpos.state == 0 && tpos.p.m >= 0);
 			tpos = pos; row++;
 			do {
 				pos = tpos; row--;
 				prev_mline(&tpos, fm,fb,fa,ci.merger, mode);
-			} while (tpos.side != 0 && tpos.p.m >= 0);
+			} while (tpos.state != 0 && tpos.p.m >= 0);
 
 			break;
 
@@ -1731,45 +1428,45 @@ void merge_window(struct plist *p, FILE *f, int reverse)
 			break;
 
 		case 'a': /* 'after' view in patch window */
-			if (mode & AFTER)
-				mode &= ~BEFORE;
-			else
-				mode |= AFTER;
-			refresh = 1;
+			mode = AFTER; modename = "after";
+			refresh = 2;
 			break;
 		case 'b': /* 'before' view in patch window */
-			if (mode & BEFORE)
-				mode &= ~AFTER;
-			else
-				mode |= BEFORE;
-			refresh = 1;
+			mode = BEFORE; modename = "before";
+			refresh = 2;
 			break;
 		case 'o': /* 'original' view in the merge window */
-			if (mode & ORIG)
-				mode &= ~RESULT;
-			else
-				mode |= ORIG;
-			refresh = 1;
+			mode = ORIG; modename = "original";
+			refresh = 2;
 			break;
 		case 'r': /* the 'result' view in the merge window */
-			if (mode & RESULT)
-				mode &= ~ORIG;
-			else
-				mode |= RESULT;
+			mode = RESULT; modename = "result";
+			refresh = 2;
+			break;
+		case 'd':
+			mode = BEFORE|AFTER; modename = "diff";
+			refresh = 2;
+			break;
+		case 'm':
+			mode = ORIG|RESULT; modename = "merge";
+			refresh = 2;
+			break;
+
+		case '|':
+			mode = ORIG|RESULT|BEFORE|AFTER; modename = "sidebyside";
 			refresh = 1;
 			break;
-#if 0
-		case 'h':
-		case KEY_LEFT:
+
+		case 'H':
 			if (start > 0) start--;
+			target = start + 1;
 			refresh = 1;
 			break;
-		case 'l':
-		case KEY_RIGHT:
+		case 'L':
 			if (start < cols) start++;
+			target = start + 1;
 			refresh = 1;
 			break;
-#endif
 		}
 
 		if (meta == SEARCH(0)) {
@@ -1932,7 +1629,7 @@ void main_window(struct plist *pl, int n, FILE *f, int reverse)
 
 int vpatch(int argc, char *argv[], int strip, int reverse, int replace)
 {
-	/* NOT argv[0] is first arg... */
+	/* NOTE argv[0] is first arg... */
 	int n = 0;
 	FILE *f = NULL;
 	FILE *in = stdin;
@@ -1970,13 +1667,7 @@ int vpatch(int argc, char *argv[], int strip, int reverse, int replace)
 			fclose(in);
 		in = f;
 	}
-#if 0
-	int i;
-	for (i=0; i<n ; i++) {
-		printf("%3d: %3d %2d/%2d %s\n", i, pl[i].parent, pl[i].prev, pl[i].next, pl[i].file);
-	}
-	exit(0);
-#endif
+
 	signal(SIGINT, catch);
 	signal(SIGQUIT, catch);
 	signal(SIGTERM, catch);
@@ -2000,7 +1691,7 @@ int vpatch(int argc, char *argv[], int strip, int reverse, int replace)
 		a_common = A_NORMAL;
 		init_pair(3, COLOR_WHITE, COLOR_GREEN);
 		a_sep = COLOR_PAIR(3);
-		init_pair(4, COLOR_WHITE, COLOR_YELLOW);
+		init_pair(4, -1, COLOR_YELLOW);
 		a_void = COLOR_PAIR(4);
 		init_pair(5, COLOR_BLUE, -1);
 		a_unmatched = COLOR_PAIR(5);
@@ -2019,11 +1710,3 @@ int vpatch(int argc, char *argv[], int strip, int reverse, int replace)
 	return 0;
 	exit(0);
 }
-#if 0
- WiggleVerbose=1 ~/work/wiggle/wiggle -mR fs/nfsd/nfs4callback.c .patches/removed/144NfsdV4-033 |less
-neilb@notabene:/home/src/mm$
-
-~/work/wiggle/wiggle -BR .patches/removed/144NfsdV4-033
-
-
-#endif

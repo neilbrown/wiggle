@@ -28,13 +28,14 @@ been made.
 Captial-N might go to the next interesting chunk
 of the file.
 
-You can use 'o' and 'r' to move between showing the
-original and result file in the left window.
-An intermediate shows both.
+You can use 'o' and 'r' to view the original or result.
+You can use 'b' and 'a' to view the before or after
+sides of the patch.
+You can use 'd' to view the diff (patch, before and
+after) or 'm' to view the merge (original and result).
 
-You can use 'b' and 'a' to move between showing the
-before and after veiws of the patch in the right
-window.  Again, an intermediate shows both.
+'|' returns to the original split-window view with
+merge on the left and diff on the right.
 
 Have fun.
 
@@ -50,9 +51,20 @@ This demonstrates a diff which contains some
 extraneous lines.
 (this is an extra line)
 
-The quick brown fox jumps over the lazy cat.
+The quick brown she 
+fox jumps over the lazy cat.
 
 There will be extra lines in the diff
 (as is this)
 
 --------------
+
+Here are some lines
+without any mention of
+a clear conflict
+
+--------------
+
+Two dissimilar lines,
+both having changes
+

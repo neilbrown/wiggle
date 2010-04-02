@@ -33,7 +33,7 @@ This demonstrates where a diff on one line
 applies to text that is now split
 
 The swift brown fox
-jumps over the lazy dog.
+jumps over the fairly lazy dog.
 
 ------------
 
@@ -45,3 +45,13 @@ The swift brown fox jumps over the lazy dog.
 There will be extra lines in the diff
 
 --------------
+
+Here are some lines
+in which there is
+a clear conflict
+
+--------------
+
+Two different lines,
+both with changes
+

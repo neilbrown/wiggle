@@ -53,7 +53,7 @@ static inline int ends_line(struct elmnt e)
 
 static inline int ends_mline(struct elmnt e)
 {
-	return e.len &&  e.start[0] == '\n';
+	return e.len &&  (e.start[0] == '\n' || e.start[0] == 0);
 }
 
 struct csl {
@@ -70,7 +70,7 @@ struct file {
  * Each section may occur in one or more of the three stream,
  * and may be different in different stream (e.g. for changed text)
  * or the same.
- * When a conflict occurs we need to treat some surrouding
+ * When a conflict occurs we need to treat some surrounding
  * sections as being involved in that conflict.  For
  * word-based merging, all surrounding sections until an Unchanged
  * section are part of the conflict - the Unchanged isn't.

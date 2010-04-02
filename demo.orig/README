@@ -41,9 +41,20 @@ This demonstrates a diff which contains some
 extraneous lines.
 (this is an extra line)
 
-The swift brown fox jumps over the lazy dog.
+The swift brown she 
+fox jumps over the lazy dog.
 
 There will be extra lines in the diff
 (as is this)
 
 --------------
+
+Here are some lines
+without the least sign of
+a clear conflict
+
+--------------
+
+Two different lines,
+both with changes
+
