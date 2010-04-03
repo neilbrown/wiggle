@@ -1124,7 +1124,7 @@ void merge_window(struct plist *p, FILE *f, int reverse)
 	struct mpos pos;
 	struct mpos tpos, toppos, botpos;
 	struct mpos vpos, tvpos;
-	int toprow = 0,botrow = 0;
+	int botrow = 0;
 	int meta = 0, tmeta;
 	int num= -1, tnum;
 	char search[80];
@@ -1250,7 +1250,12 @@ void merge_window(struct plist *p, FILE *f, int reverse)
 					   tpos, 0, NULL);
 
 			}
-			toppos = tpos; toprow = i;
+			if (i) {
+				row -= (i+1);
+				refresh = 1;
+				goto retry;
+			}
+			toppos = tpos;
 			while (i >= 1)
 				blank(i--, 0, cols, a_void);
 			tpos = pos;
@@ -1402,7 +1407,7 @@ void merge_window(struct plist *p, FILE *f, int reverse)
 			break;
 		case 'L'-64:
 			refresh = 2;
-			if (toprow >= 1) row -= (toprow+1);
+			row = rows / 2;
 			break;
 
 		case 'V'-64: /* page down */
@@ -1415,10 +1420,7 @@ void merge_window(struct plist *p, FILE *f, int reverse)
 			break;
 		case META('v'): /* page up */
 			pos = toppos;
-			if (toprow >= 1)
-				row = toprow+1;
-			else
-				row = rows-2;
+			row = rows-2;
 			refresh = 1;
 			break;
 
