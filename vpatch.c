@@ -1051,6 +1051,8 @@ void draw_mline(int mode, int row, int start, int cols,
 	 */
 	int lcols, rcols;
 
+	mode |= check_line(pos, fm,fb,fa,m,mode);
+
 	if ( (mode & (BEFORE|AFTER)) &&
 	     (mode & (ORIG|RESULT))) {
 
@@ -1123,7 +1125,6 @@ void merge_window(struct plist *p, FILE *f, int reverse)
 	struct mpos tpos, toppos, botpos;
 	struct mpos vpos, tvpos;
 	int toprow = 0,botrow = 0;
-	int mode2;
 	int meta = 0, tmeta;
 	int num= -1, tnum;
 	char search[80];
@@ -1225,8 +1226,7 @@ void merge_window(struct plist *p, FILE *f, int reverse)
 		while (start > target) { start -= 8; refresh = 1;}
 		if (start < 0) start = 0;
 	retry:
-		mode2 = check_line(pos, fm,fb,fa,ci.merger,mode);
-		draw_mline(mode|mode2, row, start, cols, fm,fb,fa,ci.merger,
+		draw_mline(mode, row, start, cols, fm,fb,fa,ci.merger,
 			   pos, target, &col);
 
 		if (col > cols+start) {
@@ -1246,8 +1246,7 @@ void merge_window(struct plist *p, FILE *f, int reverse)
 
 			for (i=row-1; i>=1 && tpos.p.m >= 0; ) {
 				prev_mline(&tpos, fm,fb,fa,ci.merger, mode);
-				mode2 = check_line(tpos, fm,fb,fa, ci.merger, mode);
-				draw_mline(mode|mode2, i--, start, cols, fm,fb,fa,ci.merger,
+				draw_mline(mode, i--, start, cols, fm,fb,fa,ci.merger,
 					   tpos, 0, NULL);
 
 			}
@@ -1256,8 +1255,7 @@ void merge_window(struct plist *p, FILE *f, int reverse)
 				blank(i--, 0, cols, a_void);
 			tpos = pos;
 			for (i=row; i<rows && ci.merger[tpos.p.m].type != End; ) {
-				mode2 = check_line(tpos, fm,fb,fa,ci.merger,mode);
-				draw_mline(mode|mode2, i++, start, cols, fm,fb,fa,ci.merger,
+				draw_mline(mode, i++, start, cols, fm,fb,fa,ci.merger,
 					   tpos, 0, NULL);
 				next_mline(&tpos, fm,fb,fa,ci.merger, mode);
 			}
