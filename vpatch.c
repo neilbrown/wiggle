@@ -1335,7 +1335,12 @@ void merge_window(struct plist *p, FILE *f, int reverse)
 			break;
 		case SEARCH('G'-64):
 		case SEARCH('S'-64):
+		case SEARCH('R'-64):
 			/* search again */
+			if ((c|tmeta) == SEARCH('R'-64))
+				searchdir = 1;
+			if ((c|tmeta) == SEARCH('S'-64))
+				searchdir = 0;
 			meta = SEARCH(0);
 			tpos = pos; trow = row;
 			if (searchdir) {
