@@ -510,12 +510,24 @@ void draw_one(int row, struct plist *pl, FILE *f, int reverse)
  * as invalid and are not displayed.
  * The visibility of newlines is crucial and guides the display.  One line
  * of displayed text is all the visible sections between two visible newlines.
+ *
+ * Counting lines is a bit tricky.  We only worry about line numbers in the
+ * original (stream 0) as these could compare with line numbers mentioned in
+ * patch chunks.
+ * We count 2 for every line: 1 for everything before the newline and 1 for the newline.
+ * That way we don't get a full counted line until we see the first char after the
+ * newline, so '+' lines are counted with the previous line.
+ *
  */
 struct mpos {
 	struct mp {
 		int m; /* merger index */
 		int s; /* stream 0,1,2 for a,b,c */
 		int o; /* offset in that stream */
+		int lineno; /* Counts newlines in stream 0
+			     * set lsb when see newline.
+			     * add one when not newline and lsb set
+			     */
 	}       p, /* the current point */
 		lo, /* eol for start of the current group */
 		hi; /* eol for end of the current group */
@@ -594,7 +606,13 @@ struct elmnt next_melmnt(struct mpos *pos,
 	}
 	switch(pos->p.s) {
 	default: /* keep compiler happy */
-	case 0: return fm.list[m[pos->p.m].a + pos->p.o];
+	case 0:
+		if (pos->p.lineno & 1)
+			pos->p.lineno ++;
+		if (ends_mline(fm.list[m[pos->p.m].a + pos->p.o]))
+			pos->p.lineno ++;
+		
+		return fm.list[m[pos->p.m].a + pos->p.o];
 	case 1: return fb.list[m[pos->p.m].b + pos->p.o];
 	case 2: return fa.list[m[pos->p.m].c + pos->p.o];
 	}
@@ -605,6 +623,13 @@ struct elmnt prev_melmnt(struct mpos *pos,
 			 struct file fm, struct file fb, struct file fa,
 			 struct merge *m)
 {
+	if (pos->p.s == 0) {
+		if (ends_mline(fm.list[m[pos->p.m].a + pos->p.o]))
+			pos->p.lineno--;
+		if (pos->p.lineno & 1)
+			pos->p.lineno--;
+	}
+
 	pos->p.o--;
 	while (pos->p.m >=0 && pos->p.o < 0) {
 		do {
@@ -1121,6 +1146,7 @@ void merge_window(struct plist *p, FILE *f, int reverse)
 	pos.p.m = 0; /* merge node */
 	pos.p.s = 0; /* stream number */
 	pos.p.o = -1; /* offset */
+	pos.p.lineno = 1;
 	pos.state = 0;
 	next_mline(&pos, fm,fb,fa,ci.merger, mode);
 	while(1) {
@@ -1150,6 +1176,13 @@ void merge_window(struct plist *p, FILE *f, int reverse)
 				row = rows-1;
 		}
 
+		{
+			char lbuf[20];
+			(void)attrset(A_BOLD);
+			sprintf(lbuf, "ln:%d", (pos.p.lineno-1)/2);
+			mvaddstr(0, cols - strlen(lbuf) - 4, "       ");
+			mvaddstr(0, cols - strlen(lbuf) - 1, lbuf);
+		}
 		/* Always refresh the line */
 		while (start > target) { start -= 8; refresh = 1;}
 		if (start < 0) start = 0;
