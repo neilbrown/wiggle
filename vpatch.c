@@ -49,6 +49,16 @@
 
 #define assert(x) do { if (!(x)) abort(); } while (0)
 
+char *typenames[] = {
+	[End] = "End",
+	[Unmatched] = "Unmatched",
+	[Unchanged] = "Unchanged",
+	[Extraneous] = "Extraneous",
+	[Changed] = "Changed",
+	[Conflict] = "Conflict",
+	[AlreadyApplied] = "AlreadyApplied",
+};
+
 /* plist stores a list of patched files in an array
  * Each entry identifies a file, the range of the 
  * original patch which applies to this file, some
@@ -1111,6 +1121,7 @@ void merge_window(struct plist *p, FILE *f, int reverse)
 	int col=0, target=0;
 	struct mpos pos;
 	struct mpos tpos, toppos, botpos;
+	struct mpos vpos, tvpos;
 	int toprow = 0,botrow = 0;
 	int mode2;
 	int meta = 0, tmeta;
@@ -1149,6 +1160,7 @@ void merge_window(struct plist *p, FILE *f, int reverse)
 	pos.p.lineno = 1;
 	pos.state = 0;
 	next_mline(&pos, fm,fb,fa,ci.merger, mode);
+	vpos = pos;
 	while(1) {
 		if (refresh == 2) {
 			clear();
@@ -1176,6 +1188,32 @@ void merge_window(struct plist *p, FILE *f, int reverse)
 				row = rows-1;
 		}
 
+		if (getenv("WIGGLE_VTRACE")) {
+			char b[100];
+			char *e, e2[7];
+			int i;
+			switch (vpos.p.s) {
+			case 0: e = fm.list[ci.merger[vpos.p.m].a + vpos.p.o].start; break;
+			case 1: e = fb.list[ci.merger[vpos.p.m].b + vpos.p.o].start; break;
+			case 2: e = fa.list[ci.merger[vpos.p.m].c + vpos.p.o].start; break;
+			}
+			for (i=0; i<6; i++) {
+				e2[i] = e[i];
+				if (e2[i] < 32 || e2[i] >= 127) e2[i] = '?';
+			}
+			sprintf(b, "st=%d str=%d o=%d m=%d mt=%s(%d,%d,%d) ic=%d  <%.3s>", vpos.state,
+				vpos.p.s, vpos.p.o,
+				vpos.p.m, typenames[ci.merger[vpos.p.m].type],
+				ci.merger[vpos.p.m].al,
+				ci.merger[vpos.p.m].bl,
+				ci.merger[vpos.p.m].cl,
+				ci.merger[vpos.p.m].in_conflict,
+				e2
+				);
+			(void)attrset(A_NORMAL);
+			mvaddstr(0, 50, b);
+			clrtoeol();
+		}
 		{
 			char lbuf[20];
 			(void)attrset(A_BOLD);
@@ -1247,6 +1285,7 @@ void merge_window(struct plist *p, FILE *f, int reverse)
 		c = getch();
 		tmeta = meta; meta = 0;
 		tnum = num; num = -1;
+		tvpos = vpos; vpos = pos;
 		switch(c | tmeta) {
 		case 27: /* escape */
 		case META(27):
@@ -1420,7 +1459,6 @@ void merge_window(struct plist *p, FILE *f, int reverse)
 				pos = tpos; row--;
 				prev_mline(&tpos, fm,fb,fa,ci.merger, mode);
 			} while (tpos.state != 0 && tpos.p.m >= 0);
-
 			break;
 
 		case 'k':
@@ -1500,6 +1538,17 @@ void merge_window(struct plist *p, FILE *f, int reverse)
 			if (start < cols) start++;
 			target = start + 1;
 			refresh = 1;
+			break;
+
+		case '<':
+			prev_melmnt(&tvpos, fm,fb,fa,ci.merger);
+			if (tvpos.p.m >= 0)
+				vpos = tvpos;
+			break;
+		case '>':
+			next_melmnt(&tvpos, fm,fb,fa,ci.merger);
+			if (ci.merger[tvpos.p.m].type != End)
+				vpos = tvpos;
 			break;
 		}
 
