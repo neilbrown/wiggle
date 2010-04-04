@@ -582,92 +582,92 @@ int stream_valid(int s, enum mergetype type)
  * This walks the merges in sequence, and the streams within
  * each merge.
  */
-struct elmnt next_melmnt(struct mpos *pos,
+struct elmnt next_melmnt(struct mp *pos,
 			 struct file fm, struct file fb, struct file fa,
 			 struct merge *m)
 {
-	pos->p.o++;
+	pos->o++;
 	while(1) {
 		int l=0; /* Length remaining in current merge section */
-		if (pos->p.m >= 0)
-			switch(pos->p.s) {
-			case 0: l = m[pos->p.m].al; break;
-			case 1: l = m[pos->p.m].bl; break;
-			case 2: l = m[pos->p.m].cl; break;
+		if (pos->m >= 0)
+			switch(pos->s) {
+			case 0: l = m[pos->m].al; break;
+			case 1: l = m[pos->m].bl; break;
+			case 2: l = m[pos->m].cl; break;
 			}
-		if (pos->p.o >= l) {
+		if (pos->o >= l) {
 			/* Offset has reached length, choose new stream or
 			 * new merge */
-			pos->p.o = 0;
+			pos->o = 0;
 			do {
-				pos->p.s++;
-				if (pos->p.s > 2) {
-					pos->p.s = 0;
-					pos->p.m++;
+				pos->s++;
+				if (pos->s > 2) {
+					pos->s = 0;
+					pos->m++;
 				}
-			} while (!stream_valid(pos->p.s, m[pos->p.m].type));
+			} while (!stream_valid(pos->s, m[pos->m].type));
 		} else
 			break;
 	}
-	if (pos->p.m == -1 || m[pos->p.m].type == End) {
+	if (pos->m == -1 || m[pos->m].type == End) {
 		struct elmnt e;
 		e.start = NULL; e.len = 0;
 		return e;
 	}
-	switch(pos->p.s) {
+	switch(pos->s) {
 	default: /* keep compiler happy */
 	case 0:
-		if (pos->p.lineno & 1)
-			pos->p.lineno ++;
-		if (ends_mline(fm.list[m[pos->p.m].a + pos->p.o]))
-			pos->p.lineno ++;
+		if (pos->lineno & 1)
+			pos->lineno ++;
+		if (ends_mline(fm.list[m[pos->m].a + pos->o]))
+			pos->lineno ++;
 		
-		return fm.list[m[pos->p.m].a + pos->p.o];
-	case 1: return fb.list[m[pos->p.m].b + pos->p.o];
-	case 2: return fa.list[m[pos->p.m].c + pos->p.o];
+		return fm.list[m[pos->m].a + pos->o];
+	case 1: return fb.list[m[pos->m].b + pos->o];
+	case 2: return fa.list[m[pos->m].c + pos->o];
 	}
 }
 
 /* step current position.p backwards */
-struct elmnt prev_melmnt(struct mpos *pos,
+struct elmnt prev_melmnt(struct mp *pos,
 			 struct file fm, struct file fb, struct file fa,
 			 struct merge *m)
 {
-	if (pos->p.s == 0) {
-		if (ends_mline(fm.list[m[pos->p.m].a + pos->p.o]))
-			pos->p.lineno--;
-		if (pos->p.lineno & 1)
-			pos->p.lineno--;
+	if (pos->s == 0) {
+		if (ends_mline(fm.list[m[pos->m].a + pos->o]))
+			pos->lineno--;
+		if (pos->lineno & 1)
+			pos->lineno--;
 	}
 
-	pos->p.o--;
-	while (pos->p.m >=0 && pos->p.o < 0) {
+	pos->o--;
+	while (pos->m >=0 && pos->o < 0) {
 		do {
-			pos->p.s--;
-			if (pos->p.s < 0) {
-				pos->p.s = 2;
-				pos->p.m--;
+			pos->s--;
+			if (pos->s < 0) {
+				pos->s = 2;
+				pos->m--;
 			}
-		} while (pos->p.m >= 0 &&
-			 !stream_valid(pos->p.s, m[pos->p.m].type));
-		if (pos->p.m>=0) {
-			switch(pos->p.s) {
-			case 0: pos->p.o = m[pos->p.m].al-1; break;
-			case 1: pos->p.o = m[pos->p.m].bl-1; break;
-			case 2: pos->p.o = m[pos->p.m].cl-1; break;
+		} while (pos->m >= 0 &&
+			 !stream_valid(pos->s, m[pos->m].type));
+		if (pos->m>=0) {
+			switch(pos->s) {
+			case 0: pos->o = m[pos->m].al-1; break;
+			case 1: pos->o = m[pos->m].bl-1; break;
+			case 2: pos->o = m[pos->m].cl-1; break;
 			}
 		}
 	}
-	if (pos->p.m < 0) {
+	if (pos->m < 0) {
 		struct elmnt e;
 		e.start = NULL; e.len = 0;
 		return e;
 	}
-	switch(pos->p.s) {
+	switch(pos->s) {
 	default: /* keep compiler happy */
-	case 0: return fm.list[m[pos->p.m].a + pos->p.o];
-	case 1: return fb.list[m[pos->p.m].b + pos->p.o];
-	case 2: return fa.list[m[pos->p.m].c + pos->p.o];
+	case 0: return fm.list[m[pos->m].a + pos->o];
+	case 1: return fb.list[m[pos->m].b + pos->o];
+	case 2: return fa.list[m[pos->m].c + pos->o];
 	}
 }
 
@@ -765,7 +765,7 @@ int check_line(struct mpos pos, struct file fm, struct file fb, struct file fa,
 			rv |= WIGGLED;
 		else if (m[pos.p.m].type == Unmatched)
 			unmatched = 1;
-		e = prev_melmnt(&pos, fm,fb,fa,m);
+		e = prev_melmnt(&pos.p, fm,fb,fa,m);
 	} while (e.start != NULL &&
 		 (!ends_mline(e) || visible(mode, m[pos.p.m].type, pos.p.s)==-1));
 
@@ -784,7 +784,7 @@ void next_mline(struct mpos *pos, struct file fm, struct file fb, struct file fa
 
 		prv = pos->p;
 		while (1) {
-			struct elmnt e = next_melmnt(pos, fm,fb,fa,m);
+			struct elmnt e = next_melmnt(&pos->p, fm,fb,fa,m);
 			if (e.start == NULL)
 				break;
 			if (ends_mline(e) &&
@@ -832,7 +832,7 @@ void prev_mline(struct mpos *pos, struct file fm, struct file fb, struct file fa
 		if (pos->p.m < 0)
 			return;
 		while(1) {
-			struct elmnt e = prev_melmnt(pos, fm,fb,fa,m);
+			struct elmnt e = prev_melmnt(&pos->p, fm,fb,fa,m);
 			if (e.start == NULL)
 				break;
 			if (ends_mline(e) &&
@@ -888,7 +888,7 @@ int mcontains(struct mpos pos,
 	struct elmnt e;
 	int len = strlen(search);
 	do {
-		e = prev_melmnt(&pos, fm,fb,fa,m);
+		e = prev_melmnt(&pos.p, fm,fb,fa,m);
 		if (e.start) {
 			int i;
 			for (i=0; i<e.len; i++)
@@ -968,7 +968,7 @@ void draw_mside(int mode, int row, int offset, int start, int cols,
 
 	/* find previous visible newline, or start of file */
 	do
-		e = prev_melmnt(&pos, fm,fb,fa,m);
+		e = prev_melmnt(&pos.p, fm,fb,fa,m);
 	while (e.start != NULL &&
 	       (!ends_mline(e) ||
 		visible(mode, m[pos.p.m].type, pos.p.s)==-1));
@@ -976,7 +976,7 @@ void draw_mside(int mode, int row, int offset, int start, int cols,
 	while (1) {
 		unsigned char *c;
 		int l;
-		e = next_melmnt(&pos, fm,fb,fa,m);
+		e = next_melmnt(&pos.p, fm,fb,fa,m);
 		if (e.start == NULL ||
 		    (ends_mline(e) && visible(mode, m[pos.p.m].type, pos.p.s) != -1)) {
 			if (colp) *colp = col;
@@ -1546,12 +1546,12 @@ void merge_window(struct plist *p, FILE *f, int reverse)
 			break;
 
 		case '<':
-			prev_melmnt(&tvpos, fm,fb,fa,ci.merger);
+			prev_melmnt(&tvpos.p, fm,fb,fa,ci.merger);
 			if (tvpos.p.m >= 0)
 				vpos = tvpos;
 			break;
 		case '>':
-			next_melmnt(&tvpos, fm,fb,fa,ci.merger);
+			next_melmnt(&tvpos.p, fm,fb,fa,ci.merger);
 			if (ci.merger[tvpos.p.m].type != End)
 				vpos = tvpos;
 			break;
