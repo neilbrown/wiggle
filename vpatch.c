@@ -49,15 +49,6 @@
 
 #define assert(x) do { if (!(x)) abort(); } while (0)
 
-char *typenames[] = {
-	[End] = "End",
-	[Unmatched] = "Unmatched",
-	[Unchanged] = "Unchanged",
-	[Extraneous] = "Extraneous",
-	[Changed] = "Changed",
-	[Conflict] = "Conflict",
-	[AlreadyApplied] = "AlreadyApplied",
-};
 
 /* plist stores a list of patched files in an array
  * Each entry identifies a file, the range of the 
@@ -75,404 +66,21 @@ struct plist {
 	int chunks, wiggles, conflicts;
 	int calced;
 };
-
-struct plist *patch_add_file(struct plist *pl, int *np, char *file,
-	       unsigned int start, unsigned int end)
-{
-	/* size of pl is 0, 16, n^2 */
-	int n = *np;
-	int asize;
-
-	while (*file == '/')
-		/* leading '/' are bad... */
-		file++;
-
-	if (n==0)
-		asize = 0;
-	else if (n<=16)
-		asize = 16;
-	else if ((n&(n-1))==0)
-		asize = n;
-	else
-		asize = n+1; /* not accurate, but not too large */
-	if (asize <= n) {
-		/* need to extend array */
-		struct plist *npl;
-		if (asize < 16) asize = 16;
-		else asize += asize;
-		npl = realloc(pl, asize * sizeof(struct plist));
-		if (!npl) {
-			fprintf(stderr, "malloc failed - skipping %s\n", file);
-			return pl;
-		}
-		pl = npl;
-	}
-	pl[n].file = file;
-	pl[n].start = start;
-	pl[n].end = end;
-	pl[n].last = pl[n].next = pl[n].prev = pl[n].parent = -1;
-	pl[n].chunks = pl[n].wiggles = 0; pl[n].conflicts = 100;
-	pl[n].open = 1;
-	pl[n].calced = 0;
-	*np = n+1;
-	return pl;
-}
-
-struct plist *parse_patch(FILE *f, FILE *of, int *np)
-{
-	/* read a multi-file patch from 'f' and record relevant
-	 * details in a plist.
-	 * if 'of' >= 0, fd might not be seekable so we write
-	 * to 'of' and use lseek on 'of' to determine position
-	 */
-	struct plist *plist = NULL;
-
-	while (!feof(f)) {
-		/* first, find the start of a patch: "\n+++ "
-		 * grab the file name and scan to the end of a line
-		 */
-		char *target="\n+++ ";
-		char *target2="\n--- ";
-		char *pos = target;
-		int c;
-		char name[1024];
-		unsigned start, end;
-
-		while (*pos && (c=fgetc(f)) != EOF ) {
-			if (of) fputc(c, of);
-			if (c == *pos)
-				pos++;
-			else pos = target;
-		}
-		if (c == EOF)
-			break;
-		assert(c == ' ');
-		/* now read a file name */
-		pos = name;
-		while ((c=fgetc(f)) != EOF && c != '\t' && c != '\n' && c != ' ' &&
-		       pos - name < 1023) {
-			*pos++ = c;
-			if (of)
-				fputc(c, of);
-		}
-		*pos = 0;
-		if (c == EOF)
-			break;
-		if (of) fputc(c, of);
-		while (c != '\n' && (c=fgetc(f)) != EOF)
-			if (of)
-				fputc(c, of);
-
-		start = ftell(of ?: f);
-
-		if (c == EOF)
-			break;
-
-		/* now skip to end - "\n--- " */
-		pos = target2+1;
-
-		while (*pos && (c=fgetc(f)) != EOF) {
-			if (of)
-				fputc(c, of);
-			if (c == *pos)
-				pos++;
-			else
-				pos = target2;
-		}
-		end = ftell(of ?: f);
-		if (pos > target2)
-			end -= (pos - target2) - 1;
-		plist = patch_add_file(plist, np,
-				       strdup(name), start, end);
-	}
-	return plist;
-}
-
 static struct stream load_segment(FILE *f,
-				  unsigned int start, unsigned int end)
-{
-	struct stream s;
-	s.len = end - start;
-	s.body = malloc(s.len);
-	if (s.body) {
-		fseek(f, start, 0);
-		if (fread(s.body, 1, s.len, f) != s.len) {
-			free(s.body);
-			s.body = NULL;
-		}
-	} else
-		die();
-	return s;
-}
-
-
-void catch(int sig)
-{
-	if (sig == SIGINT) {
-		signal(sig, catch);
-		return;
-	}
-	nocbreak();nl();endwin();
-	printf("Died on signal %d\n", sig);
-	exit(2);
-}
-
-int pl_cmp(const void *av, const void *bv)
-{
-	const struct plist *a = av;
-	const struct plist *b = bv;
-	return strcmp(a->file, b->file);
-}
-
-int common_depth(char *a, char *b)
-{
-	/* find number of path segments that these two have
-	 * in common
-	 */
-	int depth = 0;
-	while(1) {
-		char *c;
-		int al, bl;
-		c = strchr(a, '/');
-		if (c) al = c-a; else al = strlen(a);
-		c = strchr(b, '/');
-		if (c) bl = c-b; else bl = strlen(b);
-		if (al == 0 || al != bl || strncmp(a,b,al) != 0)
-			return depth;
-		a+= al;
-		while (*a=='/') a++;
-		b+= bl;
-		while(*b=='/') b++;
-
-		depth++;
-	}
-}
-
-struct plist *add_dir(struct plist *pl, int *np, char *file, char *curr)
-{
-	/* any parent of file that is not a parent of curr
-	 * needs to be added to pl
-	 */
-	int d = common_depth(file, curr);
-	char *buf = curr;
-	while (d) {
-		char *c = strchr(file, '/');
-		int l;
-		if (c) l = c-file; else l = strlen(file);
-		file += l;
-		curr += l;
-		while (*file == '/') file++;
-		while (*curr == '/') curr++;
-		d--;
-	}
-	while (*file) {
-		if (curr > buf && curr[-1] != '/')
-			*curr++ = '/';
-		while (*file && *file != '/')
-			*curr++ = *file++;
-		while (*file == '/') file++;
-		*curr = '\0';
-		if (*file)
-			pl = patch_add_file(pl, np, strdup(buf),
-					    0, 0);
-	}
-	return pl;
-}
-
-struct plist *sort_patches(struct plist *pl, int *np)
-{
-	/* sort the patches, add directory names, and re-sort */
-	char curr[1024];
-	char *prev;
-	int parents[100];
-	int prevnode[100];
-	int i, n;
-	qsort(pl, *np, sizeof(struct plist), pl_cmp);
-	curr[0] = 0;
-	n = *np;
-	for (i=0; i<n; i++)
-		pl = add_dir(pl, np, pl[i].file, curr);
-
-	qsort(pl, *np, sizeof(struct plist), pl_cmp);
-
-	/* array is now stable, so set up parent pointers */
-	n = *np;
-	curr[0] = 0;
-	prevnode[0] = -1;
-	prev = "";
-	for (i=0; i<n; i++) {
-		int d = common_depth(prev, pl[i].file);
-		if (d == 0)
-			pl[i].parent = -1;
-		else {
-			pl[i].parent = parents[d-1];
-			pl[pl[i].parent].last = i;
-		}
-		pl[i].prev = prevnode[d];
-		if (pl[i].prev > -1)
-			pl[pl[i].prev].next = i;
-		prev = pl[i].file;
-		parents[d] = i;
-		prevnode[d] = i;
-		prevnode[d+1] = -1;
-	}
-	return pl;
-}
-
-/* determine how much we need to stripe of the front of
- * paths to find them from current directory.  This is
- * used to guess correct '-p' value.
- */
-int get_strip(char *file)
-{
-	int fd;
-	int strip = 0;
-
-	while (file && *file) {
-		fd  = open(file, O_RDONLY);
-		if (fd >= 0) {
-			close(fd);
-			return strip;
-		}
-		strip++;
-		file = strchr(file, '/');
-		if (file)
-			while(*file == '/')
-				file++;
-	}
-	return -1;
-
-}
-
-int set_prefix(struct plist *pl, int n, int strip)
-{
-	int i;
-	for(i=0; i<4 && i<n  && strip < 0; i++)
-		strip = get_strip(pl[i].file);
-
-	if (strip < 0) {
-		fprintf(stderr, "%s: Cannot file files to patch: please specify --strip\n",
-			Cmd);
-		return 0;
-	}
-	for (i=0; i<n; i++) {
-		char *p = pl[i].file;
-		int j;
-		for (j=0; j<strip; j++) {
-			if (p) p = strchr(p,'/');
-			while (p && *p == '/') p++;
-		}
-		if (p == NULL) {
-			fprintf(stderr, "%s: cannot strip %d segments from %s\n",
-				Cmd, strip, pl[i].file);
-			return 0;
-		}
-		pl[i].file = p;
-	}
-	return 1;
-}
-
-
-int get_prev(int pos, struct plist *pl, int n)
-{
-	if (pos == -1) return pos;
-	if (pl[pos].prev == -1)
-		return pl[pos].parent;
-	pos = pl[pos].prev;
-	while (pl[pos].open &&
-	       pl[pos].last >= 0)
-		pos = pl[pos].last;
-	return pos;
-}
-
-int get_next(int pos, struct plist *pl, int n)
-{
-	if (pos == -1) return pos;
-	if (pl[pos].open) {
-		if (pos +1 < n)
-			return pos+1;
-		else
-			return -1;
-	}
-	while (pos >= 0 && pl[pos].next == -1)
-		pos = pl[pos].parent;
-	if (pos >= 0)
-		pos = pl[pos].next;
-	return pos;
-}
+				  unsigned int start, unsigned int end);
 
 /* global attributes */
 int a_delete, a_added, a_common, a_sep, a_void, a_unmatched, a_extra, a_already;
 
-void draw_one(int row, struct plist *pl, FILE *f, int reverse)
-{
-	char hdr[12];
-	hdr[0] = 0;
-
-	if (pl == NULL) {
-		move(row,0);
-		clrtoeol();
-		return;
-	}
-	if (pl->calced == 0 && pl->end) {
-		/* better load the patch and count the chunks */
-		struct stream s1, s2;
-		struct stream s = load_segment(f, pl->start, pl->end);
-		struct stream sf = load_file(pl->file);
-		if (reverse)
-			pl->chunks = split_patch(s, &s2, &s1);
-		else
-			pl->chunks = split_patch(s, &s1, &s2);
-
-		if (sf.body == NULL) {
-			pl->wiggles = pl->conflicts = -1;
-		} else {
-			struct file ff, fp1, fp2;
-			struct csl *csl1, *csl2;
-			struct ci ci;
-			ff = split_stream(sf, ByWord, 0);
-			fp1 = split_stream(s1, ByWord, 0);
-			fp2 = split_stream(s2, ByWord, 0);
-			csl1 = pdiff(ff, fp1, pl->chunks);
-			csl2 = diff(fp1,fp2);
-			ci = make_merger(ff, fp1, fp2, csl1, csl2, 0, 1);
-			pl->wiggles = ci.wiggles;
-			pl->conflicts = ci.conflicts;
-			free(csl1);
-			free(csl2);
-			free(ff.list);
-			free(fp1.list);
-			free(fp2.list);
-		}
-
-		free(s1.body);
-		free(s2.body);
-		free(s.body);
-		pl->calced = 1;
-	}
-	if (pl->end == 0) {
-		strcpy(hdr, "         ");
-	} else {
-		if (pl->chunks > 99)
-			strcpy(hdr, "XX");
-		else sprintf(hdr, "%2d", pl->chunks);
-		if (pl->wiggles > 99)
-			strcpy(hdr+2, " XX");
-		else sprintf(hdr+2, " %2d", pl->wiggles);
-		if (pl->conflicts > 99)
-			strcpy(hdr+5, " XX ");
-		else sprintf(hdr+5, " %2d ", pl->conflicts);
-	}
-	if (pl->end)
-		strcpy(hdr+9, "= ");
-	else if (pl->open)
-		strcpy(hdr+9, "+ ");
-	else strcpy(hdr+9, "- ");
-
-	mvaddstr(row, 0, hdr);
-	mvaddstr(row, 11, pl->file);
-	clrtoeol();
-}
+char *typenames[] = {
+	[End] = "End",
+	[Unmatched] = "Unmatched",
+	[Unchanged] = "Unchanged",
+	[Extraneous] = "Extraneous",
+	[Changed] = "Changed",
+	[Conflict] = "Conflict",
+	[AlreadyApplied] = "AlreadyApplied",
+};
 
 #define BEFORE	1
 #define AFTER	2
@@ -1652,6 +1260,390 @@ void merge_window(struct plist *p, FILE *f, int reverse)
 	}
 }
 
+struct plist *patch_add_file(struct plist *pl, int *np, char *file,
+	       unsigned int start, unsigned int end)
+{
+	/* size of pl is 0, 16, n^2 */
+	int n = *np;
+	int asize;
+
+	while (*file == '/')
+		/* leading '/' are bad... */
+		file++;
+
+	if (n==0)
+		asize = 0;
+	else if (n<=16)
+		asize = 16;
+	else if ((n&(n-1))==0)
+		asize = n;
+	else
+		asize = n+1; /* not accurate, but not too large */
+	if (asize <= n) {
+		/* need to extend array */
+		struct plist *npl;
+		if (asize < 16) asize = 16;
+		else asize += asize;
+		npl = realloc(pl, asize * sizeof(struct plist));
+		if (!npl) {
+			fprintf(stderr, "malloc failed - skipping %s\n", file);
+			return pl;
+		}
+		pl = npl;
+	}
+	pl[n].file = file;
+	pl[n].start = start;
+	pl[n].end = end;
+	pl[n].last = pl[n].next = pl[n].prev = pl[n].parent = -1;
+	pl[n].chunks = pl[n].wiggles = 0; pl[n].conflicts = 100;
+	pl[n].open = 1;
+	pl[n].calced = 0;
+	*np = n+1;
+	return pl;
+}
+
+struct plist *parse_patch(FILE *f, FILE *of, int *np)
+{
+	/* read a multi-file patch from 'f' and record relevant
+	 * details in a plist.
+	 * if 'of' >= 0, fd might not be seekable so we write
+	 * to 'of' and use lseek on 'of' to determine position
+	 */
+	struct plist *plist = NULL;
+
+	while (!feof(f)) {
+		/* first, find the start of a patch: "\n+++ "
+		 * grab the file name and scan to the end of a line
+		 */
+		char *target="\n+++ ";
+		char *target2="\n--- ";
+		char *pos = target;
+		int c;
+		char name[1024];
+		unsigned start, end;
+
+		while (*pos && (c=fgetc(f)) != EOF ) {
+			if (of) fputc(c, of);
+			if (c == *pos)
+				pos++;
+			else pos = target;
+		}
+		if (c == EOF)
+			break;
+		assert(c == ' ');
+		/* now read a file name */
+		pos = name;
+		while ((c=fgetc(f)) != EOF && c != '\t' && c != '\n' && c != ' ' &&
+		       pos - name < 1023) {
+			*pos++ = c;
+			if (of)
+				fputc(c, of);
+		}
+		*pos = 0;
+		if (c == EOF)
+			break;
+		if (of) fputc(c, of);
+		while (c != '\n' && (c=fgetc(f)) != EOF)
+			if (of)
+				fputc(c, of);
+
+		start = ftell(of ?: f);
+
+		if (c == EOF)
+			break;
+
+		/* now skip to end - "\n--- " */
+		pos = target2+1;
+
+		while (*pos && (c=fgetc(f)) != EOF) {
+			if (of)
+				fputc(c, of);
+			if (c == *pos)
+				pos++;
+			else
+				pos = target2;
+		}
+		end = ftell(of ?: f);
+		if (pos > target2)
+			end -= (pos - target2) - 1;
+		plist = patch_add_file(plist, np,
+				       strdup(name), start, end);
+	}
+	return plist;
+}
+
+static struct stream load_segment(FILE *f,
+				  unsigned int start, unsigned int end)
+{
+	struct stream s;
+	s.len = end - start;
+	s.body = malloc(s.len);
+	if (s.body) {
+		fseek(f, start, 0);
+		if (fread(s.body, 1, s.len, f) != s.len) {
+			free(s.body);
+			s.body = NULL;
+		}
+	} else
+		die();
+	return s;
+}
+
+
+int pl_cmp(const void *av, const void *bv)
+{
+	const struct plist *a = av;
+	const struct plist *b = bv;
+	return strcmp(a->file, b->file);
+}
+
+int common_depth(char *a, char *b)
+{
+	/* find number of path segments that these two have
+	 * in common
+	 */
+	int depth = 0;
+	while(1) {
+		char *c;
+		int al, bl;
+		c = strchr(a, '/');
+		if (c) al = c-a; else al = strlen(a);
+		c = strchr(b, '/');
+		if (c) bl = c-b; else bl = strlen(b);
+		if (al == 0 || al != bl || strncmp(a,b,al) != 0)
+			return depth;
+		a+= al;
+		while (*a=='/') a++;
+		b+= bl;
+		while(*b=='/') b++;
+
+		depth++;
+	}
+}
+
+struct plist *add_dir(struct plist *pl, int *np, char *file, char *curr)
+{
+	/* any parent of file that is not a parent of curr
+	 * needs to be added to pl
+	 */
+	int d = common_depth(file, curr);
+	char *buf = curr;
+	while (d) {
+		char *c = strchr(file, '/');
+		int l;
+		if (c) l = c-file; else l = strlen(file);
+		file += l;
+		curr += l;
+		while (*file == '/') file++;
+		while (*curr == '/') curr++;
+		d--;
+	}
+	while (*file) {
+		if (curr > buf && curr[-1] != '/')
+			*curr++ = '/';
+		while (*file && *file != '/')
+			*curr++ = *file++;
+		while (*file == '/') file++;
+		*curr = '\0';
+		if (*file)
+			pl = patch_add_file(pl, np, strdup(buf),
+					    0, 0);
+	}
+	return pl;
+}
+
+struct plist *sort_patches(struct plist *pl, int *np)
+{
+	/* sort the patches, add directory names, and re-sort */
+	char curr[1024];
+	char *prev;
+	int parents[100];
+	int prevnode[100];
+	int i, n;
+	qsort(pl, *np, sizeof(struct plist), pl_cmp);
+	curr[0] = 0;
+	n = *np;
+	for (i=0; i<n; i++)
+		pl = add_dir(pl, np, pl[i].file, curr);
+
+	qsort(pl, *np, sizeof(struct plist), pl_cmp);
+
+	/* array is now stable, so set up parent pointers */
+	n = *np;
+	curr[0] = 0;
+	prevnode[0] = -1;
+	prev = "";
+	for (i=0; i<n; i++) {
+		int d = common_depth(prev, pl[i].file);
+		if (d == 0)
+			pl[i].parent = -1;
+		else {
+			pl[i].parent = parents[d-1];
+			pl[pl[i].parent].last = i;
+		}
+		pl[i].prev = prevnode[d];
+		if (pl[i].prev > -1)
+			pl[pl[i].prev].next = i;
+		prev = pl[i].file;
+		parents[d] = i;
+		prevnode[d] = i;
+		prevnode[d+1] = -1;
+	}
+	return pl;
+}
+
+/* determine how much we need to stripe of the front of
+ * paths to find them from current directory.  This is
+ * used to guess correct '-p' value.
+ */
+int get_strip(char *file)
+{
+	int fd;
+	int strip = 0;
+
+	while (file && *file) {
+		fd  = open(file, O_RDONLY);
+		if (fd >= 0) {
+			close(fd);
+			return strip;
+		}
+		strip++;
+		file = strchr(file, '/');
+		if (file)
+			while(*file == '/')
+				file++;
+	}
+	return -1;
+
+}
+
+int set_prefix(struct plist *pl, int n, int strip)
+{
+	int i;
+	for(i=0; i<4 && i<n  && strip < 0; i++)
+		strip = get_strip(pl[i].file);
+
+	if (strip < 0) {
+		fprintf(stderr, "%s: Cannot file files to patch: please specify --strip\n",
+			Cmd);
+		return 0;
+	}
+	for (i=0; i<n; i++) {
+		char *p = pl[i].file;
+		int j;
+		for (j=0; j<strip; j++) {
+			if (p) p = strchr(p,'/');
+			while (p && *p == '/') p++;
+		}
+		if (p == NULL) {
+			fprintf(stderr, "%s: cannot strip %d segments from %s\n",
+				Cmd, strip, pl[i].file);
+			return 0;
+		}
+		pl[i].file = p;
+	}
+	return 1;
+}
+
+
+int get_prev(int pos, struct plist *pl, int n)
+{
+	if (pos == -1) return pos;
+	if (pl[pos].prev == -1)
+		return pl[pos].parent;
+	pos = pl[pos].prev;
+	while (pl[pos].open &&
+	       pl[pos].last >= 0)
+		pos = pl[pos].last;
+	return pos;
+}
+
+int get_next(int pos, struct plist *pl, int n)
+{
+	if (pos == -1) return pos;
+	if (pl[pos].open) {
+		if (pos +1 < n)
+			return pos+1;
+		else
+			return -1;
+	}
+	while (pos >= 0 && pl[pos].next == -1)
+		pos = pl[pos].parent;
+	if (pos >= 0)
+		pos = pl[pos].next;
+	return pos;
+}
+
+void draw_one(int row, struct plist *pl, FILE *f, int reverse)
+{
+	char hdr[12];
+	hdr[0] = 0;
+
+	if (pl == NULL) {
+		move(row,0);
+		clrtoeol();
+		return;
+	}
+	if (pl->calced == 0 && pl->end) {
+		/* better load the patch and count the chunks */
+		struct stream s1, s2;
+		struct stream s = load_segment(f, pl->start, pl->end);
+		struct stream sf = load_file(pl->file);
+		if (reverse)
+			pl->chunks = split_patch(s, &s2, &s1);
+		else
+			pl->chunks = split_patch(s, &s1, &s2);
+
+		if (sf.body == NULL) {
+			pl->wiggles = pl->conflicts = -1;
+		} else {
+			struct file ff, fp1, fp2;
+			struct csl *csl1, *csl2;
+			struct ci ci;
+			ff = split_stream(sf, ByWord, 0);
+			fp1 = split_stream(s1, ByWord, 0);
+			fp2 = split_stream(s2, ByWord, 0);
+			csl1 = pdiff(ff, fp1, pl->chunks);
+			csl2 = diff(fp1,fp2);
+			ci = make_merger(ff, fp1, fp2, csl1, csl2, 0, 1);
+			pl->wiggles = ci.wiggles;
+			pl->conflicts = ci.conflicts;
+			free(csl1);
+			free(csl2);
+			free(ff.list);
+			free(fp1.list);
+			free(fp2.list);
+		}
+
+		free(s1.body);
+		free(s2.body);
+		free(s.body);
+		pl->calced = 1;
+	}
+	if (pl->end == 0) {
+		strcpy(hdr, "         ");
+	} else {
+		if (pl->chunks > 99)
+			strcpy(hdr, "XX");
+		else sprintf(hdr, "%2d", pl->chunks);
+		if (pl->wiggles > 99)
+			strcpy(hdr+2, " XX");
+		else sprintf(hdr+2, " %2d", pl->wiggles);
+		if (pl->conflicts > 99)
+			strcpy(hdr+5, " XX ");
+		else sprintf(hdr+5, " %2d ", pl->conflicts);
+	}
+	if (pl->end)
+		strcpy(hdr+9, "= ");
+	else if (pl->open)
+		strcpy(hdr+9, "+ ");
+	else strcpy(hdr+9, "- ");
+
+	mvaddstr(row, 0, hdr);
+	mvaddstr(row, 11, pl->file);
+	clrtoeol();
+}
+
 void main_window(struct plist *pl, int n, FILE *f, int reverse)
 {
 	/* The main window lists all files together with summary information:
@@ -1785,6 +1777,18 @@ void main_window(struct plist *pl, int n, FILE *f, int reverse)
 	}
 }
 
+
+
+void catch(int sig)
+{
+	if (sig == SIGINT) {
+		signal(sig, catch);
+		return;
+	}
+	nocbreak();nl();endwin();
+	printf("Died on signal %d\n", sig);
+	exit(2);
+}
 
 int vpatch(int argc, char *argv[], int strip, int reverse, int replace)
 {
