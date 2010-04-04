@@ -912,11 +912,22 @@ int mcontains(struct mpos pos,
  *  d   diff     - show just the patch, both before and after
  *  m   merge    - show the full merge with -+ sections for changes.
  *                 If point is in a wiggled or conflicted section the
- *                 window is split  horizontally and the diff is shown
+ *                 window is split horizontally and the diff is shown
  *                 in the bottom window
  *  | sidebyside - two panes, left and right.  Left holds the merge,
  *                 right holds the diff.  In the case of a conflict,
  *                 left holds orig/after, right holds before/after
+ *
+ * The horizontal split for 'merge' mode is managed as follows.
+ * - The window is split when we first visit a line that contains
+ *   a wiggle or a conflict, and the second pane is removed when
+ *   we next visit a line that contains no changes (is fully Unchanged).
+ * - to display the second pane, we go do the previous mline for that
+ *   alternate mode (BEFORE|AFTER) same point is not visible.  Then
+ *   we centre that line
+ * - We need to rewind to an unchanged section, and wind forward again
+ *   to make sure that 'lo' and 'hi' are set properly.
+ * - every time we move, we redraw the second pane (see how that goes).
  */
 
 
@@ -1114,6 +1125,8 @@ void merge_window(struct plist *p, FILE *f, int reverse)
 	int ch;
 	int refresh = 2;
 	int rows = 0, cols = 0;
+	int splitrow = -1;
+	int lastrow = 0;
 	int i, c;
 	int mode = ORIG|RESULT | BEFORE|AFTER;
 	char *modename = "sidebyside";
@@ -1172,23 +1185,47 @@ void merge_window(struct plist *p, FILE *f, int reverse)
 			(void)attrset(A_NORMAL);
 			refresh = 1;
 		}
-		if (row < 1 || row >= rows)
+		if (row < 1 || row >= lastrow)
 			refresh = 1;
 
+
+
+		if (mode == (ORIG|RESULT)) {
+			int cmode = check_line(pos, fm,fb,fa,ci.merger, mode);
+			if (splitrow < 0 && (cmode & (WIGGLED|CONFLICTED))) {
+				splitrow = (rows+1)/2;
+				lastrow = splitrow - 1;
+				refresh = 1;
+			}
+			if (splitrow >= 0 && !(cmode & CHANGES)) {
+				splitrow = -1;
+				lastrow = rows-1;
+				refresh = 1;
+			}
+		} else if (splitrow >= 0) {
+			splitrow = -1;
+			lastrow = rows-1;
+			refresh = 1;
+		}
 
 		if (refresh) {
 			getmaxyx(stdscr, rows, cols);
 			rows--; /* keep last row clear */
+			if (splitrow >= 0) {
+				splitrow = (rows+1)/2;
+				lastrow = splitrow - 1;
+			} else
+				lastrow =  rows - 1;
+
 			if (row < -3)
-				row = (rows-1)/2+1;
+				row = lastrow/2+1;
 			if (row < 1)
 				row = 1;
-			if (row > rows+3)
-				row = (rows-1)/2+1;
-			if (row >= rows)
-				row = rows-1;
+			if (row > lastrow+3)
+				row = lastrow/2+1;
+			if (row >= lastrow)
+				row = lastrow-1;
 		}
-
 		if (getenv("WIGGLE_VTRACE")) {
 			char b[100];
 			char *e, e2[7];
@@ -1259,15 +1296,49 @@ void merge_window(struct plist *p, FILE *f, int reverse)
 			while (i >= 1)
 				blank(i--, 0, cols, a_void);
 			tpos = pos;
-			for (i=row; i<rows && ci.merger[tpos.p.m].type != End; ) {
+			for (i=row; i<= lastrow && ci.merger[tpos.p.m].type != End; ) {
 				draw_mline(mode, i++, start, cols, fm,fb,fa,ci.merger,
 					   tpos, 0, NULL);
 				next_mline(&tpos, fm,fb,fa,ci.merger, mode);
 			}
 			botpos = tpos; botrow = i;
-			while (i<rows)
+			while (i<=lastrow)
 				blank(i++, 0, cols, a_void);
-		} else {
+		}
+		
+		if (splitrow >= 0) {
+			struct mpos spos = pos;
+			int smode = BEFORE|AFTER;
+			int srow = (rows + splitrow)/2;
+			if (visible(smode, ci.merger[spos.p.m].type,
+				    spos.p.s) < 0)
+				prev_mline(&spos, fm,fb,fa,ci.merger, smode);
+			/* Now hi/lo might be wrong, so lets fix it. */
+			tpos = spos;
+			while (spos.p.m >= 0 && spos.state != 0)
+				prev_mline(&spos, fm,fb,fa,ci.merger, smode);
+			while (!same_mpos(spos, tpos))
+				next_mline(&spos, fm,fb,fa,ci.merger, smode);
+			
+
+			(void)attrset(a_sep);
+			for (i=0; i<cols; i++)
+				mvaddstr(splitrow, i, "-");
+
+			tpos = spos;
+			for (i=srow-1; i>splitrow; i-- ) {
+				prev_mline(&tpos, fm,fb,fa,ci.merger, smode);
+				draw_mline(smode, i, start, cols, fm,fb,fa,ci.merger,
+					   tpos, 0, NULL);
+			}
+			while (i > splitrow)
+				blank(i--, 0, cols, a_void);
+			tpos = spos;
+			for (i=srow; i<rows && ci.merger[tpos.p.m].type != End; i++) {
+				draw_mline(smode, i, start, cols, fm, fb,fa,ci.merger,
+					   tpos, 0, NULL);
+				next_mline(&tpos, fm,fb,fa,ci.merger, smode);
+			}
 		}
 #define META(c) ((c)|0x1000)
 #define	SEARCH(c) ((c)|0x2000)
@@ -1312,8 +1383,8 @@ void merge_window(struct plist *p, FILE *f, int reverse)
 				pos = tpos; row++;
 				next_mline(&tpos, fm,fb,fa,ci.merger,mode);
 			} while (ci.merger[tpos.p.m].type != End);
-			if (row >= rows)
-				row = rows;
+			if (row >= lastrow)
+				row = lastrow;
 			break;
 		case '0' ... '9':
 			if (tnum < 0) tnum = 0;
@@ -1407,12 +1478,12 @@ void merge_window(struct plist *p, FILE *f, int reverse)
 			break;
 		case 'L'-64:
 			refresh = 2;
-			row = rows / 2;
+			row = lastrow / 2;
 			break;
 
 		case 'V'-64: /* page down */
 			pos = botpos;
-			if (botrow < rows)
+			if (botrow <= lastrow)
 				row = botrow;
 			else
 				row = 2;
@@ -1420,7 +1491,7 @@ void merge_window(struct plist *p, FILE *f, int reverse)
 			break;
 		case META('v'): /* page up */
 			pos = toppos;
-			row = rows-2;
+			row = lastrow-1;
 			refresh = 1;
 			break;
 
