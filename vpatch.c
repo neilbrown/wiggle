@@ -1845,34 +1845,99 @@ int set_prefix(struct plist *pl, int n, int strip)
 	return 1;
 }
 
-
-int get_prev(int pos, struct plist *pl, int n)
+void calc_one(struct plist *pl, FILE *f, int reverse)
 {
-	if (pos == -1) return pos;
-	if (pl[pos].prev == -1)
-		return pl[pos].parent;
-	pos = pl[pos].prev;
-	while (pl[pos].open &&
-	       pl[pos].last >= 0)
-		pos = pl[pos].last;
-	return pos;
-}
+	struct stream s1, s2;
+	struct stream s = load_segment(f, pl->start, pl->end);
+	struct stream sf = load_file(pl->file);
+	if (reverse)
+		pl->chunks = split_patch(s, &s2, &s1);
+	else
+		pl->chunks = split_patch(s, &s1, &s2);
 
-int get_next(int pos, struct plist *pl, int n)
-{
-	if (pos == -1) return pos;
-	if (pl[pos].open) {
-		if (pos +1 < n)
-			return pos+1;
-		else
-			return -1;
+	if (sf.body == NULL) {
+		pl->wiggles = pl->conflicts = -1;
+	} else {
+		struct file ff, fp1, fp2;
+		struct csl *csl1, *csl2;
+		struct ci ci;
+		ff = split_stream(sf, ByWord, 0);
+		fp1 = split_stream(s1, ByWord, 0);
+		fp2 = split_stream(s2, ByWord, 0);
+		csl1 = pdiff(ff, fp1, pl->chunks);
+		csl2 = diff(fp1,fp2);
+		ci = make_merger(ff, fp1, fp2, csl1, csl2, 0, 1);
+		pl->wiggles = ci.wiggles;
+		pl->conflicts = ci.conflicts;
+		free(csl1);
+		free(csl2);
+		free(ff.list);
+		free(fp1.list);
+		free(fp2.list);
 	}
-	while (pos >= 0 && pl[pos].next == -1)
-		pos = pl[pos].parent;
-	if (pos >= 0)
-		pos = pl[pos].next;
+
+	free(s1.body);
+	free(s2.body);
+	free(s.body);
+	pl->calced = 1;
+}
+
+int get_prev(int pos, struct plist *pl, int n, int mode)
+{
+	int found = 0;
+	if (pos == -1) return pos;
+	do {
+		if (pl[pos].prev == -1)
+			return pl[pos].parent;
+		pos = pl[pos].prev;
+		while (pl[pos].open &&
+		       pl[pos].last >= 0)
+			pos = pl[pos].last;
+		if (pl[pos].last >= 0)
+			/* always see directories */
+			found = 1;
+		else if (mode == 0)
+			found = 1;
+		else if (mode <= 1 && pl[pos].wiggles > 0)
+			found = 1;
+		else if (mode <= 2 && pl[pos].conflicts > 0)
+			found = 1;
+	} while (pos >= 0 && !found);
 	return pos;
 }
+
+int get_next(int pos, struct plist *pl, int n, int mode,
+	     FILE *f, int reverse)
+{
+	int found = 0;
+	if (pos == -1) return pos;
+	do {
+		if (pl[pos].open) {
+			if (pos +1 < n)
+				pos =  pos+1;
+			else
+				return -1;
+		} else {
+			while (pos >= 0 && pl[pos].next == -1)
+				pos = pl[pos].parent;
+			if (pos >= 0)
+				pos = pl[pos].next;
+		}
+		if (pl[pos].calced == 0 && pl[pos].end)
+			calc_one(pl+pos, f, reverse);
+		if (pl[pos].last >= 0)
+			/* always see directories */
+			found = 1;
+		else if (mode == 0)
+			found = 1;
+		else if (mode <= 1 && pl[pos].wiggles > 0)
+			found = 1;
+		else if (mode <= 2 && pl[pos].conflicts > 0)
+			found = 1;
+	} while (pos >= 0 && !found);
+	return pos;
+}
+
 
 void draw_one(int row, struct plist *pl, FILE *f, int reverse)
 {
@@ -1884,42 +1949,9 @@ void draw_one(int row, struct plist *pl, FILE *f, int reverse)
 		clrtoeol();
 		return;
 	}
-	if (pl->calced == 0 && pl->end) {
+	if (pl->calced == 0 && pl->end)
 		/* better load the patch and count the chunks */
-		struct stream s1, s2;
-		struct stream s = load_segment(f, pl->start, pl->end);
-		struct stream sf = load_file(pl->file);
-		if (reverse)
-			pl->chunks = split_patch(s, &s2, &s1);
-		else
-			pl->chunks = split_patch(s, &s1, &s2);
-
-		if (sf.body == NULL) {
-			pl->wiggles = pl->conflicts = -1;
-		} else {
-			struct file ff, fp1, fp2;
-			struct csl *csl1, *csl2;
-			struct ci ci;
-			ff = split_stream(sf, ByWord, 0);
-			fp1 = split_stream(s1, ByWord, 0);
-			fp2 = split_stream(s2, ByWord, 0);
-			csl1 = pdiff(ff, fp1, pl->chunks);
-			csl2 = diff(fp1,fp2);
-			ci = make_merger(ff, fp1, fp2, csl1, csl2, 0, 1);
-			pl->wiggles = ci.wiggles;
-			pl->conflicts = ci.conflicts;
-			free(csl1);
-			free(csl2);
-			free(ff.list);
-			free(fp1.list);
-			free(fp2.list);
-		}
-
-		free(s1.body);
-		free(s2.body);
-		free(s.body);
-		pl->calced = 1;
-	}
+		calc_one(pl, f, reverse);
 	if (pl->end == 0) {
 		strcpy(hdr, "         ");
 	} else {
@@ -1969,6 +2001,10 @@ char *main_help[] = {
 	"  q          Quit program",
 	"  n,j,DOWN   Go to next line",
 	"  p,k,UP     Go to previous line",
+	"",
+	"  A          list All files",
+	"  W          only list files with a wiggle or a conflict",
+	"  C          only list files with a conflict",
 	NULL
 };
 void main_window(struct plist *pl, int n, FILE *f, int reverse)
@@ -2000,6 +2036,9 @@ void main_window(struct plist *pl, int n, FILE *f, int reverse)
 	 *  down: j, n, control-n, downarrow
 	 *      Move to next open object
 	 *
+	 *  A W C: select All Wiggles or Conflicts
+	 *         mode
+	 *
 	 */
 	int pos=0; /* position in file */
 	int row=1; /* position on screen */
@@ -2008,6 +2047,7 @@ void main_window(struct plist *pl, int n, FILE *f, int reverse)
 	int tpos, i;
 	int refresh = 2;
 	int c=0;
+	int mode = 0; /* 0=all, 1= only wiggled, 2=only conflicted */
 
 	while(1) {
 		if (refresh == 2) {
@@ -2029,7 +2069,7 @@ void main_window(struct plist *pl, int n, FILE *f, int reverse)
 				row = rows-1;
 			tpos = pos;
 			for (i=row; i>1; i--) {
-				tpos = get_prev(tpos, pl, n);
+				tpos = get_prev(tpos, pl, n, mode);
 				if (tpos == -1) {
 					row = row - i + 1;
 					break;
@@ -2039,11 +2079,11 @@ void main_window(struct plist *pl, int n, FILE *f, int reverse)
 			tpos = pos;
 			for (i=row; i>=1; i--) {
 				draw_one(i, &pl[tpos], f, reverse);
-				tpos = get_prev(tpos, pl, n);
+				tpos = get_prev(tpos, pl, n, mode);
 			}
 			tpos = pos;
 			for (i=row+1; i<rows; i++) {
-				tpos = get_next(tpos, pl, n);
+				tpos = get_next(tpos, pl, n, mode, f, reverse);
 				if (tpos >= 0)
 					draw_one(i, &pl[tpos], f, reverse);
 				else
@@ -2059,7 +2099,7 @@ void main_window(struct plist *pl, int n, FILE *f, int reverse)
 		case 'N':
 		case 'N'-64:
 		case KEY_DOWN:
-			tpos = get_next(pos, pl, n);
+			tpos = get_next(pos, pl, n, mode, f, reverse);
 			if (tpos >= 0) {
 				pos = tpos;
 				row++;
@@ -2070,7 +2110,7 @@ void main_window(struct plist *pl, int n, FILE *f, int reverse)
 		case 'P':
 		case 'P'-64:
 		case KEY_UP:
-			tpos = get_prev(pos, pl, n);
+			tpos = get_prev(pos, pl, n, mode);
 			if (tpos >= 0) {
 				pos = tpos;
 				row--;
@@ -2096,6 +2136,10 @@ void main_window(struct plist *pl, int n, FILE *f, int reverse)
 			break;
 		case 'q':
 			return;
+
+		case 'A': mode = 0; refresh = 1; break;
+		case 'W': mode = 1; refresh = 1; break;
+		case 'C': mode = 2; refresh = 1; break;
 
 		case '?':
 			help_window(main_help, NULL);
