@@ -72,6 +72,166 @@ static struct stream load_segment(FILE *f,
 /* global attributes */
 int a_delete, a_added, a_common, a_sep, a_void, a_unmatched, a_extra, a_already;
 
+/******************************************************************
+ * Help window
+ * We display help in an insert, leaving 5 columns left and right,
+ * and 2 rows top and bottom, but at most 58x15 plus border
+ * In help mode:
+ *   SPC or RTN move down or to next page
+ *   BKSPC goes backwards
+ *   'q' returns to origin screen
+ *   '?' show help on help
+ *   left and right scroll help view
+ *
+ * A help text is an array of lines of text
+ */
+
+char *help_help[] = {
+	"   You are viewing the help page for the help viewer.",
+	"You normally get here by typing '?'",
+	"",
+	"The following keystokes work in help the help viewer:",
+	"  ?     display this help message",
+	"  q     return to previous view",
+	"  SPC   move forward through help document",
+	"  RTN   same as SPC",
+	"  BKSP  move backward through help document",
+	"  RIGHT scroll help window so text on the right appears",
+	"  LEFT  scroll help window so text on the left appears",
+	NULL
+};
+
+void help_window(char *page1[], char *page2[])
+{
+	int rows, cols;
+	int top, left;
+	int r,c;
+	int ch;
+	char **page = page1;
+	int line = 0;
+	int shift = 0;
+
+	getmaxyx(stdscr, rows, cols);
+
+	if (cols < 70) {
+		left = 6;
+		cols = cols-12;
+	} else {
+		left = (cols-58)/2 - 1;
+		cols = 58;
+	}
+
+	if (rows < 21) {
+		top = 3;
+		rows = rows - 6;
+	} else {
+		top = (rows-15)/2 -1;
+		rows = 15;
+	}
+	
+	(void)attrset(A_STANDOUT);
+	for (c = left; c < left+cols; c++) {
+		mvaddch(top-1, c, '-');
+		mvaddch(top+rows, c, '-');
+	}
+	for (r = top; r < top + rows ; r++) {
+		mvaddch(r, left-1, '|');
+		mvaddch(r, left+cols, '|');
+	}
+	mvaddch(top-1,left-1,'/');
+	mvaddch(top-1,left+cols, '\\');
+	mvaddch(top+rows, left-1, '\\');
+	mvaddch(top+rows, left+cols, '/');
+	mvaddstr(top-1, left + cols/2 - 2, "HELP");
+	mvaddstr(top+rows, left+cols/2 - 16, "Press SPACE for more, ? for help");
+	(void)attrset(A_NORMAL);
+	
+	while(1) {
+		char **lnp = page + line;
+		for (r=0; r < rows; r++) {
+			char *ln = *lnp;
+			int sh = shift;
+			if (ln)
+				lnp++;
+			else
+				ln = "";
+
+			while (*ln && sh > 0) {
+				ln++;
+				sh--;
+			}
+			for (c=0; c<cols; c++) {
+				int chr = *ln;
+				if (chr)
+					ln++;
+				else
+					chr = ' ';
+				mvaddch(top+r, left+c, chr);
+			}
+		}
+		move(top+rows-1,left);
+		ch = getch();
+
+		switch(ch) {
+		case 'q':
+			return;
+		case '?':
+			if (page1 != help_help)
+				help_window(help_help, NULL);
+			break;
+		case ' ':
+		case '\r':
+			for (r=0; r < rows-2; r++)
+				if (page[line])
+					line++;
+			if (!page[line]) {
+				line = 0;
+				if (page == page1)
+					page = page2;
+				else
+					page = NULL;
+				if (page == NULL)
+					return;
+			}
+			break;
+
+		case '\b':
+			if (line > 0) {
+				line -= (rows-2);
+				if (line < 0)
+					line = 0;
+			} else {
+				if (page == page2)
+					page = page1;
+				else
+					page = page2;
+				if (page == NULL)
+					page = page1;
+				line = 0;
+			}
+			break;
+
+		case KEY_LEFT:
+			if (shift > 0)
+				shift--;
+			break;
+		case KEY_RIGHT:
+			shift++;
+			break;
+
+		case KEY_UP:
+			if (line > 0)
+				line--;
+			break;
+		case KEY_DOWN:
+			if (page[line])
+				line++;
+			break;
+		}
+	}
+}
+
+
 char *typenames[] = {
 	[End] = "End",
 	[Unmatched] = "Unmatched",
@@ -693,6 +853,136 @@ void draw_mline(int mode, int row, int start, int cols,
 
 extern void cleanlist(struct file a, struct file b, struct csl *list);
 
+char *merge_help[] = {
+	"This view shows a the merge of the patch with the",
+	"original file.  It is like a full-context diff showing",
+	"removed lines with a '-' prefix and added lines with a",
+	"'+' prefix.",
+	"In cases where a patch chunk could not be successfully",
+	"applied, the original text is prefixed with a '|', and",
+	"the text that the patch wanted to add is prefixed with",
+	"a '+'.",
+	"When the cursor is over such a conflict, or over a chunk",
+	"which required wiggling to apply (i.e. there was unmatched",
+	"text in the original, or extraneous unchanged text in",
+	"the patch), the terminal is split and the bottom pane is",
+	"use to display the part of the patch that applied to",
+	"this section of the original.  This allows you to confirm",
+	"that a wiggled patch applied correctly, and to see",
+	"why there was a conflict",
+	NULL
+};
+char *diff_help[] = {
+	"This is the 'diff' or 'patch' view.  It shows",
+	"only the patch that is being applied without the",
+	"original to which it is being applied.",
+	"Underlined text indicates parts of the patch which",
+	"resulted in a conflict when applied to the",
+	"original.",
+	NULL
+};
+char *orig_help[] = {
+	"This is the 'original' view which simple shows",
+	"the original file before applying the patch.",
+	"Sections of code that would be changed by the patch",
+	"are highlighted in red.",
+	NULL
+};
+char *result_help[] = {
+	"This is the 'result' view which show just the",
+	"result of applying the patch.  When a conflict",
+	"occurred this view does not show the full conflict",
+	"but only the 'after' part of the patch.  To see",
+	"the full conflict, use the 'merge' or 'sidebyside'",
+	"views.",
+	NULL
+};
+char *before_help[] = {
+	"This view shows the 'before' section of a patch.",
+	"It allows the expected match text to be seen uncluttered",
+	"by text that is meant to replaced it."
+	"Text with a red background is text that will be",
+	"removed by the patch",
+	NULL
+};
+char *after_help[] = {
+	"This view shows the 'after' section of a patch.",
+	"It allows the intended result to be seen uncluttered",
+	"by text that was meant to be matched and replaced."
+	"Text with a blue background is text that was added",
+	"by the patch - it was not present in the 'before'",
+	"part of the patch",
+	NULL
+};
+char *sidebyside_help[] = {
+	"This is the Side By Side view of a patched file.",
+	"The left side shows the original and the result.",
+	"The right side shows the patch which was applied",
+	"and lines up with the original/result as much as",
+	"possible.",
+	"",
+	"Where one side has no line which matches the",
+	"other side it is displayed as a solid colour in the",
+	"yellow family (depending on your terminal window).",
+	NULL
+};
+char *merge_window_help[] = {
+	"  Highlight Colours and Keystroke commands",
+	"",
+	"In all different views of a merge, highlight colours",
+	"are used to show which parts of line were added,",
+	"removed, already changed, unchanged or in conflict.",
+	"Colours are their use are:",
+	" normal              unchanged text",
+	" red background      text that was removed or changed",
+	" blue background     text that was added or result",
+	"                     of a change",
+	" yellow background   used in side-by-side of a line",
+	"                     which has no match on the other",
+	"                     side",
+	" blue foreground     text in the original which did not",
+	"                     match anything in the patch",
+	" cyan foreground     text in the patch which did not",
+	"                     match anything in the original",
+	" cyan background     already changed text: the result",
+	"                     of the patch matches the original",
+	" underline           remove or added text can also be",
+	"                     underlined indicating that it",
+	"                     was involved in a conflict",
+	""
+	"While viewing a merge various keystroke command can",
+	"be used to move around and change the view.  Basic",
+	"movement commands from both 'vi' and 'emacs' are",
+	"available:",
+	"",
+	" p control-p k UP    Move to previous line",
+	" n control-n j DOWN  Move to next line",
+	" l LEFT              Move one char to right",
+	" h RIGHT             Move one char to left",
+	" / control-s         Enter incremental search mode",
+	" control-r           Enter reverse-search mode",
+	" control-g           Search again",
+	" ?                   Display help message",
+	" ESC-<  0-G          Go to start of file",
+	" ESC->  G            Go to end of file",
+	" q                   Return to list of files",
+	" control-L           recenter current line",
+	" control-V           page down",
+	" ESC-v	              page up",
+	" N                   go to next patch chunk",
+	" P                   go to previous patch chunk",
+	" ^ control-A         go to start of line",
+	" $ control-E         go to end of line",
+	"",
+	" a                   display 'after' view",
+	" b                   display 'before' view",
+	" o                   display 'original' view",
+	" r                   display 'result' view",
+	" d                   display 'diff' or 'patch' view",
+	" m                   display 'merge' view",
+	" |                   display side-by-side view",
+	NULL
+};
 void merge_window(struct plist *p, FILE *f, int reverse)
 {
 	/* display the merge in two side-by-side
@@ -736,8 +1026,9 @@ void merge_window(struct plist *p, FILE *f, int reverse)
 	int splitrow = -1;
 	int lastrow = 0;
 	int i, c;
-	int mode = ORIG|RESULT | BEFORE|AFTER;
-	char *modename = "sidebyside";
+	int mode = ORIG|RESULT;
+	char *modename = "merge";
+	char **modehelp = merge_help;
 
 	int row,start = 0;
 	int trow;
@@ -1184,32 +1475,32 @@ void merge_window(struct plist *p, FILE *f, int reverse)
 			break;
 
 		case 'a': /* 'after' view in patch window */
-			mode = AFTER; modename = "after";
+			mode = AFTER; modename = "after"; modehelp = after_help;
 			refresh = 2;
 			break;
 		case 'b': /* 'before' view in patch window */
-			mode = BEFORE; modename = "before";
+			mode = BEFORE; modename = "before"; modehelp = before_help;
 			refresh = 2;
 			break;
 		case 'o': /* 'original' view in the merge window */
-			mode = ORIG; modename = "original";
+			mode = ORIG; modename = "original"; modehelp = orig_help;
 			refresh = 2;
 			break;
 		case 'r': /* the 'result' view in the merge window */
-			mode = RESULT; modename = "result";
+			mode = RESULT; modename = "result"; modehelp = result_help;
 			refresh = 2;
 			break;
 		case 'd':
-			mode = BEFORE|AFTER; modename = "diff";
+			mode = BEFORE|AFTER; modename = "diff"; modehelp = diff_help;
 			refresh = 2;
 			break;
 		case 'm':
-			mode = ORIG|RESULT; modename = "merge";
+			mode = ORIG|RESULT; modename = "merge"; modehelp = merge_help;
 			refresh = 2;
 			break;
 
 		case '|':
-			mode = ORIG|RESULT|BEFORE|AFTER; modename = "sidebyside";
+			mode = ORIG|RESULT|BEFORE|AFTER; modename = "sidebyside"; modehelp = sidebyside_help;
 			refresh = 1;
 			break;
 
@@ -1233,6 +1524,15 @@ void merge_window(struct plist *p, FILE *f, int reverse)
 			next_melmnt(&tvpos.p, fm,fb,fa,ci.merger);
 			if (ci.merger[tvpos.p.m].type != End)
 				vpos = tvpos;
+			break;
+
+		case '?':
+			help_window(modehelp, merge_window_help);
+			refresh = 2;
+			break;
+
+		case KEY_RESIZE:
+			refresh = 2;
 			break;
 		}
 
@@ -1644,6 +1944,33 @@ void draw_one(int row, struct plist *pl, FILE *f, int reverse)
 	clrtoeol();
 }
 
+char *main_help[] = {
+	"   You are using the \"browse\" mode of wiggle.",
+	"This page shows a list of files in a patch together with",
+	"the directories that contain them.",
+	"A directory is indicated by a '+' if the contents are",
+	"listed or a '-' if the contents are hidden.  A file is",
+	"indicated by an '='.  Typing <space> or <return> will",
+	"expose or hide a directory, and will visit a file.",
+	"",
+	"The three columns of numbers are:",
+	"  Ch   The number of patch chunks which applied to",
+	"       this file",
+	"  Wi   The number of chunks that needed to be wiggled",
+	"       in to place",
+	"  Co   The number of chunks that created an unresolvable",
+	"       conflict",
+	""
+	"Keystrokes recognised in this page are:",
+	"  ?          Display this help",
+	"  SPC        On a directory, toggle hiding of contents",
+	"             On file, visit the file",
+	"  RTN        Same as SPC",
+	"  q          Quit program",
+	"  n,j,DOWN   Go to next line",
+	"  p,k,UP     Go to previous line",
+	NULL
+};
 void main_window(struct plist *pl, int n, FILE *f, int reverse)
 {
 	/* The main window lists all files together with summary information:
@@ -1769,6 +2096,11 @@ void main_window(struct plist *pl, int n, FILE *f, int reverse)
 			break;
 		case 'q':
 			return;
+
+		case '?':
+			help_window(main_help, NULL);
+			refresh = 2;
+			break;
 
 		case KEY_RESIZE:
 			refresh = 2;
