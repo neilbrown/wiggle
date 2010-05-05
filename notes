@@ -99,3 +99,36 @@ return a lcsl when reading a patch and refine that
 rather than computing from scratch.
 
 FIXME: pdiff should pick best bit, and rediff the two sides. DONE
+
+---------------------------------
+Thoughts about editing a merge.
+
+When viewing a merge we might decide that:
+
+ - a change is not wanted
+ - a conflict should be resolved for the original
+ - a conflict should be resolved for the new
+
+ - some text needs to be edited in place
+ - a change should be applied against a different place in the original
+
+ - These can apply to a single change, to a line, or to
+   a chunk
+
+We can achieve most of these by changing the merge result,
+e.g. Changed to Unchanged or Conflict to one of the above.
+
+Moving a chunk will require shuffling the merger array.
+
+Replacing text is probably best done with a special merge type??
+
+Selecting the region to act on is awkward.  Need to track 'current'
+merge point for cursor.  Maybe insert  $$ at other end??
+
+How about:
+ press E
+ current change is surrounded with '$'
+ cursor movement can extend the range
+ K to keep original
+ C to change
+ R to retype
