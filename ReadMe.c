@@ -152,6 +152,6 @@ char HelpBrowse[] = "\n"
 "\n"
 "The 'browse' function provides an interactive mode for browsing a\n"
 "set of patches.  It allows the application of a patch to each file \n"
-"to be inspected and allows limited editting to correct mis-application\n"
+"to be inspected and allows limited editing to correct mis-application\n"
 "of patches where wiggling was required, and where conflicts occurred.\n"
 "\n";
