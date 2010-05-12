@@ -44,9 +44,7 @@ version : ReadMe.c wiggle.1
 dist : test clean version
 	mkdir -p DIST
 	rm -f DIST/wiggle-`cat version`
-	ln -s .. DIST/wiggle-`cat version`
-	tar czvf DIST/wiggle-`cat version`.tar.gz -h -C DIST --exclude RCS --exclude DIST wiggle-`cat version`
-	rm -f DIST/wiggle-`cat version`
+	git archive --prefix wiggle-`cat version`/  v`cat version` | gzip -9 > DIST/wiggle-`cat version`.tar.gz
 
 v : version
 	cat version
