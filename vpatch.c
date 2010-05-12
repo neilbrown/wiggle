@@ -47,6 +47,8 @@
 #include <signal.h>
 #include <fcntl.h>
 
+static void term_init();
+
 #define assert(x) do { if (!(x)) abort(); } while (0)
 
 
@@ -65,6 +67,8 @@ struct plist {
 	int open;
 	int chunks, wiggles, conflicts;
 	int calced;
+	int is_merge;
+	char *before, *after;
 };
 static struct stream load_segment(FILE *f,
 				  unsigned int start, unsigned int end);
@@ -1050,21 +1054,42 @@ void merge_window(struct plist *p, FILE *f, int reverse)
 		int row, col, searchlen;
 	} *anchor = NULL;
 
-	sp = load_segment(f, p->start, p->end);
-	if (reverse)
-		ch = split_patch(sp, &sa, &sb);
-	else
-		ch = split_patch(sp, &sb, &sa);
+	if (f == NULL) {
+		/* three separate files */
+		sm = load_file(p->file);
+		sb = load_file(p->before);
+		sa = load_file(p->after);
+		ch = 0;
+	} else {
+		sp = load_segment(f, p->start, p->end);
+		if (p->is_merge) {
+			if (reverse)
+				split_merge(sp, &sm, &sa, &sb);
+			else
+				split_merge(sp, &sm, &sb, &sa);
+			ch = 0;
+		} else {
+			if (reverse)
+				ch = split_patch(sp, &sa, &sb);
+			else
+				ch = split_patch(sp, &sb, &sa);
 
-	sm = load_file(p->file);
+			sm = load_file(p->file);
+		}
+	}
 	fm = split_stream(sm, ByWord, 0);
 	fb = split_stream(sb, ByWord, 0);
 	fa = split_stream(sa, ByWord, 0);
 
-	csl1 = pdiff(fm, fb, ch);
+	if (ch)
+		csl1 = pdiff(fm, fb, ch);
+	else
+		csl1 = diff(fm, fb);
 	csl2 = diff(fb, fa);
 
 	ci = make_merger(fm, fb, fa, csl1, csl2, 0, 1);
+
+	term_init();
 
 	row = 1;
 	pos.p.m = 0; /* merge node */
@@ -1501,7 +1526,7 @@ void merge_window(struct plist *p, FILE *f, int reverse)
 
 		case '|':
 			mode = ORIG|RESULT|BEFORE|AFTER; modename = "sidebyside"; modehelp = sidebyside_help;
-			refresh = 1;
+			refresh = 2;
 			break;
 
 		case 'H':
@@ -1560,6 +1585,26 @@ void merge_window(struct plist *p, FILE *f, int reverse)
 	}
 }
 
+void show_merge(char *origname, FILE *patch, int reverse, int is_merge,
+		char *before, char *after)
+{
+	struct plist p;
+
+	p.file = origname;
+	if (patch) {
+		p.start = 0;
+		fseek(patch, 0, SEEK_END);
+		p.end = ftell(patch);
+		fseek(patch, 0, SEEK_SET);
+	}
+	p.calced = 0;
+	p.is_merge = is_merge;
+	p.before = before;
+	p.after = after;
+
+	merge_window(&p, patch, reverse);
+}
+
 struct plist *patch_add_file(struct plist *pl, int *np, char *file,
 	       unsigned int start, unsigned int end)
 {
@@ -1598,6 +1643,7 @@ struct plist *patch_add_file(struct plist *pl, int *np, char *file,
 	pl[n].chunks = pl[n].wiggles = 0; pl[n].conflicts = 100;
 	pl[n].open = 1;
 	pl[n].calced = 0;
+	pl[n].is_merge = 0;
 	*np = n+1;
 	return pl;
 }
@@ -1611,6 +1657,7 @@ struct plist *parse_patch(FILE *f, FILE *of, int *np)
 	 */
 	struct plist *plist = NULL;
 
+	*np = 0;
 	while (!feof(f)) {
 		/* first, find the start of a patch: "\n+++ "
 		 * grab the file name and scan to the end of a line
@@ -1849,12 +1896,20 @@ void calc_one(struct plist *pl, FILE *f, int reverse)
 {
 	struct stream s1, s2;
 	struct stream s = load_segment(f, pl->start, pl->end);
-	struct stream sf = load_file(pl->file);
-	if (reverse)
-		pl->chunks = split_patch(s, &s2, &s1);
-	else
-		pl->chunks = split_patch(s, &s1, &s2);
-
+	struct stream sf;
+	if (pl->is_merge) {
+		if (reverse)
+			split_merge(s, &sf, &s2, &s1);
+		else
+			split_merge(s, &sf, &s1, &s2);
+		pl->chunks = 0;
+	} else {
+		sf = load_file(pl->file);
+		if (reverse)
+			pl->chunks = split_patch(s, &s2, &s1);
+		else
+			pl->chunks = split_patch(s, &s1, &s2);
+	}
 	if (sf.body == NULL) {
 		pl->wiggles = pl->conflicts = -1;
 	} else {
@@ -1864,7 +1919,10 @@ void calc_one(struct plist *pl, FILE *f, int reverse)
 		ff = split_stream(sf, ByWord, 0);
 		fp1 = split_stream(s1, ByWord, 0);
 		fp2 = split_stream(s2, ByWord, 0);
-		csl1 = pdiff(ff, fp1, pl->chunks);
+		if (pl->chunks)
+			csl1 = pdiff(ff, fp1, pl->chunks);
+		else
+			csl1 = diff(ff, fp1);
 		csl2 = diff(fp1,fp2);
 		ci = make_merger(ff, fp1, fp2, csl1, csl2, 0, 1);
 		pl->wiggles = ci.wiggles;
@@ -1879,6 +1937,7 @@ void calc_one(struct plist *pl, FILE *f, int reverse)
 	free(s1.body);
 	free(s2.body);
 	free(s.body);
+	free(sf.body);
 	pl->calced = 1;
 }
 
@@ -2049,6 +2108,9 @@ void main_window(struct plist *pl, int n, FILE *f, int reverse)
 	int c=0;
 	int mode = 0; /* 0=all, 1= only wiggled, 2=only conflicted */
 
+	term_init();
+	pl = sort_patches(pl, &n);
+
 	while(1) {
 		if (refresh == 2) {
 			clear(); (void)attrset(0);
@@ -2166,46 +2228,14 @@ void catch(int sig)
 	exit(2);
 }
 
-int vpatch(int argc, char *argv[], int strip, int reverse, int replace)
+static void term_init()
 {
-	/* NOTE argv[0] is first arg... */
-	int n = 0;
-	FILE *f = NULL;
-	FILE *in = stdin;
-	struct plist *pl;
 
-	if (argc >=1) {
-		in = fopen(argv[0], "r");
-		if (!in) {
-			printf("No %s\n", argv[0]);
-			exit(1);
-		}
-	} else {
-		in = stdin;
-	}
-	if (lseek(fileno(in),0L, 1) == -1) {
-		f = tmpfile();
-		if (!f) {
-			fprintf(stderr, "Cannot create a temp file\n");
-			exit(1);
-		}
-	}
+	static int init_done = 0;
 
-	pl = parse_patch(in, f, &n);
-
-	if (set_prefix(pl, n, strip) == 0) {
-		fprintf(stderr, "%s: aborting\n", Cmd);
-		exit(2);
-	}
-	pl = sort_patches(pl, &n);
-
-	if (f) {
-		if (fileno(in) == 0) {
-			dup2(2,0);
-		} else
-			fclose(in);
-		in = f;
-	}
+	if (init_done)
+		return;
+	init_done = 1;
 
 	signal(SIGINT, catch);
 	signal(SIGQUIT, catch);
@@ -2242,10 +2272,89 @@ int vpatch(int argc, char *argv[], int strip, int reverse, int replace)
 	}
 	nonl(); intrflush(stdscr, FALSE); keypad(stdscr, TRUE);
 	mousemask(ALL_MOUSE_EVENTS, NULL);
+}
 
-	main_window(pl, n, in, reverse);
+int vpatch(int argc, char *argv[], int patch, int strip,
+	   int reverse, int replace)
+{
+	/* NOTE argv[0] is first arg...
+	 * Behaviour depends on number of args:
+	 * 0: A multi-file patch is read from stdin
+	 * 1: if 'patch', parse it as a multi-file patch and allow
+	 *    the files to be browsed.
+	 *    if filename ends '.rej', then treat it as a patch again
+	 *    a file with the same basename
+	 *    Else treat the file as a merge (with conflicts) and view it.
+	 * 2: First file is original, second is patch
+	 * 3: Files are: original previous new.  The diff between 'previous' and
+	 *    'new' needs to be applied to 'original'.
+	 *
+	 * If a multi-file patch is being read, 'strip' tells how many
+	 * path components to stripe.  If it is -1, we guess based on
+	 * existing files.
+	 * If 'reverse' is given, when we invert any patch or diff
+	 * If 'replace' then we save the resulting merge.
+	 */
+	FILE *in;
+	FILE *f;
+	struct plist *pl;
+	int num_patches;
+
+	switch (argc) {
+	default:
+		fprintf(stderr, "wiggle: too many file names given.\n");
+		exit(1);
+
+	case 0: /* stdin is a patch */
+		if (lseek(fileno(stdin), 0L, 1) == -1) {
+			/* cannot seek, so need to copy to a temp file */
+			f = tmpfile();
+			if (!f) {
+				fprintf(stderr, "wiggle: Cannot create temp file\n");
+				exit(1);
+			}
+			pl = parse_patch(stdin, f, &num_patches);
+			in = f;
+		} else {
+			pl = parse_patch(stdin, NULL, &num_patches);
+			in = fdopen(dup(0), "r");
+		}
+		/* use stderr for keyboard input */
+		dup2(2,0);
+		main_window(pl, num_patches, in, reverse);
+		break;
+
+	case 1: /* a patch, a .rej, or a merge file */
+		f = fopen(argv[0], "r");
+		if (!f) {
+			fprintf(stderr, "wiggle: cannot open %s\n", argv[0]);
+			exit(1);
+		}
+		if (patch) {
+			pl = parse_patch(f, NULL, &num_patches);
+			main_window(pl, num_patches, f, reverse);
+		} else if (strlen(argv[0]) > 4 &&
+			 strcmp(argv[0]+strlen(argv[0])-4, ".rej") == 0) {
+			char *origname = strdup(argv[0]);
+			origname[strlen(origname) - 4] = '\0';
+			show_merge(origname, f, reverse, 0, NULL, NULL);
+		} else
+			show_merge(argv[0], f, reverse, 1, NULL, NULL);
+
+		break;
+	case 2: /* an orig and a diff/.ref */
+		f = fopen(argv[1], "r");
+		if (!f) {
+			fprintf(stderr, "wiggle: cannot open %s\n", argv[0]);
+			exit(1);
+		}
+		show_merge(argv[0], f, reverse, 0, NULL, NULL);
+		break;
+	case 3: /* orig, before, after */
+		show_merge(argv[0], NULL, reverse, 1, argv[1], argv[2]);
+		break;
+	}
 
 	nocbreak();nl();endwin();
-	return 0;
 	exit(0);
 }

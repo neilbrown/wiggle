@@ -32,7 +32,7 @@
 char Version[] = "wiggle - v0.8 - 24 March 2010\n";
 
 char short_options1[]="xdmwlrhi123pVRvqB"; /* not mode B */
-char short_options2[]="xdmwlrhi123p:VRvqB"; /* mode B */
+char short_options2[]="xdmwlrhi123p::VRvqB"; /* mode B */
 
 
 struct option long_options[] = {
@@ -148,10 +148,19 @@ char HelpMerge[] = "\n"
 "\n";
 
 char HelpBrowse[] = "\n"
-"wiggle --browse [-R] [--strip=n] multi-file-patch\n"
+"wiggle --browse [-R] [--strip=n] [-p] [files]\n"
 "\n"
 "The 'browse' function provides an interactive mode for browsing a\n"
-"set of patches.  It allows the application of a patch to each file \n"
-"to be inspected and allows limited editing to correct mis-application\n"
-"of patches where wiggling was required, and where conflicts occurred.\n"
+"patch or set of patches.  It allows the application of a patch to each\n"
+"file to be inspected and will eventually allow limited editing to correct\n"
+"mis-application of patches where wiggling was required, and where conflicts\n"
+"occurred.\n"
+"If no files are given, a patch file is read from stdin\n"
+"If one file is given with -p, it is treated as a patch file\n"
+"If one file is given with a name ending .rej, it is treated as a reject for\n"
+"     a file with matching basename\n"
+"Otherwise a single file is assumed to be a merge output with conflicts.\n"
+"If two files are given, the second is a patch to apply to the first.\n"
+"If three files are given then the difference between 2nd and 3rd is applied\n"
+"     to the first\n"
 "\n";

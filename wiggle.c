@@ -237,14 +237,10 @@ int main(int argc, char *argv[])
 			fprintf(stderr, "wiggle: can only select one of -1, -2, -3\n");
 			exit(2);
 
-		case 'p':
-			if (mode == 'B')
-				strip = atol(optarg?optarg:"0");
-			else if (optarg) {
-				fprintf(stderr, "wiggle: SORRY, PARSE ERROR\n");
-				exit(2);
-			} else
-				ispatch = 1;
+		case 'p': /* 'patch' or 'strip' */
+			if (optarg)
+				strip = atol(optarg);
+			ispatch = 1;
 			continue;
 
 		case 'v': verbose++; continue;
@@ -254,7 +250,7 @@ int main(int argc, char *argv[])
 		mode = 'm';
 
 	if (mode == 'B') {
-		vpatch(argc-optind, argv+optind, strip, reverse, replace);
+		vpatch(argc-optind, argv+optind, ispatch, strip, reverse, replace);
 		/* should not return */
 		exit(1);
 	}
