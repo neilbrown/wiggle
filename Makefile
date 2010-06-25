@@ -22,7 +22,7 @@ wiggle.o load.o split.o extract.o diff.o bestmatch.o ReadMe.o merge.o \
                merge2.o vpatch.o : wiggle.h
 
 test: wiggle dotest
-	sh dotest
+	./dotest
 
 wiggle.man : wiggle.1
 	nroff -man wiggle.1 > wiggle.man
