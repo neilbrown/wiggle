@@ -59,7 +59,7 @@
 struct v {
 	int x,y;  /* location of start of match */
 	int val;  /* value of match from x,y to here */
-	int k;    /* diagonal of last match */
+	int k;    /* diagonal of last match - if val > 0 */
 	int inmatch; /* 1 if last point was a match */
 	int c; /* chunk number */
 };
@@ -112,7 +112,7 @@ static inline void update_value(struct v *v, int dir, int k, int x)
 		v->val += 2+v->inmatch;
 		v->inmatch = 1;
 		v->k = k;
-	} else {
+	} else if (v->val > 0) {
 		v->inmatch = 0;
 		if (dir * (v->k - k) > 0) {
 			/* other half of replacement */
@@ -121,6 +121,7 @@ static inline void update_value(struct v *v, int dir, int k, int x)
 		}
 	}
 }
+
 static inline int best_val(struct v *v, int max)
 {
 	if (v->val <= 0)
