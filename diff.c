@@ -42,7 +42,6 @@
 
 #include	<malloc.h>
 #include	"wiggle.h"
-#include	<string.h>
 #include	<stdlib.h>
 
 

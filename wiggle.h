@@ -22,8 +22,9 @@
  *    Email: <neilb@suse.de>
  */
 
-#include <stdio.h>
-#include <memory.h>
+#include	<stdio.h>
+#include	<string.h>
+#include	<memory.h>
 #include	<getopt.h>
 
 struct stream {

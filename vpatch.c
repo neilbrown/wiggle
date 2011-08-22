@@ -40,14 +40,13 @@
 
 #include "wiggle.h"
 #include <malloc.h>
-#include <string.h>
 #include <curses.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <signal.h>
 #include <fcntl.h>
 
-static void term_init();
+static void term_init(void);
 
 #define assert(x) do { if (!(x)) abort(); } while (0)
 
@@ -74,7 +73,8 @@ static struct stream load_segment(FILE *f,
 				  unsigned int start, unsigned int end);
 
 /* global attributes */
-int a_delete, a_added, a_common, a_sep, a_void, a_unmatched, a_extra, a_already;
+unsigned int a_delete, a_added, a_common, a_sep, a_void,
+	a_unmatched, a_extra, a_already;
 
 /******************************************************************
  * Help window
@@ -449,7 +449,8 @@ static struct elmnt prev_melmnt(struct mp *pos,
  */
 static int visible(int mode, enum mergetype type, int stream)
 {
-	if (mode == 0) return -1;
+	if (mode == 0)
+		return -1;
 	/* mode can be any combination of ORIG RESULT BEFORE AFTER */
 	switch(type) {
 	case End: /* The END is always visible */
@@ -643,7 +644,7 @@ static void prev_mline(struct mpos *pos, struct file fm, struct file fb,
 }
 
 /* blank a whole row of display */
-static void blank(int row, int start, int cols, int attr)
+static void blank(int row, int start, int cols, unsigned int attr)
 {
 	(void)attrset(attr);
 	move(row,start);
@@ -786,7 +787,10 @@ static void draw_mside(int mode, int row, int offset, int start, int cols,
 				mvaddstr(row, col-start+offset, b);
 				col += strlen(b);
 			}
-			blank(row, col-start+offset, start+cols-col, e.start?visible(mode, m[pos.p.m].type, pos.p.s):A_NORMAL );
+			blank(row, col-start+offset, start+cols-col,
+			      e.start
+			      ?(unsigned)visible(mode, m[pos.p.m].type, pos.p.s)
+			      :A_NORMAL );
 			return;
 		}
 		if (visible(mode, m[pos.p.m].type, pos.p.s) == -1) {
@@ -1048,14 +1052,15 @@ static void merge_window(struct plist *p, FILE *f, int reverse)
 	int meta = 0, tmeta;
 	int num= -1, tnum;
 	char search[80];
-	int searchlen = 0;
+	unsigned int searchlen = 0;
 	int search_notfound = 0;
 	int searchdir = 0;
 	struct search_anchor {
 		struct search_anchor *next;
 		struct mpos pos;
 		int notfound;
-		int row, col, searchlen;
+		int row, col;
+		unsigned int searchlen;
 	} *anchor = NULL;
 
 	if (f == NULL) {
@@ -1188,7 +1193,10 @@ static void merge_window(struct plist *p, FILE *f, int reverse)
 			mvaddstr(0, cols - strlen(lbuf) - 1, lbuf);
 		}
 		/* Always refresh the line */
-		while (start > target) { start -= 8; refresh = 1;}
+		while (start > target) {
+			start -= 8;
+			refresh = 1;
+		}
 		if (start < 0) start = 0;
 	retry:
 		draw_mline(mode, row, start, cols, fm,fb,fa,ci.merger,
@@ -1731,7 +1739,7 @@ static struct stream load_segment(FILE *f,
 	s.body = malloc(s.len);
 	if (s.body) {
 		fseek(f, start, 0);
-		if (fread(s.body, 1, s.len, f) != s.len) {
+		if (fread(s.body, 1, s.len, f) != (size_t)s.len) {
 			free(s.body);
 			s.body = NULL;
 		}
@@ -2229,7 +2237,7 @@ static void catch(int sig)
 	exit(2);
 }
 
-static void term_init()
+static void term_init(void)
 {
 
 	static int init_done = 0;

@@ -617,8 +617,7 @@ static int end_of_file(struct point p, struct csl *c1, struct csl *c2)
 }
 
 static int next_conflict(struct point here, struct csl *start_c1, struct csl *start_c2,
-			 struct point *start, struct point *end,
-			 struct file *a, struct file *b, struct file *c)
+			 struct point *start, struct point *end)
 {
 	/* We want to find the start and end of the 'next' conflict.
 	 * There may not be another conflict, in which case set start and
@@ -847,10 +846,10 @@ struct ci print_merge(FILE *out, struct file *a, struct file *b, struct file *c,
 	retreat(c1,c2, &start_last);
 
 	while (!end_of_file(end_last, c1, c2)) {
-		next_conflict(end_last, c1, c2, &start_next, &end_next, a, b, c);
+		next_conflict(end_last, c1, c2, &start_next, &end_next);
 		while (already_applied(c1,c2,start_next,end_next,a,b,c)) {
 			rv.ignored++;
-			next_conflict(end_next, c1,c2,&start_next,&end_next,a,b,c);
+			next_conflict(end_next, c1,c2,&start_next,&end_next);
 		}
 #if 0
 		printf("start %d %d (%d,%d)  end %d %d (%d,%d)\n",
