@@ -16,6 +16,12 @@ if [ -d tests ]
 then cd tests
 fi
 
+TIME="/usr/bin/time -o .time -f %U"
+if $TIME true > /dev/null 2>&1
+then :
+else TIME=
+fi
+
 status=0
 ok=0
 fail=0
@@ -34,42 +40,42 @@ do
     case $base in 
 	script ) ./script ;;
 	diff ) if [ -f new ]
-		then /usr/bin/time -o .time -f '%U' $WIGGLE -dw orig new | diff -u diff - ; xit=$?
-		else /usr/bin/time -o .time -f '%U' $WIGGLE -dwp1 orig patch | diff -u diff - ; xit=$?
+		then $TIME $WIGGLE -dw orig new | diff -u diff - ; xit=$?
+		else $TIME $WIGGLE -dwp1 orig patch | diff -u diff - ; xit=$?
 		fi
 		;;
 	ldiff ) if [ -f new ]
-		then /usr/bin/time -o .time -f '%U' $WIGGLE -dl orig new | diff -u ldiff - ; xit=$?
-		else /usr/bin/time -o .time -f '%U' $WIGGLE -dlp1 orig patch | diff -u ldiff - ; xit=$?
+		then $TIME $WIGGLE -dl orig new | diff -u ldiff - ; xit=$?
+		else $TIME $WIGGLE -dlp1 orig patch | diff -u ldiff - ; xit=$?
 		fi
 		;;
-	reldiff ) /usr/bin/time -o .time -f '%U' $WIGGLE -dl patch | diff -u reldiff - ; xit=$?
+	reldiff ) $TIME $WIGGLE -dl patch | diff -u reldiff - ; xit=$?
 		;;
-	rediff ) /usr/bin/time -o .time -f '%U' $WIGGLE -dw patch | diff -u rediff - ; xit=$?
+	rediff ) $TIME $WIGGLE -dw patch | diff -u rediff - ; xit=$?
 		;;
 	merge )  if [ -f patch ]
-		 then /usr/bin/time -o .time -f '%U' $WIGGLE -m orig patch | diff -u merge - ; xit=$?
+		 then $TIME $WIGGLE -m orig patch | diff -u merge - ; xit=$?
 		 elif [ -f new ] 
-                 then /usr/bin/time -o .time -f '%U' $WIGGLE -m orig new new2 | diff -u merge - ; xit=$?
-		 else /usr/bin/time -o .time -f '%U' $WIGGLE -m orig | diff -u merge - ; xit=$?
+                 then $TIME $WIGGLE -m orig new new2 | diff -u merge - ; xit=$?
+		 else $TIME $WIGGLE -m orig | diff -u merge - ; xit=$?
 		 fi
 		;;
 	replace ) cp orig orig.tmp
 		 if [ -f patch ]
-		 then /usr/bin/time -o .time -f '%U' $WIGGLE -mr orig.tmp patch 
-		 else /usr/bin/time -o .time -f '%U' $WIGGLE -mr orig.tmp new new2
+		 then $TIME $WIGGLE -mr orig.tmp patch 
+		 else $TIME $WIGGLE -mr orig.tmp new new2
 		 fi
 		 diff -u merge orig.tmp ; xit=$?
 		 rm  orig.tmp orig.tmp.porig
 		;;
 	lmerge )  if [ -f patch ]
-		 then /usr/bin/time -o .time -f '%U' $WIGGLE -ml orig patch | diff -u lmerge - ; xit=$?
-		 else /usr/bin/time -o .time -f '%U' $WIGGLE -ml orig new new2 | diff -u lmerge - ; xit=$?
+		 then $TIME $WIGGLE -ml orig patch | diff -u lmerge - ; xit=$?
+		 else $TIME $WIGGLE -ml orig new new2 | diff -u lmerge - ; xit=$?
 		 fi
 		 ;;
 	wmerge )  if [ -f patch ]
-		 then /usr/bin/time -o .time -f '%U' $WIGGLE -mw orig patch | diff -u wmerge - ; xit=$?
-		 else /usr/bin/time -o .time -f '%U' $WIGGLE -mw orig new new2 | diff -u wmerge - ; xit=$?
+		 then $TIME $WIGGLE -mw orig patch | diff -u wmerge - ; xit=$?
+		 else $TIME $WIGGLE -mw orig new new2 | diff -u wmerge - ; xit=$?
 		 fi
 		 ;;
    esac
