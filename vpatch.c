@@ -1037,7 +1037,7 @@ static void merge_window(struct plist *p, FILE *f, int reverse)
 	int rows = 0, cols = 0;
 	int splitrow = -1;
 	int lastrow = 0;
-	int i, c;
+	int i, c, cswitch;
 	int mode = ORIG|RESULT;
 	char *modename = "merge";
 	char **modehelp = merge_help;
@@ -1296,7 +1296,16 @@ static void merge_window(struct plist *p, FILE *f, int reverse)
 		tmeta = meta; meta = 0;
 		tnum = num; num = -1;
 		tvpos = vpos; vpos = pos;
-		switch(c | tmeta) {
+		cswitch = c | tmeta;
+		/* Handle some ranges */
+		/* case '0' ... '9': */
+		if (cswitch >= '0' && cswitch <= '9')
+			cswitch = '0';
+		/* case SEARCH(' ') ... SEARCH('~'): */
+		if (cswitch >= SEARCH(' ') && cswitch <= SEARCH('~'))
+			cswitch = SEARCH(' ');
+
+		switch(cswitch) {
 		case 27: /* escape */
 		case META(27):
 			meta = META(0);
@@ -1322,7 +1331,7 @@ static void merge_window(struct plist *p, FILE *f, int reverse)
 			if (row >= lastrow)
 				row = lastrow;
 			break;
-		case '0' ... '9':
+		case '0': /* actually '0'...'9' */
 			if (tnum < 0) tnum = 0;
 			num = tnum*10 + (c-'0');
 			break;
@@ -1386,7 +1395,7 @@ static void merge_window(struct plist *p, FILE *f, int reverse)
 				refresh = 1;
 			}
 			break;
-		case SEARCH(' ') ... SEARCH('~'):
+		case SEARCH(' '): /* actually ' '...'~' */
 		case SEARCH('\t'):
 			meta = SEARCH(0);
 			if (searchlen < sizeof(search)-1)
