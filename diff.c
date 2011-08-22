@@ -74,7 +74,7 @@ static int find_common(struct file *a, struct file *b,
 	int ahi = *ahip;
 	int blo = *blop;
 	int bhi = *bhip;
-	int x,y;
+	int x, y;
 
 	int best = (ahi-alo)+(bhi-blo);
 	int dist;
@@ -83,25 +83,27 @@ static int find_common(struct file *a, struct file *b,
 	v[klo].x = alo;
 	v[klo].l = 0;
 
-	while(1) {
+	while (1) {
 
-		for (k=klo ; k <= khi ; k+= 2) {
+		for (k = klo ; k <= khi ; k += 2) {
 			int snake = 0;
 			struct v vnew = v[k];
 			x = v[k].x;
 			y = x-k;
-			if (y > bhi) abort();
+			if (y > bhi)
+				abort();
 			while (x < ahi && y < bhi &&
 			       match(&a->list[x], &b->list[y])
 				) {
 				x++;
 				y++;
-				snake=1;
+				snake = 1;
 			}
 			vnew.x = x;
 			vnew.l += snake;
 			dist = (ahi-x)+(bhi-y);
-			if (dist < best) best = dist;
+			if (dist < best)
+				best = dist;
 			if (x+y >= mid &&
 			    v[k].x+v[k].x-k <= mid) {
 				vnew.md = k;
@@ -112,7 +114,8 @@ static int find_common(struct file *a, struct file *b,
 				/* OK! We have arrived.
 				 * We crossed the midpoint at or after v[k].xm,v[k].ym
 				 */
-				if (x != ahi) abort();
+				if (x != ahi)
+					abort();
 				x = (v[k].md+mid)/2;
 				y = x-v[k].md;
 				*alop = x;
@@ -132,8 +135,8 @@ static int find_common(struct file *a, struct file *b,
 			}
 		}
 
-		for (k=klo+1; k <= khi-1 ; k+= 2) {
-			if (v[k-1].x+1 >= v[k+1].x ) {
+		for (k = klo+1; k <= khi-1 ; k += 2) {
+			if (v[k-1].x+1 >= v[k+1].x) {
 				v[k] = v[k-1];
 				v[k].x++;
 			} else {
@@ -141,15 +144,16 @@ static int find_common(struct file *a, struct file *b,
 			}
 		}
 
-		x = v[klo].x; y = x -(klo-1);
+		x = v[klo].x; y = x - (klo-1);
 		dist = abs((ahi-x)-(bhi-y));
 		if (dist <= best) {
 			v[klo-1] = v[klo];
-			klo --;
+			klo--;
 		} else
 			while (dist > best) {
-				klo ++;
-				x = v[klo].x; y = x -(klo-1);
+				klo++;
+				x = v[klo].x;
+				y = x - (klo-1);
 				dist = abs((ahi-x)-(bhi-y));
 			}
 
@@ -158,10 +162,10 @@ static int find_common(struct file *a, struct file *b,
 		if (dist <= best) {
 			v[khi+1] = v[khi];
 			v[khi+1].x++;
-			khi ++;
+			khi++;
 		} else
 			while (dist > best) {
-				khi --;
+				khi--;
 				x = v[khi].x+1; y = x - (khi+1);
 				dist = abs((ahi-x)-(bhi-y));
 			}
@@ -185,12 +189,13 @@ static struct csl *lcsl(struct file *a, int alo, int ahi,
 		return csl;
 
 
-	k = find_common(a,b,
+	k = find_common(a, b,
 			&alo1, &ahi1,
 			&blo1, &bhi1,
 			(ahi+bhi+alo+blo)/2,
 			v);
-	if (k != ahi-bhi) abort();
+	if (k != ahi-bhi)
+		abort();
 
 	len = v[k].l;
 
@@ -199,8 +204,8 @@ static struct csl *lcsl(struct file *a, int alo, int ahi,
 		csl->len = 0;
 	}
 	if (len) {
-		csl = lcsl(a,alo,alo1,
-			   b,blo,blo1,
+		csl = lcsl(a, alo, alo1,
+			   b, blo, blo1,
 			   csl, v);
 
 		if (ahi1 > alo1) {
@@ -212,16 +217,17 @@ static struct csl *lcsl(struct file *a, int alo, int ahi,
 			    csl->b+csl->len == blo1) {
 				csl->len += ahi1-alo1;
 			} else {
-				if (csl->len) csl++;
+				if (csl->len)
+					csl++;
 				csl->len = ahi1-alo1;
 				csl->a = alo1;
 				csl->b = blo1;
 				csl[1].len = 0;
 			}
 		}
-		csl = lcsl(a,ahi1,ahi,
-			   b,bhi1,bhi,
-			   csl,v);
+		csl = lcsl(a, ahi1, ahi,
+			   b, bhi1, bhi,
+			   csl, v);
 	}
 	if (rv) {
 		if (csl->len)
@@ -255,7 +261,9 @@ static void fixup(struct file *a, struct file *b, struct csl *list)
 	struct csl *list1, *orig;
 	int lasteol = -1;
 	int found_end = 0;
-	if (!list) return;
+
+	if (!list)
+		return;
 	orig = list;
 	list1 = list+1;
 	while (list->len) {
@@ -279,11 +287,11 @@ static void fixup(struct file *a, struct file *b, struct csl *list)
 #if 0
 			printword(stderr, a->list[list1->a-1]);
 			printf("fixup %d,%d %d : %d,%d %d\n",
-			       list->a,list->b,list->len,
-			       list1->a,list1->b,list1->len);
+			       list->a, list->b, list->len,
+			       list1->a, list1->b, list1->len);
 #endif
 			if (ends_line(a->list[list->a+list->len-1])
-			    && a->list[list->a+list->len-1].len==1
+			    && a->list[list->a+list->len-1].len == 1
 			    && lasteol == -1
 				) {
 #if 0
@@ -312,14 +320,14 @@ static void fixup(struct file *a, struct file *b, struct csl *list)
 		} else {
 			if (lasteol >= 0) {
 /*				printf("seek %d\n", lasteol);*/
-				while (list1->a <= lasteol && (list1->len>1 ||
+				while (list1->a <= lasteol && (list1->len > 1 ||
 							       (found_end && list1->len > 0))) {
 					list1->a++;
 					list1->b++;
 					list1->len--;
 					list->len++;
 				}
-				lasteol=-1;
+				lasteol = -1;
 			}
 			*++list = *list1;
 			if (found_end) {
@@ -329,7 +337,8 @@ static void fixup(struct file *a, struct file *b, struct csl *list)
 			} else
 				list1++;
 		}
-		if (list->len && list1 == list) abort();
+		if (list->len && list1 == list)
+			abort();
 	}
 	// list[1] = list1[0];
 }
@@ -387,7 +396,7 @@ main(int argc, char *argv[])
 	arg = 1;
 	a.elcnt = 0;
 	a.list = lst;
-	while (argv[arg] && strcmp(argv[arg],"--")) {
+	while (argv[arg] && strcmp(argv[arg], "--")) {
 		lst->hash = 0;
 		lst->start = argv[arg];
 		lst->len = strlen(argv[arg]);
@@ -402,7 +411,7 @@ main(int argc, char *argv[])
 	arg++;
 	b.elcnt = 0;
 	b.list = lst;
-	while (argv[arg] && strcmp(argv[arg],"--")) {
+	while (argv[arg] && strcmp(argv[arg], "--")) {
 		lst->hash = 0;
 		lst->start = argv[arg];
 		lst->len = strlen(argv[arg]);
@@ -423,7 +432,7 @@ main(int argc, char *argv[])
 			 v);
 
 	printf("ln=%d (%d,%d) -> (%d,%d)\n", ln,
-	       alo,blo,ahi,bhi);
+	       alo, blo, ahi, bhi);
 #else
 	csl = lcsl(&a, 0, a.elcnt,
 		   &b, 0, b.elcnt,
@@ -431,8 +440,8 @@ main(int argc, char *argv[])
 	fixup(&a, &b, csl);
 	while (csl && csl->len) {
 		int i;
-		printf("%d,%d for %d:\n", csl->a,csl->b,csl->len);
-		for (i=0; i<csl->len; i++) {
+		printf("%d,%d for %d:\n", csl->a, csl->b, csl->len);
+		for (i = 0; i < csl->len; i++) {
 			printf("  %.*s (%.*s)\n",
 			       a.list[csl->a+i].len, a.list[csl->a+i].start,
 			       b.list[csl->b+i].len, b.list[csl->b+i].start);

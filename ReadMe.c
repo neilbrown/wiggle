@@ -31,8 +31,8 @@
 
 char Version[] = "wiggle 0.8 2010-03-24 GPL-2+ http://neil.brown.name/wiggle/\n";
 
-char short_options1[]="xdmwlrhi123pVRvqB"; /* not mode B */
-char short_options2[]="xdmwlrhi123p::VRvqB"; /* mode B */
+char short_options1[] = "xdmwlrhi123pVRvqB"; /* not mode B */
+char short_options2[] = "xdmwlrhi123p::VRvqB"; /* mode B */
 
 
 struct option long_options[] = {

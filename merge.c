@@ -192,7 +192,10 @@
  * At the end of the file, c1 will be the EOF match in A-B, c2 will be the
  * EOF match in B-C, !in_a and pos == [c2]->b
  */
-struct point { int pos, in_a; int c1,c2; };
+struct point {
+	int pos, in_a;
+	int c1, c2;
+};
 
 
 static int tripoint(struct point *here,
@@ -209,7 +212,8 @@ static int tripoint(struct point *here,
 		*a = here->pos;
 
 		if (here->c1 < 0) {
-			if (*a) return 0;
+			if (*a)
+				return 0;
 			*b = 0;
 		} else if (c1->a <= *a && c1->a+c1->len >= *a)
 			*b = c1->b + (*a - c1->a);
@@ -217,7 +221,8 @@ static int tripoint(struct point *here,
 			return 0;
 
 		if (here->c2 < 0) {
-			if (*b) return 0;
+			if (*b)
+				return 0;
 			*c = 0;
 		} else if (c2->a <= *b && c2->a + c2->len >= *b)
 			*c = c2->b + *b - c2->a;
@@ -227,16 +232,18 @@ static int tripoint(struct point *here,
 		*c = here->pos;
 
 		if (here->c2 < 0) {
-			if (*c) return 0;
+			if (*c)
+				return 0;
 			*b = 0;
-		} else if (c2->b <= *c && c2->b +c2->len >= *c)
+		} else if (c2->b <= *c && c2->b + c2->len >= *c)
 			*b = c2->a + *c - c2->b;
 		else
 			return 0;
 
 
 		if (here->c1 < 0) {
-			if (*b) return 0;
+			if (*b)
+				return 0;
 			*a = 0;
 		} else if (c1->b <= *b && c1->b + c1->len >= *b)
 			*a = c1->a + *b - c1->b;
@@ -248,7 +255,7 @@ static int tripoint(struct point *here,
 
 static int retreat(struct csl *c1, struct csl *c2, struct point *p)
 {
-	int a,b,c;
+	int a, b, c;
 	int slid = 0;
 
  retry:
@@ -258,13 +265,13 @@ static int retreat(struct csl *c1, struct csl *c2, struct point *p)
 		while ((p->c1 == 0 && a == 0) ||
 		       (p->c1 > 0 && c1[p->c1-1].a + c1[p->c1-1].len >= a)) {
 			if (!slid)
-				if ( a >= c1[p->c1].a)
+				if (a >= c1[p->c1].a)
 					break;
 			p->c1--;
 		}
 
 		/* if we aren't in a co-incidence, just return */
-		if (p->c1 >=0 &&
+		if (p->c1 >= 0 &&
 		    c1[p->c1].a > a)
 			return 1;
 
@@ -282,7 +289,7 @@ static int retreat(struct csl *c1, struct csl *c2, struct point *p)
 		}
 
 		/* check if this is a conflict */
-		if ((p->c2>=0 && c2[p->c2].a > b))
+		if ((p->c2 >= 0 && c2[p->c2].a > b))
 			return 2;
 
 		if (p->c2 == -1)
@@ -321,7 +328,7 @@ static int retreat(struct csl *c1, struct csl *c2, struct point *p)
 			b = 0;
 		else
 			b = c2[p->c2].a + c - c2[p->c2].b;
-		while ((p->c1==0 && b == 0) ||
+		while ((p->c1 == 0 && b == 0) ||
 		       (p->c1 > 0 && c1[p->c1-1].b + c1[p->c1-1].len >= b)) {
 			if (!slid)
 				if (b >= c1[p->c1].b)
@@ -330,7 +337,7 @@ static int retreat(struct csl *c1, struct csl *c2, struct point *p)
 		}
 
 		/* check if this is a conflict */
-		if ((p->c1>=0 && c1[p->c1].b > b))
+		if ((p->c1 >= 0 && c1[p->c1].b > b))
 			return 2;
 
 		if (p->c1 == -1)
@@ -362,7 +369,7 @@ static int retreat(struct csl *c1, struct csl *c2, struct point *p)
 
 static int advance(struct csl *c1, struct csl *c2, struct point *p)
 {
-	int a,b,c;
+	int a, b, c;
 	int slid = 0;
 	/* make next char at point is the 'right' one, either in a or c.
 	 * This might involve move p->c1 and p->c2 forward
@@ -379,8 +386,8 @@ static int advance(struct csl *c1, struct csl *c2, struct point *p)
 		while ((p->c1 == -1 || c1[p->c1].len) &&
 		       c1[p->c1+1].a <= a) {
 			if (!slid)
-				if ((p->c1== -1 && a ==0) ||
-				    (p->c1>=0 && a <= c1[p->c1].a+c1[p->c1].len))
+				if ((p->c1 == -1 && a == 0) ||
+				    (p->c1 >= 0 && a <= c1[p->c1].a+c1[p->c1].len))
 					break;
 			p->c1++;
 		}
@@ -390,7 +397,7 @@ static int advance(struct csl *c1, struct csl *c2, struct point *p)
 			return 1;
 
 		/* advance c2 to last coincidence containing or before pos->b */
-		b = c1[p->c1].b + a- c1[p->c1].a;
+		b = c1[p->c1].b + a - c1[p->c1].a;
 		while ((p->c2 == -1 || c2[p->c2].len) &&
 		       c2[p->c2+1].a <= b) {
 			if (!slid)
@@ -401,8 +408,8 @@ static int advance(struct csl *c1, struct csl *c2, struct point *p)
 		}
 
 		/* check if this is a conflict */
-		if ((p->c2 == -1 && b >0) ||
-		    (p->c2>=0 && c2[p->c2].a + c2[p->c2].len < b))
+		if ((p->c2 == -1 && b > 0) ||
+		    (p->c2 >= 0 && c2[p->c2].a + c2[p->c2].len < b))
 			return 2;
 
 		if (p->c2 == -1)
@@ -421,8 +428,8 @@ static int advance(struct csl *c1, struct csl *c2, struct point *p)
 			 * if we've slid, make sure not to skip over
 			 * the stuff in c2.
 			 */
-			if(slid && p->c2 != -1 && c2[p->c2].a == b &&
-			   c2[p->c2].b > c2[p->c2].a) {
+			if (slid && p->c2 != -1 && c2[p->c2].a == b &&
+			    c2[p->c2].b > c2[p->c2].a) {
 				c -= c2[p->c2].b - c2[p->c2].a;
 			}
 
@@ -451,7 +458,7 @@ static int advance(struct csl *c1, struct csl *c2, struct point *p)
 		while ((p->c1 == -1 || c1[p->c1].len) &&
 		       c1[p->c1+1].b <= b) {
 			if (!slid)
-				if ((p->c1 == -1 && b ==0) ||
+				if ((p->c1 == -1 && b == 0) ||
 				    (p->c1 >= 0 && b <= c1[p->c1].b+c1[p->c1].len))
 					break;
 			p->c1++;
@@ -467,7 +474,7 @@ static int advance(struct csl *c1, struct csl *c2, struct point *p)
 		 * If it is the end of an A-B coincidence but not EOF,
 		 * slide down to A
 		 */
-		if (a == c1[p->c1].a+ c1[p->c1].len &&
+		if (a == c1[p->c1].a + c1[p->c1].len &&
 		    c1[p->c1].len) {
 			p->in_a = 1;
 			p->pos = a;
@@ -487,12 +494,12 @@ static int advance(struct csl *c1, struct csl *c2, struct point *p)
 static int point_crossed(struct point first, struct point second,
 		      struct csl *cs1, struct csl *cs2)
 {
-	int a1,b1,c1;
-	int a2,b2,c2;
+	int a1, b1, c1;
+	int a2, b2, c2;
 
-	if (tripoint(&first, cs1,cs2, &a1,&b1,&c1) &&
-	    tripoint(&second, cs1,cs2, &a2,&b2,&c2))
-		return a1>=a2 && b1>=b2 && c1>=c2;
+	if (tripoint(&first, cs1, cs2, &a1, &b1, &c1) &&
+	    tripoint(&second, cs1, cs2, &a2, &b2, &c2))
+		return a1 >= a2 && b1 >= b2 && c1 >= c2;
 	return 0;
 /*
 	return first.in_a == second.in_a &&
@@ -502,12 +509,13 @@ static int point_crossed(struct point first, struct point second,
 
 
 static void print_merger(FILE *out, struct file *a, struct file *c,
-		 struct csl *cs1, struct csl *cs2,
-		 struct point start, struct point end)
+			 struct csl *cs1, struct csl *cs2,
+			 struct point start, struct point end)
 {
-	while (!point_crossed(start, end, cs1,cs2)) {
+	while (!point_crossed(start, end, cs1, cs2)) {
 #if 0
-		printf("%c %d (%d,%d)\n", start.in_a?'A':'C', start.pos, start.c1,start.c2);
+		printf("%c %d (%d,%d)\n", start.in_a ? 'A' : 'C', start.pos,
+		       start.c1, start.c2);
 #endif
 		if (start.in_a)
 			printword(out, a->list[start.pos]);
@@ -516,7 +524,7 @@ static void print_merger(FILE *out, struct file *a, struct file *c,
 		fflush(out); /* DEBUG */
 
 		start.pos++;
-		if (point_crossed(start, end, cs1,cs2))
+		if (point_crossed(start, end, cs1, cs2))
 			break;
 		advance(cs1, cs2, &start);
 
@@ -545,12 +553,12 @@ static int print_conflict(FILE *out, struct file *a, struct file *b, struct file
 	int bi;
 
 #if 0
-	if (point_same(start,end))
+	if (point_same(start, end))
 		return 0; /* no conflict here !! */
 #endif
-	if (!tripoint(&start, c1,c2, &astart, &bstart, &cstart))
+	if (!tripoint(&start, c1, c2, &astart, &bstart, &cstart))
 		abort();
-	if (!tripoint(&end,   c1,c2, &aend,   &bend,   &cend))
+	if (!tripoint(&end,   c1, c2, &aend,   &bend,   &cend))
 		abort();
 
 
@@ -563,7 +571,7 @@ static int print_conflict(FILE *out, struct file *a, struct file *b, struct file
 	bi = bstart;
 	while (bi < bend && start.c1 >= 0 && bi >= c1[start.c1].b && bi < c1[start.c1].b + c1[start.c1].len) {
 		bi++;
-		if (words || at_sol(b,bi)) {
+		if (words || at_sol(b, bi)) {
 			astart += bi-bstart;
 			bstart = bi;
 		}
@@ -584,7 +592,7 @@ static int print_conflict(FILE *out, struct file *a, struct file *b, struct file
 	bi = bstart;
 	while (bi < bend && start.c2 >= 0 && bi >= c2[start.c2].a && bi < c2[start.c2].a + c2[start.c2].len) {
 		bi++;
-		if (words || at_sol(b,bi)) {
+		if (words || at_sol(b, bi)) {
 			cstart += bi-bstart;
 			bstart = bi;
 		}
@@ -593,7 +601,7 @@ static int print_conflict(FILE *out, struct file *a, struct file *b, struct file
 	bi = bend;
 	while (bi > bstart && bi > c2[end.c2].a) {
 		bi--;
-		if (words || at_sol(b,bi)) {
+		if (words || at_sol(b, bi)) {
 			cend -= bend-bi;
 			bend = bi;
 		}
@@ -601,22 +609,23 @@ static int print_conflict(FILE *out, struct file *a, struct file *b, struct file
 	if (astart >= aend && bstart >= bend && cstart >= cend)
 		return 0;
 
-	fputs(words?"<<<---":"<<<<<<<\n", out);
+	fputs(words ? "<<<---" : "<<<<<<<\n", out);
 	print_range(out, a, astart, aend);
-	fputs(words?"|||":"|||||||\n", out);
+	fputs(words ? "|||" : "|||||||\n", out);
 	print_range(out, b, bstart, bend);
-	fputs(words?"===":"=======\n", out);
+	fputs(words ? "===" : "=======\n", out);
 	print_range(out, c, cstart, cend);
-	fputs(words?"--->>>":">>>>>>>\n", out);
+	fputs(words ? "--->>>" : ">>>>>>>\n", out);
 	return 1;
 }
 
 static int end_of_file(struct point p, struct csl *c1, struct csl *c2)
 {
-	return advance(c1,c2,&p)==0;
+	return advance(c1, c2, &p) == 0;
 }
 
-static int next_conflict(struct point here, struct csl *start_c1, struct csl *start_c2,
+static int next_conflict(struct point here,
+			 struct csl *start_c1, struct csl *start_c2,
 			 struct point *start, struct point *end)
 {
 	/* We want to find the start and end of the 'next' conflict.
@@ -700,7 +709,8 @@ static int next_conflict(struct point here, struct csl *start_c1, struct csl *st
 				c1++;
 			if (c2->len)
 				c2++;
-		} else if (c2->len ==0 || (c1->len && c1->b+c1->len < c2->a+c2->len)) {
+		} else if (c2->len == 0 ||
+			   (c1->len && c1->b+c1->len < c2->a+c2->len)) {
 			/* c1 ends earlier.  If the new start of c1 is
 			 * beyond the current end of c2, we have a conflict
 			 */
@@ -719,7 +729,7 @@ static int next_conflict(struct point here, struct csl *start_c1, struct csl *st
 			if (c2->a > c1->b+c1->len)
 				conflict_found = 1;
 		}
-		if ((c1->len == 0 && c2->len ==0) ||
+		if ((c1->len == 0 && c2->len == 0) ||
 		    (c1->b+c1->len >= c2->a && c2->a+c2->len >= c1->b)
 			) {
 			/* double coincidence !
@@ -752,7 +762,7 @@ static int next_conflict(struct point here, struct csl *start_c1, struct csl *st
 					start->in_a = 0;
 					start->pos = c2[start->c2].b+c2[start->c2].len;
 				}
-				retreat(c1,c2, start);
+				retreat(c1, c2, start);
 
 				if (c1[end->c1].b <= c2[end->c2].a) {
 					end->in_a = 0;
@@ -762,7 +772,7 @@ static int next_conflict(struct point here, struct csl *start_c1, struct csl *st
 					end->pos = c2[end->c2].b +
 						c1[end->c1].b - c2[end->c2].a;
 				}
-				advance(c1,c2, end);
+				advance(c1, c2, end);
 				return 1;
 			}
 			start->c1 = c1-start_c1;
@@ -787,17 +797,19 @@ static int already_applied(struct csl *cs1, struct csl *cs2,
 	/* check if this conflict reflects and already-applied change
 	 * i.e. the section in a matches the section in b
 	 */
-	int a1,b1,c1;
-	int a2,b2,c2;
+	int a1, b1, c1;
+	int a2, b2, c2;
 
-	if (!tripoint(&start,cs1,cs2,&a1,&b1,&c1))
+	if (!tripoint(&start, cs1, cs2, &a1, &b1, &c1))
 		abort();
-	if (!tripoint(&end,cs1,cs2,&a2,&b2,&c2))
+	if (!tripoint(&end, cs1, cs2, &a2, &b2, &c2))
 		abort();
-	if (a1==a2 && b1==b2) return 0;
-	if ((a2-a1) != (c2-c1)) return 0;
+	if (a1 == a2 && b1 == b2)
+		return 0;
+	if ((a2-a1) != (c2-c1))
+		return 0;
 
-	while (a1<a2) {
+	while (a1 < a2) {
 		if (!match(&a->list[a1], &c->list[c1]))
 			return 0;
 		a1++;
@@ -809,10 +821,10 @@ static int already_applied(struct csl *cs1, struct csl *cs2,
 static int Startofline(struct point p, struct csl *cs1, struct csl *cs2,
 		       struct file *a, struct file *b, struct file *c)
 {
-	int a1,b1,c1;
+	int a1, b1, c1;
 	return
-		tripoint(&p,cs1,cs2,&a1,&b1,&c1) &&
-		at_sol(a,a1) && at_sol(b,b1) && at_sol(c,c1);
+		tripoint(&p, cs1, cs2, &a1, &b1, &c1) &&
+		at_sol(a, a1) && at_sol(b, b1) && at_sol(c, c1);
 
 }
 
@@ -827,59 +839,61 @@ struct ci print_merge(FILE *out, struct file *a, struct file *b, struct file *c,
 
 #if 0
 	{ int i;
-	for (i=0; c1[i].len; i++) printf("%2d c1 %d:%d %d\n", i, c1[i].a,c1[i].b,c1[i].len);
-	printf("%2d c1 %d:%d END\n", i, c1[i].a,c1[i].b);
-	for (i=0; c2[i].len; i++) printf("%2d c2 %d:%d %d\n", i, c2[i].a,c2[i].b,c2[i].len);
-	printf("%2d c2 %d:%d END\n", i, c2[i].a,c2[i].b);
+	for (i = 0; c1[i].len; i++)
+		printf("%2d c1 %d:%d %d\n", i, c1[i].a, c1[i].b, c1[i].len);
+	printf("%2d c1 %d:%d END\n", i, c1[i].a, c1[i].b);
+	for (i = 0; c2[i].len; i++)
+		printf("%2d c2 %d:%d %d\n", i, c2[i].a, c2[i].b, c2[i].len);
+	printf("%2d c2 %d:%d END\n", i, c2[i].a, c2[i].b);
 	}
 #endif
 	/* end_last is a forward looking point */
 	end_last.pos = 0;
 	end_last.in_a = 1;
 	end_last.c1 = end_last.c2 = -1;
-	advance(c1,c2, &end_last);
+	advance(c1, c2, &end_last);
 
 	/* start_last is a backward looking point */
 	start_last.pos = 0;
 	start_last.in_a = 1;
 	start_last.c1 = start_last.c2 = 0;
-	retreat(c1,c2, &start_last);
+	retreat(c1, c2, &start_last);
 
 	while (!end_of_file(end_last, c1, c2)) {
 		next_conflict(end_last, c1, c2, &start_next, &end_next);
-		while (already_applied(c1,c2,start_next,end_next,a,b,c)) {
+		while (already_applied(c1, c2, start_next, end_next, a, b, c)) {
 			rv.ignored++;
-			next_conflict(end_next, c1,c2,&start_next,&end_next);
+			next_conflict(end_next, c1, c2, &start_next, &end_next);
 		}
 #if 0
 		printf("start %d %d (%d,%d)  end %d %d (%d,%d)\n",
 		       start_next.in_a, start_next.pos, start_next.c1, start_next.c2,
 		       end_next.in_a, end_next.pos, end_next.c1, end_next.c2);
 #endif
-		while (!point_crossed(end_last, start_next,c1,c2) &&
-		       !(words || Startofline(end_last, c1,c2, a,b,c))) {
+		while (!point_crossed(end_last, start_next, c1, c2) &&
+		       !(words || Startofline(end_last, c1, c2, a, b, c))) {
 			end_last.pos++;
-			advance(c1,c2, &end_last);
+			advance(c1, c2, &end_last);
 		}
 
-		while (!point_crossed(end_last, start_next, c1,c2) &&
-		       !(words || Startofline(start_next, c1,c2, a,b,c))) {
+		while (!point_crossed(end_last, start_next, c1, c2) &&
+		       !(words || Startofline(start_next, c1, c2, a, b, c))) {
 			start_next.pos--;
-			retreat(c1,c2, &start_next);
+			retreat(c1, c2, &start_next);
 		}
 
-		if (point_crossed(end_last, start_next, c1,c2)) {
+		if (point_crossed(end_last, start_next, c1, c2)) {
 			end_last = end_next;
 			continue;
 		}
-		if (print_conflict(out, a,b,c, c1,c2, start_last, end_last, words))
+		if (print_conflict(out, a, b, c, c1, c2, start_last, end_last, words))
 			rv.conflicts++;
 
-		print_merger(out, a,c, c1,c2, end_last, start_next);
+		print_merger(out, a, c, c1, c2, end_last, start_next);
 		start_last = start_next;
 		end_last = end_next;
 	}
-	if (print_conflict(out,a,b,c, c1,c2, start_last, end_last, words))
+	if (print_conflict(out, a, b, c, c1, c2, start_last, end_last, words))
 		rv.conflicts++;
 	return rv;
 }

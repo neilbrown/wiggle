@@ -44,7 +44,7 @@ static  inline int match(struct elmnt *a, struct elmnt *b)
 	return
 		a->hash == b->hash &&
 		a->len == b->len &&
-		strncmp(a->start, b->start, a->len)==0;
+		strncmp(a->start, b->start, a->len) == 0;
 }
 
 static inline int ends_line(struct elmnt e)
@@ -60,7 +60,7 @@ static inline int ends_mline(struct elmnt e)
 }
 
 struct csl {
-	int a,b;
+	int a, b;
 	int len;
 };
 
@@ -89,21 +89,25 @@ struct file {
  * a conflict.
  */
 struct merge {
-	enum mergetype {End, Unmatched, Unchanged, Extraneous, Changed, Conflict, AlreadyApplied} type;
-	int a,b,c; /* start of ranges */
+	enum mergetype {
+		End, Unmatched, Unchanged, Extraneous,
+		Changed, Conflict, AlreadyApplied,
+	} type;
+	int a, b, c; /* start of ranges */
 	int al, bl, cl; /* length of ranges */
 	int c1, c2; /* this or next commonsequence */
 	int in_conflict;
-	int lo,hi; /* region of a Changed or Unchanged that is not involved
+	int lo, hi; /* region of a Changed or Unchanged that is not involved
 		    * in a conflict.
-		    * These are distances from start of the "before" section, not
-		    * indexes into any file
+		    * These are distances from start of the "before" section,
+		    * not indexes into any file.
 		    */
 
 };
 extern struct stream load_file(char *name);
 extern int split_patch(struct stream, struct stream*, struct stream*);
-extern int split_merge(struct stream, struct stream*, struct stream*, struct stream*);
+extern int split_merge(struct stream, struct stream*, struct stream*,
+		       struct stream*);
 extern struct file split_stream(struct stream s, int type, int reverse);
 extern struct csl *pdiff(struct file a, struct file b, int chunks);
 extern struct csl *diff(struct file a, struct file b);
@@ -116,10 +120,12 @@ struct ci {
 	int conflicts, wiggles, ignored;
 	struct merge *merger;
 };
-extern struct ci print_merge(FILE *out, struct file *a, struct file *b, struct file *c,
-		       struct csl *c1, struct csl *c2,
-		       int words);
-extern struct ci print_merge2(FILE *out, struct file *a, struct file *b, struct file *c,
+extern struct ci print_merge(FILE *out,
+			     struct file *a, struct file *b, struct file *c,
+			     struct csl *c1, struct csl *c2,
+			     int words);
+extern struct ci print_merge2(FILE *out,
+			      struct file *a, struct file *b, struct file *c,
 			      struct csl *c1, struct csl *c2,
 			      int words, int ignore_already);
 extern void printword(FILE *f, struct elmnt e);

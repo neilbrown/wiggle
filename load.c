@@ -45,11 +45,11 @@ static void join_streams(struct stream list[], int cnt)
 	/* join all the streams in the list (upto body=NULL)
 	 * into one by re-allocing list[0].body and copying
 	 */
-	int len=0;
+	int len = 0;
 	int i;
 	char *c;
 
-	for (i=0; i<cnt ; i++)
+	for (i = 0; i < cnt ; i++)
 		len += list[i].len;
 
 	c = realloc(list[0].body, len+1);
@@ -59,7 +59,7 @@ static void join_streams(struct stream list[], int cnt)
 	list[0].body = c;
 	c  += list[0].len;
 	list[0].len = len;
-	for (i=1; i<cnt; i++) {
+	for (i = 1; i < cnt; i++) {
 		memcpy(c, list[i].body, list[i].len);
 		c += list[i].len;
 		list[i].len = 0;
@@ -80,7 +80,8 @@ static struct stream load_regular(int fd)
 			free(s.body);
 			s.body = NULL;
 		}
-	} else die();
+	} else
+		die();
 	s.body[s.len] = 0;
 	return s;
 }
@@ -91,7 +92,7 @@ static struct stream load_other(int fd)
 	struct stream list[10];
 	int i = 0;
 
-	while(1) {
+	while (1) {
 		list[i].body = malloc(8192);
 		if (!list[i].body)
 			die();
@@ -118,11 +119,11 @@ struct stream load_file(char *name)
 
 	s.body = NULL;
 	s.len = 0;
-	if (strcmp(name, "-")==0)
+	if (strcmp(name, "-") == 0)
 		fd = 0;
 	else {
 		fd = open(name, O_RDONLY);
-		if (fd <0)
+		if (fd < 0)
 			return s;
 	}
 

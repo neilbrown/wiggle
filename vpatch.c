@@ -52,7 +52,7 @@ static void term_init(void);
 
 
 /* plist stores a list of patched files in an array
- * Each entry identifies a file, the range of the 
+ * Each entry identifies a file, the range of the
  * original patch which applies to this file, some
  * statistics concerning how many conflicts etc, and
  * some linkage information so the list can be viewed
@@ -109,7 +109,7 @@ static void help_window(char *page1[], char *page2[])
 {
 	int rows, cols;
 	int top, left;
-	int r,c;
+	int r, c;
 	int ch;
 	char **page = page1;
 	int line = 0;
@@ -129,10 +129,10 @@ static void help_window(char *page1[], char *page2[])
 		top = 3;
 		rows = rows - 6;
 	} else {
-		top = (rows-15)/2 -1;
+		top = (rows-15)/2 - 1;
 		rows = 15;
 	}
-	
+
 	(void)attrset(A_STANDOUT);
 	for (c = left; c < left+cols; c++) {
 		mvaddch(top-1, c, '-');
@@ -142,17 +142,17 @@ static void help_window(char *page1[], char *page2[])
 		mvaddch(r, left-1, '|');
 		mvaddch(r, left+cols, '|');
 	}
-	mvaddch(top-1,left-1,'/');
-	mvaddch(top-1,left+cols, '\\');
+	mvaddch(top-1, left-1, '/');
+	mvaddch(top-1, left+cols,  '\\');
 	mvaddch(top+rows, left-1, '\\');
 	mvaddch(top+rows, left+cols, '/');
 	mvaddstr(top-1, left + cols/2 - 2, "HELP");
 	mvaddstr(top+rows, left+cols/2 - 16, "Press SPACE for more, ? for help");
 	(void)attrset(A_NORMAL);
-	
-	while(1) {
+
+	while (1) {
 		char **lnp = page + line;
-		for (r=0; r < rows; r++) {
+		for (r = 0; r < rows; r++) {
 			char *ln = *lnp;
 			int sh = shift;
 			if (ln)
@@ -164,7 +164,7 @@ static void help_window(char *page1[], char *page2[])
 				ln++;
 				sh--;
 			}
-			for (c=0; c<cols; c++) {
+			for (c = 0; c < cols; c++) {
 				int chr = *ln;
 				if (chr)
 					ln++;
@@ -173,10 +173,10 @@ static void help_window(char *page1[], char *page2[])
 				mvaddch(top+r, left+c, chr);
 			}
 		}
-		move(top+rows-1,left);
+		move(top+rows-1, left);
 		ch = getch();
 
-		switch(ch) {
+		switch (ch) {
 		case 'q':
 			return;
 		case '?':
@@ -185,7 +185,7 @@ static void help_window(char *page1[], char *page2[])
 			break;
 		case ' ':
 		case '\r':
-			for (r=0; r < rows-2; r++)
+			for (r = 0; r < rows-2; r++)
 				if (page[line])
 					line++;
 			if (!page[line]) {
@@ -257,7 +257,7 @@ static char *typenames[] = {
 
 
 /* Displaying a Merge.
- * The first step is to linearise the merge.  The merge in inherently 
+ * The first step is to linearise the merge.  The merge in inherently
  * parallel with before/after streams.  However much of the whole document
  * is linear as normally much of the original in unchanged.
  * All parallelism comes from the patch.  This normally produces two
@@ -284,7 +284,7 @@ static char *typenames[] = {
  * This is all encoded in 'struct mpos'.
  *
  * Each location may or may not be visible depending on certain
- * display options. 
+ * display options.
  *
  * Also, some locations might be 'invalid' in that they don't need to be displayed.
  * For example when the patch leaves a section of the original unchanged,
@@ -336,14 +336,21 @@ static int same_mpos(struct mpos a, struct mpos b)
  */
 static int stream_valid(int s, enum mergetype type)
 {
-	switch(type) {
-	case End: return 1;
-	case Unmatched: return s == 0;
-	case Unchanged: return s == 0;
-	case Extraneous: return s == 2;
-	case Changed: return s != 1;
-	case Conflict: return 1;
-	case AlreadyApplied: return 1;
+	switch (type) {
+	case End:
+		return 1;
+	case Unmatched:
+		return s == 0;
+	case Unchanged:
+		return s == 0;
+	case Extraneous:
+		return s == 2;
+	case Changed:
+		return s != 1;
+	case Conflict:
+		return 1;
+	case AlreadyApplied:
+		return 1;
 	}
 	return 0;
 }
@@ -359,13 +366,19 @@ static struct elmnt next_melmnt(struct mp *pos,
 				struct merge *m)
 {
 	pos->o++;
-	while(1) {
-		int l=0; /* Length remaining in current merge section */
+	while (1) {
+		int l = 0; /* Length remaining in current merge section */
 		if (pos->m >= 0)
-			switch(pos->s) {
-			case 0: l = m[pos->m].al; break;
-			case 1: l = m[pos->m].bl; break;
-			case 2: l = m[pos->m].cl; break;
+			switch (pos->s) {
+			case 0:
+				l = m[pos->m].al;
+				break;
+			case 1:
+				l = m[pos->m].bl;
+				break;
+			case 2:
+				l = m[pos->m].cl;
+				break;
 			}
 		if (pos->o >= l) {
 			/* Offset has reached length, choose new stream or
@@ -386,14 +399,13 @@ static struct elmnt next_melmnt(struct mp *pos,
 		e.start = NULL; e.len = 0;
 		return e;
 	}
-	switch(pos->s) {
+	switch (pos->s) {
 	default: /* keep compiler happy */
 	case 0:
 		if (pos->lineno & 1)
-			pos->lineno ++;
+			pos->lineno++;
 		if (ends_mline(fm.list[m[pos->m].a + pos->o]))
-			pos->lineno ++;
-		
+			pos->lineno++;
 		return fm.list[m[pos->m].a + pos->o];
 	case 1: return fb.list[m[pos->m].b + pos->o];
 	case 2: return fa.list[m[pos->m].c + pos->o];
@@ -413,7 +425,7 @@ static struct elmnt prev_melmnt(struct mp *pos,
 	}
 
 	pos->o--;
-	while (pos->m >=0 && pos->o < 0) {
+	while (pos->m >= 0 && pos->o < 0) {
 		do {
 			pos->s--;
 			if (pos->s < 0) {
@@ -422,11 +434,17 @@ static struct elmnt prev_melmnt(struct mp *pos,
 			}
 		} while (pos->m >= 0 &&
 			 !stream_valid(pos->s, m[pos->m].type));
-		if (pos->m>=0) {
-			switch(pos->s) {
-			case 0: pos->o = m[pos->m].al-1; break;
-			case 1: pos->o = m[pos->m].bl-1; break;
-			case 2: pos->o = m[pos->m].cl-1; break;
+		if (pos->m >= 0) {
+			switch (pos->s) {
+			case 0:
+				pos->o = m[pos->m].al-1;
+				break;
+			case 1:
+				pos->o = m[pos->m].bl-1;
+				break;
+			case 2:
+				pos->o = m[pos->m].cl-1;
+				break;
 			}
 		}
 	}
@@ -435,7 +453,7 @@ static struct elmnt prev_melmnt(struct mp *pos,
 		e.start = NULL; e.len = 0;
 		return e;
 	}
-	switch(pos->s) {
+	switch (pos->s) {
 	default: /* keep compiler happy */
 	case 0: return fm.list[m[pos->m].a + pos->o];
 	case 1: return fb.list[m[pos->m].b + pos->o];
@@ -452,7 +470,7 @@ static int visible(int mode, enum mergetype type, int stream)
 	if (mode == 0)
 		return -1;
 	/* mode can be any combination of ORIG RESULT BEFORE AFTER */
-	switch(type) {
+	switch (type) {
 	case End: /* The END is always visible */
 		return A_NORMAL;
 	case Unmatched: /* Visible in ORIG and RESULT */
@@ -460,7 +478,8 @@ static int visible(int mode, enum mergetype type, int stream)
 			return a_unmatched;
 		break;
 	case Unchanged: /* visible everywhere, but only show stream 0 */
-		if (stream == 0) return a_common;
+		if (stream == 0)
+			return a_common;
 		break;
 	case Extraneous: /* stream 2 is visible in BEFORE and AFTER */
 		if ((mode & (BEFORE|AFTER))
@@ -476,7 +495,7 @@ static int visible(int mode, enum mergetype type, int stream)
 			return a_added;
 		break;
 	case Conflict:
-		switch(stream) {
+		switch (stream) {
 		case 0:
 			if (mode & ORIG)
 				return a_unmatched | A_REVERSE;
@@ -492,7 +511,7 @@ static int visible(int mode, enum mergetype type, int stream)
 		}
 		break;
 	case AlreadyApplied:
-		switch(stream) {
+		switch (stream) {
 		case 0:
 			if (mode & (ORIG|RESULT))
 				return a_already;
@@ -539,9 +558,10 @@ static int check_line(struct mpos pos, struct file fm, struct file fb,
 			rv |= WIGGLED;
 		else if (m[pos.p.m].type == Unmatched)
 			unmatched = 1;
-		e = prev_melmnt(&pos.p, fm,fb,fa,m);
+		e = prev_melmnt(&pos.p, fm, fb, fa, m);
 	} while (e.start != NULL &&
-		 (!ends_mline(e) || visible(mode, m[pos.p.m].type, pos.p.s)==-1));
+		 (!ends_mline(e)
+		  || visible(mode, m[pos.p.m].type, pos.p.s) == -1));
 
 	if (unmatched && (rv & CHANGES))
 		rv |= WIGGLED;
@@ -559,14 +579,14 @@ static void next_mline(struct mpos *pos, struct file fm, struct file fb,
 
 		prv = pos->p;
 		while (1) {
-			struct elmnt e = next_melmnt(&pos->p, fm,fb,fa,m);
+			struct elmnt e = next_melmnt(&pos->p, fm, fb, fa, m);
 			if (e.start == NULL)
 				break;
 			if (ends_mline(e) &&
 			    visible(mode, m[pos->p.m].type, pos->p.s) >= 0)
 				break;
 		}
-		mode2 = check_line(*pos, fm,fb,fa,m,mode);
+		mode2 = check_line(*pos, fm, fb, fa, m, mode);
 
 		if ((mode2 & CHANGES) && pos->state == 0) {
 			/* Just entered a diff-set */
@@ -583,13 +603,17 @@ static void next_mline(struct mpos *pos, struct file fm, struct file fb,
 			} else {
 				/* time for another pass */
 				pos->p = pos->lo;
-				pos->state ++;
+				pos->state++;
 			}
 		}
 		mask = ORIG|RESULT|BEFORE|AFTER|CHANGES|CHANGED;
-		switch(pos->state) {
-		case 1: mask &= ~(RESULT|AFTER); break;
-		case 2: mask &= ~(ORIG|BEFORE); break;
+		switch (pos->state) {
+		case 1:
+			mask &= ~(RESULT|AFTER);
+			break;
+		case 2:
+			mask &= ~(ORIG|BEFORE);
+			break;
 		}
 	} while (visible(mode&mask, m[pos->p.m].type, pos->p.s) < 0);
 
@@ -607,15 +631,15 @@ static void prev_mline(struct mpos *pos, struct file fm, struct file fb,
 		prv = pos->p;
 		if (pos->p.m < 0)
 			return;
-		while(1) {
-			struct elmnt e = prev_melmnt(&pos->p, fm,fb,fa,m);
+		while (1) {
+			struct elmnt e = prev_melmnt(&pos->p, fm, fb, fa, m);
 			if (e.start == NULL)
 				break;
 			if (ends_mline(e) &&
 			    visible(mode, m[pos->p.m].type, pos->p.s) >= 0)
 				break;
 		}
-		mode2 = check_line(*pos, fm,fb,fa,m,mode);
+		mode2 = check_line(*pos, fm, fb, fa, m, mode);
 
 		if ((mode2 & CHANGES) && pos->state == 0) {
 			/* Just entered a diff-set */
@@ -632,13 +656,17 @@ static void prev_mline(struct mpos *pos, struct file fm, struct file fb,
 			} else {
 				/* time for another pass */
 				pos->p = pos->hi;
-				pos->state --;
+				pos->state--;
 			}
 		}
 		mask = ORIG|RESULT|BEFORE|AFTER|CHANGES|CHANGED;
-		switch(pos->state) {
-		case 1: mask &= ~(RESULT|AFTER); break;
-		case 2: mask &= ~(ORIG|BEFORE); break;
+		switch (pos->state) {
+		case 1:
+			mask &= ~(RESULT|AFTER);
+			break;
+		case 2:
+			mask &= ~(ORIG|BEFORE);
+			break;
 		}
 	} while (visible(mode&mask, m[pos->p.m].type, pos->p.s) < 0);
 }
@@ -647,7 +675,7 @@ static void prev_mline(struct mpos *pos, struct file fm, struct file fb,
 static void blank(int row, int start, int cols, unsigned int attr)
 {
 	(void)attrset(attr);
-	move(row,start);
+	move(row, start);
 	while (cols-- > 0)
 		addch(' ');
 }
@@ -665,15 +693,16 @@ static int mcontains(struct mpos pos,
 	struct elmnt e;
 	int len = strlen(search);
 	do {
-		e = prev_melmnt(&pos.p, fm,fb,fa,m);
+		e = prev_melmnt(&pos.p, fm, fb, fa, m);
 		if (e.start) {
 			int i;
-			for (i=0; i<e.len; i++)
-				if (strncmp(e.start+i, search, len)==0)
+			for (i = 0; i < e.len; i++)
+				if (strncmp(e.start+i, search, len) == 0)
 					return 1;
 		}
 	} while (e.start != NULL &&
-		 (!ends_mline(e) || visible(mode, m[pos.p.m].type, pos.p.s)==-1));
+		 (!ends_mline(e)
+		  || visible(mode, m[pos.p.m].type, pos.p.s) == -1));
 	return 0;
 }
 
@@ -725,15 +754,14 @@ static void draw_mside(int mode, int row, int offset, int start, int cols,
 	int col = 0;
 	char tag;
 
-	switch(pos.state) {
+	switch (pos.state) {
 	case 0: /* unchanged line */
 		tag = ' ';
 		break;
 	case 1: /* 'before' text */
 		tag = '-';
-		if ((mode & ORIG) && (mode & CONFLICTED)) {
+		if ((mode & ORIG) && (mode & CONFLICTED))
 			tag = '|';
-		}
 		mode &= (ORIG|BEFORE);
 		break;
 	case 2: /* the 'after' part */
@@ -757,28 +785,30 @@ static void draw_mside(int mode, int row, int offset, int start, int cols,
 
 	/* find previous visible newline, or start of file */
 	do
-		e = prev_melmnt(&pos.p, fm,fb,fa,m);
+		e = prev_melmnt(&pos.p, fm, fb, fa, m);
 	while (e.start != NULL &&
 	       (!ends_mline(e) ||
-		visible(mode, m[pos.p.m].type, pos.p.s)==-1));
+		visible(mode, m[pos.p.m].type, pos.p.s) == -1));
 
 	while (1) {
 		unsigned char *c;
 		int l;
-		e = next_melmnt(&pos.p, fm,fb,fa,m);
+		e = next_melmnt(&pos.p, fm, fb, fa, m);
 		if (e.start == NULL ||
 		    (ends_mline(e) && visible(mode, m[pos.p.m].type, pos.p.s) != -1)) {
-			if (colp) *colp = col;
-			if (col < start) col = start;
+			if (colp)
+				*colp = col;
+			if (col < start)
+				col = start;
 			if (e.start && e.start[0] == 0) {
 				char b[40];
 				struct elmnt e1;
 				if (pos.p.s == 2 && m[pos.p.m].type == Extraneous) {
-					int A,B,C,D,E,F;
+					int A, B, C, D, E, F;
 					e1 = fb.list[m[pos.p.m].b + pos.p.o];
 					sscanf(e1.start+1, "%d %d %d", &A, &B, &C);
 					sscanf(e.start+1, "%d %d %d", &D, &E, &F);
-					sprintf(b, "@@ -%d,%d +%d,%d @@\n", B,C,E,F);
+					sprintf(b, "@@ -%d,%d +%d,%d @@\n", B, C, E, F);
 					(void)attrset(a_sep);
 				} else {
 					(void)attrset(visible(mode, m[pos.p.m].type, pos.p.s));
@@ -789,19 +819,18 @@ static void draw_mside(int mode, int row, int offset, int start, int cols,
 			}
 			blank(row, col-start+offset, start+cols-col,
 			      e.start
-			      ?(unsigned)visible(mode, m[pos.p.m].type, pos.p.s)
-			      :A_NORMAL );
+			      ? (unsigned)visible(mode, m[pos.p.m].type, pos.p.s)
+			      : A_NORMAL);
 			return;
 		}
-		if (visible(mode, m[pos.p.m].type, pos.p.s) == -1) {
+		if (visible(mode, m[pos.p.m].type, pos.p.s) == -1)
 			continue;
-		}
 		if (e.start[0] == 0)
 			continue;
 		(void)attrset(visible(mode, m[pos.p.m].type, pos.p.s));
 		c = (unsigned char *)e.start;
 		l = e.len;
-		while(l) {
+		while (l) {
 			if (*c >= ' ' && *c != 0x7f) {
 				if (col >= start && col < start+cols)
 					mvaddch(row, col-start+offset, *c);
@@ -811,7 +840,7 @@ static void draw_mside(int mode, int row, int offset, int start, int cols,
 					if (col >= start && col < start+cols)
 						mvaddch(row, col-start+offset, ' ');
 					col++;
-				} while ((col&7)!= 0);
+				} while ((col&7) != 0);
 			} else {
 				if (col >= start && col < start+cols)
 					mvaddch(row, col-start+offset, '?');
@@ -843,10 +872,10 @@ static void draw_mline(int mode, int row, int start, int cols,
 	 */
 	int lcols, rcols;
 
-	mode |= check_line(pos, fm,fb,fa,m,mode);
+	mode |= check_line(pos, fm, fb, fa, m, mode);
 
-	if ( (mode & (BEFORE|AFTER)) &&
-	     (mode & (ORIG|RESULT))) {
+	if ((mode & (BEFORE|AFTER)) &&
+	    (mode & (ORIG|RESULT))) {
 
 		lcols = (cols-1)/2;
 		rcols = cols - lcols - 1;
@@ -855,13 +884,13 @@ static void draw_mline(int mode, int row, int start, int cols,
 		mvaddch(row, lcols, '|');
 
 		draw_mside(mode&~(BEFORE|AFTER), row, 0, start, lcols,
-			   fm,fb,fa,m, pos, target, colp);
+			   fm, fb, fa, m, pos, target, colp);
 
 		draw_mside(mode&~(ORIG|RESULT), row, lcols+1, start, rcols,
-			   fm,fb,fa,m, pos, 0, NULL);
+			   fm, fb, fa, m, pos, 0, NULL);
 	} else
 		draw_mside(mode, row, 0, start, cols,
-			   fm,fb,fa,m, pos, target, colp);
+			   fm, fb, fa, m, pos, target, colp);
 }
 
 static char *merge_help[] = {
@@ -1042,15 +1071,15 @@ static void merge_window(struct plist *p, FILE *f, int reverse)
 	char *modename = "merge";
 	char **modehelp = merge_help;
 
-	int row,start = 0;
+	int row, start = 0;
 	int trow;
-	int col=0, target=0;
+	int col = 0, target = 0;
 	struct mpos pos;
 	struct mpos tpos, toppos, botpos;
 	struct mpos vpos, tvpos;
 	int botrow = 0;
 	int meta = 0, tmeta;
-	int num= -1, tnum;
+	int num = -1, tnum;
 	char search[80];
 	unsigned int searchlen = 0;
 	int search_notfound = 0;
@@ -1106,14 +1135,15 @@ static void merge_window(struct plist *p, FILE *f, int reverse)
 	pos.p.o = -1; /* offset */
 	pos.p.lineno = 1;
 	pos.state = 0;
-	next_mline(&pos, fm,fb,fa,ci.merger, mode);
+	next_mline(&pos, fm, fb, fa, ci.merger, mode);
 	vpos = pos;
-	while(1) {
+	while (1) {
 		if (refresh == 2) {
 			clear();
 			sprintf(buf, "File: %s%s Mode: %s\n",
-				p->file,reverse?" - reversed":"", modename);
-			(void)attrset(A_BOLD); mvaddstr(0,0,buf);
+				p->file, reverse ? " - reversed" : "", modename);
+			(void)attrset(A_BOLD);
+			mvaddstr(0, 0, buf);
 			clrtoeol();
 			(void)attrset(A_NORMAL);
 			refresh = 1;
@@ -1124,7 +1154,7 @@ static void merge_window(struct plist *p, FILE *f, int reverse)
 
 
 		if (mode == (ORIG|RESULT)) {
-			int cmode = check_line(pos, fm,fb,fa,ci.merger, mode);
+			int cmode = check_line(pos, fm, fb, fa, ci.merger, mode);
 			if (splitrow < 0 && (cmode & (WIGGLED|CONFLICTED))) {
 				splitrow = (rows+1)/2;
 				lastrow = splitrow - 1;
@@ -1164,13 +1194,20 @@ static void merge_window(struct plist *p, FILE *f, int reverse)
 			char *e, e2[7];
 			int i;
 			switch (vpos.p.s) {
-			case 0: e = fm.list[ci.merger[vpos.p.m].a + vpos.p.o].start; break;
-			case 1: e = fb.list[ci.merger[vpos.p.m].b + vpos.p.o].start; break;
-			case 2: e = fa.list[ci.merger[vpos.p.m].c + vpos.p.o].start; break;
+			case 0:
+				e = fm.list[ci.merger[vpos.p.m].a + vpos.p.o].start;
+				break;
+			case 1:
+				e = fb.list[ci.merger[vpos.p.m].b + vpos.p.o].start;
+				break;
+			case 2:
+				e = fa.list[ci.merger[vpos.p.m].c + vpos.p.o].start;
+				break;
 			}
-			for (i=0; i<6; i++) {
+			for (i = 0; i < 6; i++) {
 				e2[i] = e[i];
-				if (e2[i] < 32 || e2[i] >= 127) e2[i] = '?';
+				if (e2[i] < 32 || e2[i] >= 127)
+					e2[i] = '?';
 			}
 			sprintf(b, "st=%d str=%d o=%d m=%d mt=%s(%d,%d,%d) ic=%d  <%.3s>", vpos.state,
 				vpos.p.s, vpos.p.o,
@@ -1197,9 +1234,10 @@ static void merge_window(struct plist *p, FILE *f, int reverse)
 			start -= 8;
 			refresh = 1;
 		}
-		if (start < 0) start = 0;
+		if (start < 0)
+			start = 0;
 	retry:
-		draw_mline(mode, row, start, cols, fm,fb,fa,ci.merger,
+		draw_mline(mode, row, start, cols, fm, fb, fa, ci.merger,
 			   pos, target, &col);
 
 		if (col > cols+start) {
@@ -1210,16 +1248,18 @@ static void merge_window(struct plist *p, FILE *f, int reverse)
 		if (col < start) {
 			start -= 8;
 			refresh = 1;
-			if (start < 0) start = 0;
+			if (start < 0)
+				start = 0;
 			goto retry;
 		}
 		if (refresh) {
 			refresh = 0;
 			tpos = pos;
 
-			for (i=row-1; i>=1 && tpos.p.m >= 0; ) {
-				prev_mline(&tpos, fm,fb,fa,ci.merger, mode);
-				draw_mline(mode, i--, start, cols, fm,fb,fa,ci.merger,
+			for (i = row-1; i >= 1 && tpos.p.m >= 0; ) {
+				prev_mline(&tpos, fm, fb, fa, ci.merger, mode);
+				draw_mline(mode, i--, start, cols,
+					   fm, fb, fa, ci.merger,
 					   tpos, 0, NULL);
 
 			}
@@ -1232,58 +1272,67 @@ static void merge_window(struct plist *p, FILE *f, int reverse)
 			while (i >= 1)
 				blank(i--, 0, cols, a_void);
 			tpos = pos;
-			for (i=row; i<= lastrow && ci.merger[tpos.p.m].type != End; ) {
-				draw_mline(mode, i++, start, cols, fm,fb,fa,ci.merger,
+			for (i = row; i <= lastrow && ci.merger[tpos.p.m].type != End; ) {
+				draw_mline(mode, i++, start, cols,
+					   fm, fb, fa, ci.merger,
 					   tpos, 0, NULL);
-				next_mline(&tpos, fm,fb,fa,ci.merger, mode);
+				next_mline(&tpos, fm, fb, fa, ci.merger, mode);
 			}
 			botpos = tpos; botrow = i;
-			while (i<=lastrow)
+			while (i <= lastrow)
 				blank(i++, 0, cols, a_void);
 		}
-		
+
 		if (splitrow >= 0) {
 			struct mpos spos = pos;
 			int smode = BEFORE|AFTER;
 			int srow = (rows + splitrow)/2;
 			if (visible(smode, ci.merger[spos.p.m].type,
 				    spos.p.s) < 0)
-				prev_mline(&spos, fm,fb,fa,ci.merger, smode);
+				prev_mline(&spos, fm, fb, fa, ci.merger, smode);
 			/* Now hi/lo might be wrong, so lets fix it. */
 			tpos = spos;
 			while (spos.p.m >= 0 && spos.state != 0)
-				prev_mline(&spos, fm,fb,fa,ci.merger, smode);
+				prev_mline(&spos, fm, fb, fa, ci.merger, smode);
 			while (!same_mpos(spos, tpos))
-				next_mline(&spos, fm,fb,fa,ci.merger, smode);
-			
+				next_mline(&spos, fm, fb, fa, ci.merger, smode);
+
 
 			(void)attrset(a_sep);
-			for (i=0; i<cols; i++)
+			for (i = 0; i < cols; i++)
 				mvaddstr(splitrow, i, "-");
 
 			tpos = spos;
-			for (i=srow-1; i>splitrow; i-- ) {
-				prev_mline(&tpos, fm,fb,fa,ci.merger, smode);
-				draw_mline(smode, i, start, cols, fm,fb,fa,ci.merger,
+			for (i = srow-1; i > splitrow; i--) {
+				prev_mline(&tpos, fm, fb, fa, ci.merger, smode);
+				draw_mline(smode, i, start, cols, fm, fb, fa, ci.merger,
 					   tpos, 0, NULL);
 			}
 			while (i > splitrow)
 				blank(i--, 0, cols, a_void);
 			tpos = spos;
-			for (i=srow; i<rows && ci.merger[tpos.p.m].type != End; i++) {
-				draw_mline(smode, i, start, cols, fm, fb,fa,ci.merger,
+			for (i = srow;
+			     i < rows && ci.merger[tpos.p.m].type != End;
+			     i++) {
+				draw_mline(smode, i, start, cols, fm, fb, fa, ci.merger,
 					   tpos, 0, NULL);
-				next_mline(&tpos, fm,fb,fa,ci.merger, smode);
+				next_mline(&tpos, fm, fb, fa, ci.merger, smode);
 			}
 		}
 #define META(c) ((c)|0x1000)
 #define	SEARCH(c) ((c)|0x2000)
-		move(rows,0);
+		move(rows, 0);
 		(void)attrset(A_NORMAL);
-		if (num>=0) { char buf[10]; sprintf(buf, "%d ", num); addstr(buf);}
-		if (meta & META(0)) addstr("ESC...");
+		if (num >= 0) {
+			char buf[10];
+			sprintf(buf, "%d ", num);
+			addstr(buf);
+		}
+		if (meta & META(0))
+			addstr("ESC...");
 		if (meta & SEARCH(0)) {
-			if (searchdir) addstr("Backwards ");
+			if (searchdir)
+				addstr("Backwards ");
 			addstr("Search: ");
 			addstr(search);
 			if (search_notfound)
@@ -1291,7 +1340,7 @@ static void merge_window(struct plist *p, FILE *f, int reverse)
 			search_notfound = 0;
 		}
 		clrtoeol();
-		move(row,col-start);
+		move(row, col-start);
 		c = getch();
 		tmeta = meta; meta = 0;
 		tnum = num; num = -1;
@@ -1305,7 +1354,7 @@ static void merge_window(struct plist *p, FILE *f, int reverse)
 		if (cswitch >= SEARCH(' ') && cswitch <= SEARCH('~'))
 			cswitch = SEARCH(' ');
 
-		switch(cswitch) {
+		switch (cswitch) {
 		case 27: /* escape */
 		case META(27):
 			meta = META(0);
@@ -1315,24 +1364,26 @@ static void merge_window(struct plist *p, FILE *f, int reverse)
 			tpos = pos; row++;
 			do {
 				pos = tpos; row--;
-				prev_mline(&tpos, fm,fb,fa,ci.merger,mode);
+				prev_mline(&tpos, fm, fb, fa, ci.merger, mode);
 			} while (tpos.p.m >= 0);
 			if (row <= 0)
 				row = 0;
 			break;
 		case META('>'): /* end of file */
 		case 'G':
-			if (tnum >=0) goto start;
+			if (tnum >= 0)
+				goto start;
 			tpos = pos; row--;
 			do {
 				pos = tpos; row++;
-				next_mline(&tpos, fm,fb,fa,ci.merger,mode);
+				next_mline(&tpos, fm, fb, fa, ci.merger, mode);
 			} while (ci.merger[tpos.p.m].type != End);
 			if (row >= lastrow)
 				row = lastrow;
 			break;
 		case '0': /* actually '0'...'9' */
-			if (tnum < 0) tnum = 0;
+			if (tnum < 0)
+				tnum = 0;
 			num = tnum*10 + (c-'0');
 			break;
 		case 'q':
@@ -1366,10 +1417,10 @@ static void merge_window(struct plist *p, FILE *f, int reverse)
 			tpos = pos; trow = row;
 			if (searchdir) {
 				trow--;
-				prev_mline(&tpos, fm,fb,fa,ci.merger,mode);
+				prev_mline(&tpos, fm, fb, fa, ci.merger, mode);
 			} else {
 				trow++;
-				next_mline(&tpos, fm,fb,fa,ci.merger,mode);
+				next_mline(&tpos, fm, fb, fa, ci.merger, mode);
 			}
 			goto search_again;
 
@@ -1405,7 +1456,7 @@ static void merge_window(struct plist *p, FILE *f, int reverse)
 		search_again:
 			search_notfound = 1;
 			do {
-				if (mcontains(tpos, fm,fb,fa,ci.merger,mode,search)) {
+				if (mcontains(tpos, fm, fb, fa, ci.merger, mode, search)) {
 					pos = tpos;
 					row = trow;
 					search_notfound = 0;
@@ -1413,10 +1464,10 @@ static void merge_window(struct plist *p, FILE *f, int reverse)
 				}
 				if (searchdir) {
 					trow--;
-					prev_mline(&tpos, fm,fb,fa,ci.merger,mode);
+					prev_mline(&tpos, fm, fb, fa, ci.merger, mode);
 				} else {
 					trow++;
-					next_mline(&tpos, fm,fb,fa,ci.merger,mode);
+					next_mline(&tpos, fm, fb, fa, ci.merger, mode);
 				}
 			} while (tpos.p.m >= 0 && ci.merger[tpos.p.m].type != End);
 
@@ -1444,10 +1495,11 @@ static void merge_window(struct plist *p, FILE *f, int reverse)
 		case 'n':
 		case 'N'-64:
 		case KEY_DOWN:
-			if (tnum < 0) tnum = 1;
+			if (tnum < 0)
+				tnum = 1;
 			for (; tnum > 0 ; tnum--) {
 				tpos = pos;
-				next_mline(&tpos, fm,fb,fa,ci.merger, mode);
+				next_mline(&tpos, fm, fb, fa, ci.merger, mode);
 				if (ci.merger[tpos.p.m].type != End) {
 					pos = tpos;
 					row++;
@@ -1459,12 +1511,12 @@ static void merge_window(struct plist *p, FILE *f, int reverse)
 			tpos = pos; row--;
 			do {
 				pos = tpos; row++;
-				next_mline(&tpos, fm,fb,fa,ci.merger, mode);
+				next_mline(&tpos, fm, fb, fa, ci.merger, mode);
 			} while (pos.state != 0 && ci.merger[tpos.p.m].type != End);
 			tpos = pos; row--;
 			do {
 				pos = tpos; row++;
-				next_mline(&tpos, fm,fb,fa,ci.merger, mode);
+				next_mline(&tpos, fm, fb, fa, ci.merger, mode);
 			} while (pos.state == 0 && ci.merger[tpos.p.m].type != End);
 
 			break;
@@ -1473,12 +1525,12 @@ static void merge_window(struct plist *p, FILE *f, int reverse)
 			tpos = pos; row++;
 			do {
 				pos = tpos; row--;
-				prev_mline(&tpos, fm,fb,fa,ci.merger, mode);
+				prev_mline(&tpos, fm, fb, fa, ci.merger, mode);
 			} while (tpos.state == 0 && tpos.p.m >= 0);
 			tpos = pos; row++;
 			do {
 				pos = tpos; row--;
-				prev_mline(&tpos, fm,fb,fa,ci.merger, mode);
+				prev_mline(&tpos, fm, fb, fa, ci.merger, mode);
 			} while (tpos.state != 0 && tpos.p.m >= 0);
 			break;
 
@@ -1486,10 +1538,11 @@ static void merge_window(struct plist *p, FILE *f, int reverse)
 		case 'p':
 		case 'P'-64:
 		case KEY_UP:
-			if (tnum < 0) tnum = 1;
+			if (tnum < 0)
+				tnum = 1;
 			for (; tnum > 0 ; tnum--) {
 				tpos = pos;
-				prev_mline(&tpos, fm,fb,fa,ci.merger, mode);
+				prev_mline(&tpos, fm, fb, fa, ci.merger, mode);
 				if (tpos.p.m >= 0) {
 					pos = tpos;
 					row--;
@@ -1501,7 +1554,8 @@ static void merge_window(struct plist *p, FILE *f, int reverse)
 		case 'h':
 			/* left */
 			target = col - 1;
-			if (target < 0) target = 0;
+			if (target < 0)
+				target = 0;
 			break;
 		case KEY_RIGHT:
 		case 'l':
@@ -1551,23 +1605,25 @@ static void merge_window(struct plist *p, FILE *f, int reverse)
 			break;
 
 		case 'H':
-			if (start > 0) start--;
+			if (start > 0)
+				start--;
 			target = start + 1;
 			refresh = 1;
 			break;
 		case 'L':
-			if (start < cols) start++;
+			if (start < cols)
+				start++;
 			target = start + 1;
 			refresh = 1;
 			break;
 
 		case '<':
-			prev_melmnt(&tvpos.p, fm,fb,fa,ci.merger);
+			prev_melmnt(&tvpos.p, fm, fb, fa, ci.merger);
 			if (tvpos.p.m >= 0)
 				vpos = tvpos;
 			break;
 		case '>':
-			next_melmnt(&tvpos.p, fm,fb,fa,ci.merger);
+			next_melmnt(&tvpos.p, fm, fb, fa, ci.merger);
 			if (ci.merger[tvpos.p.m].type != End)
 				vpos = tvpos;
 			break;
@@ -1637,19 +1693,21 @@ static struct plist *patch_add_file(struct plist *pl, int *np, char *file,
 		/* leading '/' are bad... */
 		file++;
 
-	if (n==0)
+	if (n == 0)
 		asize = 0;
-	else if (n<=16)
+	else if (n <= 16)
 		asize = 16;
-	else if ((n&(n-1))==0)
+	else if ((n&(n-1)) == 0)
 		asize = n;
 	else
 		asize = n+1; /* not accurate, but not too large */
 	if (asize <= n) {
 		/* need to extend array */
 		struct plist *npl;
-		if (asize < 16) asize = 16;
-		else asize += asize;
+		if (asize < 16)
+			asize = 16;
+		else
+			asize += asize;
 		npl = realloc(pl, asize * sizeof(struct plist));
 		if (!npl) {
 			fprintf(stderr, "malloc failed - skipping %s\n", file);
@@ -1683,25 +1741,28 @@ static struct plist *parse_patch(FILE *f, FILE *of, int *np)
 		/* first, find the start of a patch: "\n+++ "
 		 * grab the file name and scan to the end of a line
 		 */
-		char *target="\n+++ ";
-		char *target2="\n--- ";
+		char *target = "\n+++ ";
+		char *target2 = "\n--- ";
 		char *pos = target;
 		int c;
 		char name[1024];
 		unsigned start, end;
 
-		while (*pos && (c=fgetc(f)) != EOF ) {
-			if (of) fputc(c, of);
+		while (*pos && (c = fgetc(f)) != EOF) {
+			if (of)
+				fputc(c, of);
 			if (c == *pos)
 				pos++;
-			else pos = target;
+			else
+				pos = target;
 		}
 		if (c == EOF)
 			break;
 		assert(c == ' ');
 		/* now read a file name */
 		pos = name;
-		while ((c=fgetc(f)) != EOF && c != '\t' && c != '\n' && c != ' ' &&
+		while ((c = fgetc(f)) != EOF
+		       && c != '\t' && c != '\n' && c != ' ' &&
 		       pos - name < 1023) {
 			*pos++ = c;
 			if (of)
@@ -1710,8 +1771,9 @@ static struct plist *parse_patch(FILE *f, FILE *of, int *np)
 		*pos = 0;
 		if (c == EOF)
 			break;
-		if (of) fputc(c, of);
-		while (c != '\n' && (c=fgetc(f)) != EOF)
+		if (of)
+			fputc(c, of);
+		while (c != '\n' && (c = fgetc(f)) != EOF)
 			if (of)
 				fputc(c, of);
 
@@ -1723,7 +1785,7 @@ static struct plist *parse_patch(FILE *f, FILE *of, int *np)
 		/* now skip to end - "\n--- " */
 		pos = target2+1;
 
-		while (*pos && (c=fgetc(f)) != EOF) {
+		while (*pos && (c = fgetc(f)) != EOF) {
 			if (of)
 				fputc(c, of);
 			if (c == *pos)
@@ -1770,19 +1832,27 @@ static int common_depth(char *a, char *b)
 	 * in common
 	 */
 	int depth = 0;
-	while(1) {
+	while (1) {
 		char *c;
 		int al, bl;
 		c = strchr(a, '/');
-		if (c) al = c-a; else al = strlen(a);
+		if (c)
+			al = c-a;
+		else
+			al = strlen(a);
 		c = strchr(b, '/');
-		if (c) bl = c-b; else bl = strlen(b);
-		if (al == 0 || al != bl || strncmp(a,b,al) != 0)
+		if (c)
+			bl = c-b;
+		else
+			bl = strlen(b);
+		if (al == 0 || al != bl || strncmp(a, b, al) != 0)
 			return depth;
-		a+= al;
-		while (*a=='/') a++;
-		b+= bl;
-		while(*b=='/') b++;
+		a += al;
+		while (*a == '/')
+			a++;
+		b += bl;
+		while (*b == '/')
+			b++;
 
 		depth++;
 	}
@@ -1798,11 +1868,16 @@ static struct plist *add_dir(struct plist *pl, int *np, char *file, char *curr)
 	while (d) {
 		char *c = strchr(file, '/');
 		int l;
-		if (c) l = c-file; else l = strlen(file);
+		if (c)
+			l = c-file;
+		else
+			l = strlen(file);
 		file += l;
 		curr += l;
-		while (*file == '/') file++;
-		while (*curr == '/') curr++;
+		while (*file == '/')
+			file++;
+		while (*curr == '/')
+			curr++;
 		d--;
 	}
 	while (*file) {
@@ -1810,7 +1885,8 @@ static struct plist *add_dir(struct plist *pl, int *np, char *file, char *curr)
 			*curr++ = '/';
 		while (*file && *file != '/')
 			*curr++ = *file++;
-		while (*file == '/') file++;
+		while (*file == '/')
+			file++;
 		*curr = '\0';
 		if (*file)
 			pl = patch_add_file(pl, np, strdup(buf),
@@ -1830,7 +1906,7 @@ static struct plist *sort_patches(struct plist *pl, int *np)
 	qsort(pl, *np, sizeof(struct plist), pl_cmp);
 	curr[0] = 0;
 	n = *np;
-	for (i=0; i<n; i++)
+	for (i = 0; i < n; i++)
 		pl = add_dir(pl, np, pl[i].file, curr);
 
 	qsort(pl, *np, sizeof(struct plist), pl_cmp);
@@ -1840,7 +1916,7 @@ static struct plist *sort_patches(struct plist *pl, int *np)
 	curr[0] = 0;
 	prevnode[0] = -1;
 	prev = "";
-	for (i=0; i<n; i++) {
+	for (i = 0; i < n; i++) {
 		int d = common_depth(prev, pl[i].file);
 		if (d == 0)
 			pl[i].parent = -1;
@@ -1877,7 +1953,7 @@ static int get_strip(char *file)
 		strip++;
 		file = strchr(file, '/');
 		if (file)
-			while(*file == '/')
+			while (*file == '/')
 				file++;
 	}
 	return -1;
@@ -1887,7 +1963,7 @@ static int get_strip(char *file)
 static int set_prefix(struct plist *pl, int n, int strip)
 {
 	int i;
-	for(i=0; i<4 && i<n  && strip < 0; i++)
+	for (i = 0; i < 4 && i < n  && strip < 0; i++)
 		strip = get_strip(pl[i].file);
 
 	if (strip < 0) {
@@ -1895,12 +1971,14 @@ static int set_prefix(struct plist *pl, int n, int strip)
 			Cmd);
 		return 0;
 	}
-	for (i=0; i<n; i++) {
+	for (i = 0; i < n; i++) {
 		char *p = pl[i].file;
 		int j;
-		for (j=0; j<strip; j++) {
-			if (p) p = strchr(p,'/');
-			while (p && *p == '/') p++;
+		for (j = 0; j < strip; j++) {
+			if (p)
+				p = strchr(p, '/');
+			while (p && *p == '/')
+				p++;
 		}
 		if (p == NULL) {
 			fprintf(stderr, "%s: cannot strip %d segments from %s\n",
@@ -1943,7 +2021,7 @@ static void calc_one(struct plist *pl, FILE *f, int reverse)
 			csl1 = pdiff(ff, fp1, pl->chunks);
 		else
 			csl1 = diff(ff, fp1);
-		csl2 = diff(fp1,fp2);
+		csl2 = diff(fp1, fp2);
 		ci = make_merger(ff, fp1, fp2, csl1, csl2, 0, 1);
 		pl->wiggles = ci.wiggles;
 		pl->conflicts = ci.conflicts;
@@ -1964,7 +2042,8 @@ static void calc_one(struct plist *pl, FILE *f, int reverse)
 static int get_prev(int pos, struct plist *pl, int n, int mode)
 {
 	int found = 0;
-	if (pos == -1) return pos;
+	if (pos == -1)
+		return pos;
 	do {
 		if (pl[pos].prev == -1)
 			return pl[pos].parent;
@@ -1989,10 +2068,11 @@ static int get_next(int pos, struct plist *pl, int n, int mode,
 	     FILE *f, int reverse)
 {
 	int found = 0;
-	if (pos == -1) return pos;
+	if (pos == -1)
+		return pos;
 	do {
 		if (pl[pos].open) {
-			if (pos +1 < n)
+			if (pos + 1 < n)
 				pos =  pos+1;
 			else
 				return -1;
@@ -2023,7 +2103,7 @@ static void draw_one(int row, struct plist *pl, FILE *f, int reverse)
 	hdr[0] = 0;
 
 	if (pl == NULL) {
-		move(row,0);
+		move(row, 0);
 		clrtoeol();
 		return;
 	}
@@ -2035,19 +2115,23 @@ static void draw_one(int row, struct plist *pl, FILE *f, int reverse)
 	} else {
 		if (pl->chunks > 99)
 			strcpy(hdr, "XX");
-		else sprintf(hdr, "%2d", pl->chunks);
+		else
+			sprintf(hdr, "%2d", pl->chunks);
 		if (pl->wiggles > 99)
 			strcpy(hdr+2, " XX");
-		else sprintf(hdr+2, " %2d", pl->wiggles);
+		else
+			sprintf(hdr+2, " %2d", pl->wiggles);
 		if (pl->conflicts > 99)
 			strcpy(hdr+5, " XX ");
-		else sprintf(hdr+5, " %2d ", pl->conflicts);
+		else
+			sprintf(hdr+5, " %2d ", pl->conflicts);
 	}
 	if (pl->end)
 		strcpy(hdr+9, "= ");
 	else if (pl->open)
 		strcpy(hdr+9, "+ ");
-	else strcpy(hdr+9, "- ");
+	else
+		strcpy(hdr+9, "- ");
 
 	mvaddstr(row, 0, hdr);
 	mvaddstr(row, 11, pl->file);
@@ -2119,38 +2203,38 @@ static void main_window(struct plist *pl, int n, FILE *f, int reverse)
 	 *         mode
 	 *
 	 */
-	int pos=0; /* position in file */
-	int row=1; /* position on screen */
+	int pos = 0; /* position in file */
+	int row = 1; /* position on screen */
 	int rows = 0; /* size of screen in rows */
 	int cols = 0;
 	int tpos, i;
 	int refresh = 2;
-	int c=0;
+	int c = 0;
 	int mode = 0; /* 0=all, 1= only wiggled, 2=only conflicted */
 
 	term_init();
 	pl = sort_patches(pl, &n);
 
-	while(1) {
+	while (1) {
 		if (refresh == 2) {
 			clear(); (void)attrset(0);
 			attron(A_BOLD);
-			mvaddstr(0,0,"Ch Wi Co Patched Files");
-			move(2,0);
+			mvaddstr(0, 0, "Ch Wi Co Patched Files");
+			move(2, 0);
 			attroff(A_BOLD);
 			refresh = 1;
 		}
-		if (row <1  || row >= rows)
+		if (row < 1  || row >= rows)
 			refresh = 1;
 		if (refresh) {
 			refresh = 0;
 			getmaxyx(stdscr, rows, cols);
-			if (row >= rows +3)
+			if (row >= rows + 3)
 				row = (rows+1)/2;
 			if (row >= rows)
 				row = rows-1;
 			tpos = pos;
-			for (i=row; i>1; i--) {
+			for (i = row; i > 1; i--) {
 				tpos = get_prev(tpos, pl, n, mode);
 				if (tpos == -1) {
 					row = row - i + 1;
@@ -2159,12 +2243,12 @@ static void main_window(struct plist *pl, int n, FILE *f, int reverse)
 			}
 			/* Ok, row and pos could be trustworthy now */
 			tpos = pos;
-			for (i=row; i>=1; i--) {
+			for (i = row; i >= 1; i--) {
 				draw_one(i, &pl[tpos], f, reverse);
 				tpos = get_prev(tpos, pl, n, mode);
 			}
 			tpos = pos;
-			for (i=row+1; i<rows; i++) {
+			for (i = row+1; i < rows; i++) {
 				tpos = get_next(tpos, pl, n, mode, f, reverse);
 				if (tpos >= 0)
 					draw_one(i, &pl[tpos], f, reverse);
@@ -2172,10 +2256,14 @@ static void main_window(struct plist *pl, int n, FILE *f, int reverse)
 					draw_one(i, NULL, f, reverse);
 			}
 		}
-		{char bb[20]; sprintf(bb,"%d", c); mvaddstr(0, 70, bb); clrtoeol();}
+		{char bb[20];
+			sprintf(bb, "%d", c);
+			mvaddstr(0, 70, bb);
+			clrtoeol();
+		}
 		move(row, 9);
 		c = getch();
-		switch(c) {
+		switch (c) {
 		case 'j':
 		case 'n':
 		case 'N':
@@ -2202,26 +2290,32 @@ static void main_window(struct plist *pl, int n, FILE *f, int reverse)
 		case ' ':
 		case 13:
 			if (pl[pos].end == 0) {
-				pl[pos].open = ! pl[pos].open;
+				pl[pos].open = !pl[pos].open;
 				refresh = 1;
 			} else {
 				/* diff_window(&pl[pos], f); */
-				merge_window(&pl[pos],f,reverse);
+				merge_window(&pl[pos], f, reverse);
 				refresh = 2;
 			}
 			break;
 		case 27: /* escape */
-			mvaddstr(0,70,"ESC..."); clrtoeol();
+			mvaddstr(0, 70, "ESC..."); clrtoeol();
 			c = getch();
-			switch(c) {
+			switch (c) {
 			}
 			break;
 		case 'q':
 			return;
 
-		case 'A': mode = 0; refresh = 1; break;
-		case 'W': mode = 1; refresh = 1; break;
-		case 'C': mode = 2; refresh = 1; break;
+		case 'A':
+			mode = 0; refresh = 1;
+			break;
+		case 'W':
+			mode = 1; refresh = 1;
+			break;
+		case 'C':
+			mode = 2; refresh = 1;
+			break;
 
 		case '?':
 			help_window(main_help, NULL);
@@ -2241,7 +2335,9 @@ static void catch(int sig)
 		signal(sig, catch);
 		return;
 	}
-	nocbreak();nl();endwin();
+	nocbreak();
+	nl();
+	endwin();
 	printf("Died on signal %d\n", sig);
 	exit(2);
 }
@@ -2338,7 +2434,7 @@ int vpatch(int argc, char *argv[], int patch, int strip,
 			in = fdopen(dup(0), "r");
 		}
 		/* use stderr for keyboard input */
-		dup2(2,0);
+		dup2(2, 0);
 		if (set_prefix(pl, num_patches, strip) == 0) {
 			fprintf(stderr, "%s: aborting\n", Cmd);
 			exit(2);
@@ -2381,6 +2477,8 @@ int vpatch(int argc, char *argv[], int patch, int strip,
 		break;
 	}
 
-	nocbreak();nl();endwin();
+	nocbreak();
+	nl();
+	endwin();
 	exit(0);
 }

@@ -63,35 +63,40 @@ static int split_internal(char *start, char *end, int type, struct elmnt *list, 
 		if (*cp == '\0' && cp+19 < end && cp[18] == '\n') {
 			/* special word */
 			cp += 20;
-		} else switch(type) {
+		} else switch (type) {
 		case ByLine:
 			while (cp < end && *cp != '\n')
 				cp++;
-			if (cp<end) cp++;
+			if (cp < end)
+				cp++;
 			break;
 		case ByWord:
 		case ApproxWord:
 			if (isalnum(*cp) || *cp == '_') {
-				do cp++;
-				while (cp<end && (isalnum(*cp)  || *cp == '_'));
+				do
+					cp++;
+				while (cp < end && (isalnum(*cp)  || *cp == '_'));
 			} else if (*cp == ' ' || *cp == '\t') {
-				do cp++;
-				while (cp<end && (*cp == ' ' || *cp == '\t'));
+				do
+					cp++;
+				while (cp < end && (*cp == ' ' || *cp == '\t'));
 			} else
 				cp++;
 			break;
 		}
-		if (type != ApproxWord || *start =='\0' ||
+		if (type != ApproxWord || *start == '\0' ||
 		    (isalnum(*start) || *start == '_')) {
 			if (list) {
-				if (reverse) list--;
+				if (reverse)
+					list--;
 				list->start = start;
 				list->len = cp-start;
 				if (*start)
 					list->hash = hash_mem(start, list->len, BITS_PER_LONG);
 				else
 					list->hash = atoi(start+1);
-				if (!reverse) list++;
+				if (!reverse)
+					list++;
 			}
 			cnt++;
 		}

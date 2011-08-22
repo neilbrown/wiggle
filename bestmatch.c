@@ -57,7 +57,7 @@
 
 
 struct v {
-	int x,y;  /* location of start of match */
+	int x, y;  /* location of start of match */
 	int val;  /* value of match from x,y to here */
 	int k;    /* diagonal of last match - if val > 0 */
 	int inmatch; /* 1 if last point was a match */
@@ -130,22 +130,12 @@ static inline int best_val(struct v *v, int max)
 		return max*3-1+v->inmatch+v->val;
 }
 
-#ifdef OLDSTUFF
-#if 0
-#define value(v,kk,xx) (v.l ? (v.l - abs(kk-v.k)): -3)
-#else
-# if 0
-# define value(v,kk,xx) (v.l ? (v.l - (xx-v.x)/2): -3)
-# else
-# define value(v,kk,xx) (v.l ? (v.l - (xx-v.x)*2/v.l): -3)
-# endif
-#endif
-#endif
 struct best {
-	int xlo,ylo,xhi,yhi,val;
+	int xlo, ylo, xhi, yhi, val;
 };
 
-static inline int min(int a, int b) {
+static inline int min(int a, int b)
+{
 	return a < b ? a : b;
 }
 
@@ -165,15 +155,14 @@ static void find_best(struct file *a, struct file *b,
 	v[k].c = -1;
 
 	while (f < ahi+bhi) {
-		int x,y;
+		int x, y;
 
 		f++;
-
 #if 0
 		if (f == ahi+bhi)
-			printf("f %d klo %d khi %d\n", f,klo,khi);
+			printf("f %d klo %d khi %d\n", f, klo, khi);
 #endif
-		for (k=klo+1; k <= khi-1 ; k+=2) {
+		for (k = klo+1; k <= khi-1 ; k += 2) {
 			struct v vnew, vnew2;
 			x = (k+f)/2;
 			y = x-k;
@@ -183,13 +172,15 @@ static void find_best(struct file *a, struct file *b,
 				update_value(&vnew, 0, k, x);
 #if 0
 				printf("new %d,%d %d,%d (%d) ...",
-				       vnew.x, vy(vnew), x, y, value(vnew,k,x));
+				       vnew.x, vy(vnew), x, y, value(vnew, k, x));
 #endif
-				if (vnew.c < 0) abort();
+				if (vnew.c < 0)
+					abort();
 				if (vnew.val > best[vnew.c].val) {
 #if 0
 					printf("New best for %d at %d,%d %d,%d, val %d\n",
-					       vnew.c, vnew.x, vnew.y,x,y,vnew.val);
+					       vnew.c, vnew.x, vnew.y,
+					       x, y, vnew.val);
 #endif
 					best[vnew.c].xlo = vnew.x;
 					best[vnew.c].ylo = vnew.y;
@@ -200,9 +191,9 @@ static void find_best(struct file *a, struct file *b,
 				v[k] = vnew;
 			} else {
 				vnew = v[k+1];
-				update_value(&vnew, -1, k,x);
+				update_value(&vnew, -1, k, x);
 				/* might cross a chunk boundary */
-				if (b->list[y-1].len && b->list[y-1].start[0]==0) {
+				if (b->list[y-1].len && b->list[y-1].start[0] == 0) {
 					vnew.c = atoi(b->list[y-1].start+1);
 					vnew.val = 0;
 				}
@@ -219,8 +210,8 @@ static void find_best(struct file *a, struct file *b,
 		klo--;
 		v[klo] = v[klo+1];
 		x = (klo+f)/2; y = x-klo;
-		update_value(&v[klo],-1,klo,x);
-		if (y<=bhi && b->list[y-1].len && b->list[y-1].start[0]==0) {
+		update_value(&v[klo], -1, klo, x);
+		if (y <= bhi && b->list[y-1].len && b->list[y-1].start[0] == 0) {
 			v[klo].c = atoi(b->list[y-1].start+1);
 #if 0
 			printf("entered %d at %d,%d\n", v[klo].c, x, y);
@@ -229,24 +220,24 @@ static void find_best(struct file *a, struct file *b,
 		}
 		while (klo+2 < (ahi-bhi) &&
 		       (y > bhi ||
-			(best_val(&v[klo], min(ahi-x,bhi-y)) < best[v[klo].c].val &&
-			 best_val(&v[klo+1], min(ahi-x,bhi-y+1)) < best[v[klo+1].c].val
+			(best_val(&v[klo], min(ahi-x, bhi-y)) < best[v[klo].c].val &&
+			 best_val(&v[klo+1], min(ahi-x, bhi-y+1)) < best[v[klo+1].c].val
 				)
 			       )) {
-			klo+=2;
+			klo += 2;
 			x = (klo+f)/2; y = x-klo;
 		}
 
 		khi++;
 		v[khi] = v[khi-1];
 		x = (khi+f)/2; y = x - khi;
-		update_value(&v[khi],-1,khi,x);
-		while(khi-2 > (ahi-bhi) &&
-		      (x > ahi ||
-		       (best_val(&v[khi], min(ahi-x,bhi-y)) < best[v[khi].c].val &&
-			best_val(&v[khi-1], min(ahi-x+1,bhi-y)) < best[v[khi].c].val
-			       )
-			      )) {
+		update_value(&v[khi], -1, khi, x);
+		while (khi-2 > (ahi-bhi) &&
+		       (x > ahi ||
+			(best_val(&v[khi], min(ahi-x, bhi-y)) < best[v[khi].c].val &&
+			 best_val(&v[khi-1], min(ahi-x+1, bhi-y)) < best[v[khi].c].val
+				)
+			       )) {
 			khi -= 2;
 			x = (khi+f)/2; y = x - khi;
 		}
@@ -257,20 +248,23 @@ static void find_best(struct file *a, struct file *b,
 
 static struct csl *csl_join(struct csl *c1, struct csl *c2)
 {
-	struct csl *c,*cd,  *rv;
+	struct csl *c, *cd,  *rv;
 	int cnt;
+
 	if (c1 == NULL)
 		return c2;
 	if (c2 == NULL)
 		return c1;
 
 	cnt = 1; /* the sentinal */
-	for (c=c1; c->len; c++) cnt++;
-	for (c=c2; c->len; c++) cnt++;
+	for (c = c1; c->len; c++)
+		cnt++;
+	for (c = c2; c->len; c++)
+		cnt++;
 	cd = rv = malloc(sizeof(*rv)*cnt);
-	for (c=c1; c->len; c++)
+	for (c = c1; c->len; c++)
 		*cd++ = *c;
-	for (c=c2; c->len; c++)
+	for (c = c2; c->len; c++)
 		*cd++ = *c;
 	cd->len = 0;
 	free(c1);
@@ -284,9 +278,9 @@ static void printword(struct elmnt e)
 	if (e.start[0])
 		printf("%.*s", e.len, e.start);
 	else {
-		int a,b,c;
+		int a, b, c;
 		sscanf(e.start+1, "%d %d %d", &a, &b, &c);
-		printf("*** %d,%d **** %d\n", b,c,a);
+		printf("*** %d,%d **** %d\n", b, c, a);
 	}
 }
 #endif
@@ -303,27 +297,28 @@ static void printword(struct elmnt e)
 
 static inline int is_skipped(struct elmnt e)
 {
-	return !( ends_line(e) ||
-		  isalnum(e.start[0]) ||
-		  e.start[0] == '_');
+	return !(ends_line(e) ||
+		 isalnum(e.start[0]) ||
+		 e.start[0] == '_');
 }
 
 static struct file reduce(struct file orig)
 {
-	int cnt=0;
+	int cnt = 0;
 	int i;
 	struct file rv;
 
-	for (i=0; i<orig.elcnt; i++)
+	for (i = 0; i < orig.elcnt; i++)
 		if (!is_skipped(orig.list[i]))
 			cnt++;
 
-	if (cnt == orig.elcnt) return orig;
+	if (cnt == orig.elcnt)
+		return orig;
 
 	rv.elcnt = cnt;
 	rv.list = malloc(cnt*sizeof(struct elmnt));
 	cnt = 0;
-	for (i=0; i<orig.elcnt; i++)
+	for (i = 0; i < orig.elcnt; i++)
 		if (!is_skipped(orig.list[i]))
 			rv.list[cnt++] = orig.list[i];
 	return rv;
@@ -340,57 +335,63 @@ static void remap(struct best *best, int cnt,
 		  struct file a2, struct file b2)
 {
 	int b;
-	int pa,pb;
-	pa=pb=0;
+	int pa, pb;
 
-	if (a1.elcnt == 0 && a2.elcnt == 0) return;
+	pa = pb = 0;
 
-	for (b=1; b<cnt; b++)
-	   if (best[b].val>0) {
+	if (a1.elcnt == 0 && a2.elcnt == 0)
+		return;
+
+	for (b = 1; b < cnt; b++)
+	    if (best[b].val > 0) {
 #if 0
 		printf("best %d,%d  %d,%d\n",
-		       best[b].xlo,best[b].ylo,
-		       best[b].xhi,best[b].yhi);
+		       best[b].xlo, best[b].ylo,
+		       best[b].xhi, best[b].yhi);
 #endif
-		while (pa<a2.elcnt &&
+		while (pa < a2.elcnt &&
 		       a2.list[pa].start != a1.list[best[b].xlo].start)
 			pa++;
-		if (pa == a2.elcnt) abort();
-		while (pb<b2.elcnt &&
+		if (pa == a2.elcnt)
+			abort();
+		while (pb < b2.elcnt &&
 		       b2.list[pb].start != b1.list[best[b].ylo].start)
 			pb++;
-		if (pb == b2.elcnt) abort();
+		if (pb == b2.elcnt)
+			abort();
 
 		/* pa,pb is the start of this best bit.  Step
 		 * backward over ignored words
 		 */
-		while (pa>0 && is_skipped(a2.list[pa-1]))
+		while (pa > 0 && is_skipped(a2.list[pa-1]))
 			pa--;
-		while (pb>0 && is_skipped(b2.list[pb-1]))
+		while (pb > 0 && is_skipped(b2.list[pb-1]))
 			pb--;
 
 #if 0
-		printf("-> %d,%d\n", pa,pb);
+		printf("-> %d,%d\n", pa, pb);
 #endif
 		best[b].xlo = pa;
 		best[b].ylo = pb;
 
-		while (pa<a2.elcnt &&
+		while (pa < a2.elcnt &&
 		       a2.list[pa-1].start != a1.list[best[b].xhi-1].start)
 			pa++;
-		if (pa == a2.elcnt && best[b].xhi != a1.elcnt) abort();
-		while (pb<b2.elcnt &&
+		if (pa == a2.elcnt && best[b].xhi != a1.elcnt)
+			abort();
+		while (pb < b2.elcnt &&
 		       b2.list[pb-1].start != b1.list[best[b].yhi-1].start)
 			pb++;
-		if (pb == b2.elcnt && best[b].yhi != b1.elcnt) abort();
+		if (pb == b2.elcnt && best[b].yhi != b1.elcnt)
+			abort();
 
 		/* now step pa,pb forward over ignored words */
-		while (pa<a2.elcnt && is_skipped(a2.list[pa]))
+		while (pa < a2.elcnt && is_skipped(a2.list[pa]))
 			pa++;
-		while (pb<b2.elcnt && is_skipped(b2.list[pb]))
+		while (pb < b2.elcnt && is_skipped(b2.list[pb]))
 			pb++;
 #if 0
-		printf("-> %d,%d\n", pa,pb);
+		printf("-> %d,%d\n", pa, pb);
 #endif
 		best[b].xhi = pa;
 		best[b].yhi = pb;
@@ -406,11 +407,13 @@ static void find_best_inorder(struct file *a, struct file *b,
 	 * recurse either side of that
 	 */
 	int i;
-	int bad=0;
-	int bestval, bestpos=0;
-	for (i=bestlo; i<besthi; i++) best[i].val = 0;
-	find_best(a,b,alo,ahi,blo,bhi,best);
-	for (i=bestlo+1; i<besthi; i++)
+	int bad = 0;
+	int bestval, bestpos = 0;
+
+	for (i = bestlo; i < besthi; i++)
+		best[i].val = 0;
+	find_best(a, b, alo, ahi, blo, bhi, best);
+	for (i = bestlo + 1; i < besthi; i++)
 		if (best[i-1].val > 0 &&
 		    best[i].val > 0 &&
 		    best[i-1].xhi >= best[i].xlo)
@@ -419,7 +422,7 @@ static void find_best_inorder(struct file *a, struct file *b,
 	if (!bad)
 		return;
 	bestval = 0;
-	for (i=bestlo; i<besthi; i++)
+	for (i = bestlo; i < besthi; i++)
 		if (best[i].val > bestval) {
 			bestval = best[i].val;
 			bestpos = i;
@@ -427,8 +430,9 @@ static void find_best_inorder(struct file *a, struct file *b,
 	if (bestpos > bestlo) {
 		/* move top down below chunk marker */
 		int y = best[bestpos].ylo;
-		while (b->list[y].start[0]) y--;
-		find_best_inorder(a,b,
+		while (b->list[y].start[0])
+			y--;
+		find_best_inorder(a, b,
 				  alo, best[bestpos].xlo,
 				  blo, y,
 				  best, bestlo, bestpos);
@@ -436,8 +440,9 @@ static void find_best_inorder(struct file *a, struct file *b,
 	if (bestpos < besthi-1) {
 		/* move bottom up to chunk marker */
 		int y = best[bestpos].yhi;
-		while (b->list[y].start[0]) y++;
-		find_best_inorder(a,b,
+		while (b->list[y].start[0])
+			y++;
+		find_best_inorder(a, b,
 				  best[bestpos].xhi, ahi,
 				  y, bhi,
 				  best, bestpos+1, besthi);
@@ -446,7 +451,7 @@ static void find_best_inorder(struct file *a, struct file *b,
 
 struct csl *pdiff(struct file a, struct file b, int chunks)
 {
-	int alo,ahi,blo,bhi;
+	int alo, ahi, blo, bhi;
 	struct csl *csl1, *csl2;
 	struct best *best = malloc(sizeof(struct best)*(chunks+1));
 	int i;
@@ -460,46 +465,53 @@ struct csl *pdiff(struct file a, struct file b, int chunks)
 	bhi = bsmall.elcnt;
 /*	printf("start: %d,%d  %d,%d\n", alo,blo,ahi,bhi); */
 
-	for (i=0; i<chunks+1; i++)
+	for (i = 0; i < chunks+1; i++)
 		best[i].val = 0;
-	find_best_inorder(&asmall,&bsmall,
-		  0, asmall.elcnt, 0, bsmall.elcnt,
-		  best, 1, chunks+1);
+	find_best_inorder(&asmall, &bsmall,
+			  0, asmall.elcnt, 0, bsmall.elcnt,
+			  best, 1, chunks+1);
 #if 0
-/*	for(i=0; i<b.elcnt;i++) { printf("%d: ", i); printword(b.list[i]); }*/
-	for (i=1; i<=chunks; i++) {
-		printf("end: %d,%d  %d,%d\n", best[i].xlo,best[i].ylo,best[i].xhi,best[i].yhi);
-		printf("<"); printword(bsmall.list[best[i].ylo]); printf("><");
-		printword(bsmall.list[best[i].yhi-1]);printf(">\n");
+/*	for(i=0; i < b.elcnt;i++) { printf("%d: ", i); printword(b.list[i]); }*/
+	for (i = 1; i <= chunks; i++) {
+		printf("end: %d,%d  %d,%d\n", best[i].xlo, best[i].ylo,
+		       best[i].xhi, best[i].yhi);
+		printf("<");
+		printword(bsmall.list[best[i].ylo]);
+		printf("><");
+		printword(bsmall.list[best[i].yhi-1]);
+		printf(">\n");
 	}
 #endif
-	remap(best,chunks+1,asmall,bsmall,a,b);
+	remap(best, chunks+1, asmall, bsmall, a, b);
 #if 0
-/*	for(i=0; i<b.elcnt;i++) { printf("%d: ", i); printword(b.list[i]); }*/
-	for (i=1; i<=chunks; i++)
-		printf("end: %d,%d  %d,%d\n", best[i].xlo,best[i].ylo,best[i].xhi,best[i].yhi);
-	printf("small: a %d b %d --- normal: a %d b %d\n", asmall.elcnt, bsmall.elcnt, a.elcnt, b.elcnt);
+/*	for(i=0; i < b.elcnt;i++) { printf("%d: ", i); printword(b.list[i]); }*/
+	for (i = 1; i <= chunks; i++)
+		printf("end: %d,%d  %d,%d\n", best[i].xlo, best[i].ylo,
+		       best[i].xhi, best[i].yhi);
+	printf("small: a %d b %d --- normal: a %d b %d\n", asmall.elcnt,
+	       bsmall.elcnt, a.elcnt, b.elcnt);
 #endif
 
 	csl1 = NULL;
-	for (i=1; i<=chunks; i++)
-		if (best[i].val>0) {
+	for (i = 1; i <= chunks; i++)
+		if (best[i].val > 0) {
 #if 0
 			int j;
 			printf("Before:\n");
-			for (j=best[i].xlo; j<best[i].xhi; j++)
+			for (j = best[i].xlo; j < best[i].xhi; j++)
 				printword(a.list[j]);
 			printf("After:\n");
-			for (j=best[i].ylo; j<best[i].yhi; j++)
+			for (j = best[i].ylo; j < best[i].yhi; j++)
 				printword(b.list[j]);
 #endif
-			csl2 = diff_partial(a,b,
-					    best[i].xlo,best[i].xhi,
-					    best[i].ylo,best[i].yhi);
-			csl1 = csl_join(csl1,csl2);
+			csl2 = diff_partial(a, b,
+					    best[i].xlo, best[i].xhi,
+					    best[i].ylo, best[i].yhi);
+			csl1 = csl_join(csl1, csl2);
 		}
 	if (csl1) {
-		for (csl2=csl1; csl2->len; csl2++);
+		for (csl2 = csl1; csl2->len; csl2++)
+			;
 		csl2->a = a.elcnt;
 		csl2->b = b.elcnt;
 	} else {
