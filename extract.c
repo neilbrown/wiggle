@@ -118,15 +118,15 @@ int split_patch(struct stream f, struct stream *f1, struct stream *f2)
 				buf[0] = 0;
 				chunks++;
 				sprintf(buf+1, "%5d %5d %5d\n", chunks, a, acnt);
-				memcpy(r1.body+r1.len, buf, 19);
-				r1.len += 19;
+				memcpy(r1.body+r1.len, buf, 20);
+				r1.len += 20;
 			}
 			if (state==2 || state == 3) {
 				char buf[20];
 				buf[0] = 0;
 				sprintf(buf+1, "%5d %5d %5d\n", chunks, c, bcnt);
-				memcpy(r2.body+r2.len, buf, 19);
-				r2.len += 19;
+				memcpy(r2.body+r2.len, buf, 20);
+				r2.len += 20;
 			}
 			break;
 		case 1:

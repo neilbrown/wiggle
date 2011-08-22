@@ -49,6 +49,8 @@ static  inline int match(struct elmnt *a, struct elmnt *b)
 
 static inline int ends_line(struct elmnt e)
 {
+	if (e.len == 20 && e.start[0] == 0)
+		return 1;
 	return e.len &&  e.start[e.len-1] == '\n';
 }
 

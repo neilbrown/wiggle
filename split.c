@@ -60,9 +60,9 @@ static int split_internal(char *start, char *end, int type, struct elmnt *list, 
 	while (start < end) {
 		char *cp = start;
 
-		if (*cp == '\0' && cp+16 < end && cp[18] == '\n') {
+		if (*cp == '\0' && cp+19 < end && cp[18] == '\n') {
 			/* special word */
-			cp += 19;
+			cp += 20;
 		} else switch(type) {
 		case ByLine:
 			while (cp < end && *cp != '\n')

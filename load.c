@@ -52,7 +52,7 @@ static void join_streams(struct stream list[], int cnt)
 	for (i=0; i<cnt ; i++)
 		len += list[i].len;
 
-	c = realloc(list[0].body, len);
+	c = realloc(list[0].body, len+1);
 	if (c == NULL)
 		die();
 
@@ -64,6 +64,7 @@ static void join_streams(struct stream list[], int cnt)
 		c += list[i].len;
 		list[i].len = 0;
 	}
+	c[0] = 0;
 }
 
 static struct stream load_regular(int fd)
@@ -73,13 +74,14 @@ static struct stream load_regular(int fd)
 	fstat(fd, &stb);
 
 	s.len = stb.st_size;
-	s.body = malloc(s.len);
+	s.body = malloc(s.len+1);
 	if (s.body) {
 		if (read(fd, s.body, s.len) != s.len) {
 			free(s.body);
 			s.body = NULL;
 		}
 	} else die();
+	s.body[s.len] = 0;
 	return s;
 }
 
