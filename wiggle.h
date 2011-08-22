@@ -94,8 +94,9 @@ struct merge {
 	int al, bl, cl; /* length of ranges */
 	int c1, c2; /* this or next commonsequence */
 	int in_conflict;
-	int lo,hi; /* region of an Unchanged that is not involved in a conflict
-		    * These are distances from start of the section, not
+	int lo,hi; /* region of a Changed or Unchanged that is not involved
+		    * in a conflict.
+		    * These are distances from start of the "before" section, not
 		    * indexes into any file
 		    */
 

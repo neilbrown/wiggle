@@ -86,7 +86,7 @@ static int isolate_conflicts(struct file af, struct file bf, struct file cf,
 	/* A conflict indicates that something is definitely wrong
 	 * and so we need to be a bit suspicious of nearby apparent matches.
 	 * To display a conflict effectively we expands it's effect to
-	 * include any Extraneous, Unmatched or Changed text.
+	 * include any Extraneous, Unmatched, Changed or AlreadyApplied text.
 	 * Also, unless 'words', we need to include any partial lines
 	 * in the Unchanged text that forms the border of a conflict.
 	 *
@@ -120,7 +120,7 @@ static int isolate_conflicts(struct file af, struct file bf, struct file cf,
 					m[j].lo = 0;
 				} else if (m[j].type == Changed) {
 					/* This can no longer form a border */
-					m[j].lo = 0; m[j].hi = -1;
+					m[j].hi = -1;
 					/* We merge these conflicts and stop searching */
 					cnt--;
 					break;
@@ -148,7 +148,7 @@ static int isolate_conflicts(struct file af, struct file bf, struct file cf,
 						/* no start-of-line found... */
 						m[j].hi = -1;
 					if (m[j].hi > 0 && m[j].type == Changed) {
-						/* this can only work if start is also a linke break */
+						/* this can only work if start is also a line break */
 						if ((m[j].a == 0 || ends_line(af.list[m[j].a-1])) &&
 						    (m[j].b == 0 || ends_line(bf.list[m[j].b-1])) &&
 						    (m[j].c == 0 || ends_line(cf.list[m[j].c-1])))
@@ -385,9 +385,11 @@ struct ci print_merge2(FILE *out, struct file *a, struct file *b, struct file *c
 			/* need to print from 'hi' to 'lo' of next
 			 * Unchanged which is < it's hi
 			 */
-			int st = m->hi;
-			if (m->hi <= m->lo)
-				st = 0;
+			int st = 0, st1;
+			if (m->type == Unchanged || m->type == Changed)
+				if (m->hi >= m->lo)
+					st = m->hi;
+			st1 = st;
 
 			if (m->type == Unchanged)
 				printrange(out, a, m->a+m->lo, m->hi - m->lo);
@@ -417,35 +419,35 @@ struct ci print_merge2(FILE *out, struct file *a, struct file *b, struct file *c
 					printrange(out, a, cm->a, cm->lo);
 					break;
 				}
-				printrange(out, a, cm->a+st, cm->al-st);
-				st = 0;
+				printrange(out, a, cm->a+st1, cm->al-st1);
+				st1 = 0;
 			}
 			fputs(words?"|||":"|||||||\n", out);
-			st = m->hi;
+			st1 = st;
 			for (cm=m; cm->in_conflict; cm++) {
 				if ((cm->type == Unchanged || cm->type == Changed) && cm != m && cm->lo < cm->hi) {
 					printrange(out, b, cm->b, cm->lo);
 					break;
 				}
-				printrange(out, b, cm->b+st, cm->bl-st);
-				st = 0;
+				printrange(out, b, cm->b+st1, cm->bl-st1);
+				st1 = 0;
 			}
 			fputs(words?"===":"=======\n", out);
-			st = m->hi;
+			st1 = st;
 			for (cm=m; cm->in_conflict; cm++) {
 				if (cm->type == Unchanged && cm != m && cm->lo < cm->hi) {
 					printrange(out, c, cm->c, cm->lo);
 					break;
 				}
 				if (cm->type == Changed)
-					st = 0; /* All of result of change must be printed */
-				printrange(out, c, cm->c+st, cm->cl-st);
-				st = 0;
+					st1 = 0; /* All of result of change must be printed */
+				printrange(out, c, cm->c+st1, cm->cl-st1);
+				st1 = 0;
 			}
 			fputs(words?"--->>>":">>>>>>>\n", out);
 			m = cm;
-			if (m->in_conflict && m->hi >= m->al) {
-				assert(m->type == Unchanged);
+			if (m->in_conflict && m->type == Unchanged
+			    && m->hi >= m->al) {
 				printrange(out, a, m->a+m->lo, m->hi-m->lo);
 				m++;
 			}
