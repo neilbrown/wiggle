@@ -148,9 +148,9 @@ static inline int min(int a, int b) {
 	return a < b ? a : b;
 }
 
-void find_best(struct file *a, struct file *b,
-	      int alo, int ahi,
-	      int blo, int bhi, struct best *best)
+static void find_best(struct file *a, struct file *b,
+		      int alo, int ahi,
+		      int blo, int bhi, struct best *best)
 {
 	int klo, khi, k;
 	int f;
@@ -254,7 +254,7 @@ void find_best(struct file *a, struct file *b,
 	free(valloc);
 }
 
-struct csl *csl_join(struct csl *c1, struct csl *c2)
+static struct csl *csl_join(struct csl *c1, struct csl *c2)
 {
 	struct csl *c,*cd,  *rv;
 	int cnt;
@@ -306,7 +306,8 @@ static inline int is_skipped(struct elmnt e)
 		  isalnum(e.start[0]) ||
 		  e.start[0] == '_');
 }
-struct file reduce(struct file orig)
+
+static struct file reduce(struct file orig)
 {
 	int cnt=0;
 	int i;
@@ -333,9 +334,9 @@ struct file reduce(struct file orig)
  * When we find the location in a2/b2, we expand to include all
  * immediately surrounding words which were skipped
  */
-void remap(struct best *best, int cnt,
-	   struct file a1, struct file b1,
-	   struct file a2, struct file b2)
+static void remap(struct best *best, int cnt,
+		  struct file a1, struct file b1,
+		  struct file a2, struct file b2)
 {
 	int b;
 	int pa,pb;

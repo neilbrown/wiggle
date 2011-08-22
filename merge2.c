@@ -55,8 +55,8 @@ static inline void assert(int a)
 	if (!a) abort();
 }
 
-int check_alreadyapplied(struct file af, struct file cf,
-			  struct merge *m)
+static int check_alreadyapplied(struct file af, struct file cf,
+				struct merge *m)
 {
 	int i;
 	if (m->al != m->cl)
@@ -79,9 +79,9 @@ int check_alreadyapplied(struct file af, struct file cf,
 	return 1;
 }
 
-inline int isolate_conflicts(struct file af, struct file bf, struct file cf,
-			      struct csl *csl1, struct csl *csl2, int words,
-			      struct merge *m)
+static int isolate_conflicts(struct file af, struct file bf, struct file cf,
+			     struct csl *csl1, struct csl *csl2, int words,
+			     struct merge *m)
 {
 	/* A conflict indicates that something is definitely wrong
 	 * and so we need to be a bit suspicious of nearby apparent matches.
@@ -341,7 +341,7 @@ struct ci make_merger(struct file af, struct file bf, struct file cf,
 	return rv;
 }
 
-void printrange(FILE *out, struct file *f, int start, int len)
+static void printrange(FILE *out, struct file *f, int start, int len)
 {
 	while (len> 0) {
 		printword(out, f->list[start]);

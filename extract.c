@@ -32,7 +32,7 @@
 #include	<malloc.h>
 #include	<stdlib.h>
 
-void skip_eol(char **cp, char *end)
+static void skip_eol(char **cp, char *end)
 {
 	char *c = *cp;
 	while (c < end && *c != '\n')
@@ -41,7 +41,7 @@ void skip_eol(char **cp, char *end)
 	*cp = c;
 }
 
-void copyline(struct stream *s, char **cp, char *end)
+static void copyline(struct stream *s, char **cp, char *end)
 {
 	char *from = *cp;
 	char *to = s->body+s->len;

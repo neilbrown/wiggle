@@ -144,6 +144,7 @@ extern char HelpDiff[];
 extern char HelpMerge[];
 extern char HelpBrowse[];
 
+extern void cleanlist(struct file a, struct file b, struct csl *list);
 
 #define	ByLine	0
 #define	ByWord	1

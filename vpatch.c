@@ -105,7 +105,7 @@ char *help_help[] = {
 	NULL
 };
 
-void help_window(char *page1[], char *page2[])
+static void help_window(char *page1[], char *page2[])
 {
 	int rows, cols;
 	int top, left;
@@ -236,7 +236,7 @@ void help_window(char *page1[], char *page2[])
 }
 
 
-char *typenames[] = {
+static char *typenames[] = {
 	[End] = "End",
 	[Unmatched] = "Unmatched",
 	[Unchanged] = "Unchanged",
@@ -321,7 +321,7 @@ struct mpos {
 };
 
 /* used for checking location during search */
-int same_mpos(struct mpos a, struct mpos b)
+static int same_mpos(struct mpos a, struct mpos b)
 {
 	return a.p.m == b.p.m &&
 		a.p.s == b.p.s &&
@@ -334,7 +334,7 @@ int same_mpos(struct mpos a, struct mpos b)
  * original, is meaningful.  This is used to avoid walking down
  * pointless paths.
  */
-int stream_valid(int s, enum mergetype type)
+static int stream_valid(int s, enum mergetype type)
 {
 	switch(type) {
 	case End: return 1;
@@ -354,9 +354,9 @@ int stream_valid(int s, enum mergetype type)
  * This walks the merges in sequence, and the streams within
  * each merge.
  */
-struct elmnt next_melmnt(struct mp *pos,
-			 struct file fm, struct file fb, struct file fa,
-			 struct merge *m)
+static struct elmnt next_melmnt(struct mp *pos,
+				struct file fm, struct file fb, struct file fa,
+				struct merge *m)
 {
 	pos->o++;
 	while(1) {
@@ -401,9 +401,9 @@ struct elmnt next_melmnt(struct mp *pos,
 }
 
 /* step current position.p backwards */
-struct elmnt prev_melmnt(struct mp *pos,
-			 struct file fm, struct file fb, struct file fa,
-			 struct merge *m)
+static struct elmnt prev_melmnt(struct mp *pos,
+				struct file fm, struct file fb, struct file fa,
+				struct merge *m)
 {
 	if (pos->s == 0) {
 		if (ends_mline(fm.list[m[pos->m].a + pos->o]))
@@ -447,7 +447,7 @@ struct elmnt prev_melmnt(struct mp *pos,
  * visible in this mode, but also chooses which colour/highlight to use
  * to display it.
  */
-int visible(int mode, enum mergetype type, int stream)
+static int visible(int mode, enum mergetype type, int stream)
 {
 	if (mode == 0) return -1;
 	/* mode can be any combination of ORIG RESULT BEFORE AFTER */
@@ -519,8 +519,9 @@ int visible(int mode, enum mergetype type, int stream)
  *  WIGGLED
  *  CONFLICTED
  */
-int check_line(struct mpos pos, struct file fm, struct file fb, struct file fa,
-	       struct merge *m, int mode)
+static int check_line(struct mpos pos, struct file fm, struct file fb,
+		      struct file fa,
+		      struct merge *m, int mode)
 {
 	int rv = 0;
 	struct elmnt e;
@@ -546,8 +547,9 @@ int check_line(struct mpos pos, struct file fm, struct file fb, struct file fa,
 	return rv;
 }
 
-void next_mline(struct mpos *pos, struct file fm, struct file fb, struct file fa,
-	      struct merge *m, int mode)
+static void next_mline(struct mpos *pos, struct file fm, struct file fb,
+		       struct file fa,
+		       struct merge *m, int mode)
 {
 	int mask;
 	do {
@@ -592,8 +594,9 @@ void next_mline(struct mpos *pos, struct file fm, struct file fb, struct file fa
 
 }
 
-void prev_mline(struct mpos *pos, struct file fm, struct file fb, struct file fa,
-		struct merge *m, int mode)
+static void prev_mline(struct mpos *pos, struct file fm, struct file fb,
+		       struct file fa,
+		       struct merge *m, int mode)
 {
 	int mask;
 	do {
@@ -640,7 +643,7 @@ void prev_mline(struct mpos *pos, struct file fm, struct file fb, struct file fa
 }
 
 /* blank a whole row of display */
-void blank(int row, int start, int cols, int attr)
+static void blank(int row, int start, int cols, int attr)
 {
 	(void)attrset(attr);
 	move(row,start);
@@ -650,9 +653,10 @@ void blank(int row, int start, int cols, int attr)
 
 /* search of a string on one display line - just report if found, not where */
 
-int mcontains(struct mpos pos,
-	      struct file fm, struct file fb, struct file fa, struct merge *m,
-	      int mode, char *search)
+static int mcontains(struct mpos pos,
+		     struct file fm, struct file fb, struct file fa,
+		     struct merge *m,
+		     int mode, char *search)
 {
 	/* See if any of the files, between start of this line and here,
 	 * contain the search string
@@ -710,10 +714,11 @@ int mcontains(struct mpos pos,
  * It is one of ORIG RESULT BEFORE AFTER or ORIG|RESULT or BEFORE|AFTER
  * It may also have WIGGLED or CONFLICTED ored in
  */
-void draw_mside(int mode, int row, int offset, int start, int cols,
-		struct file fm, struct file fb, struct file fa, struct merge *m,
-		struct mpos pos,
-		int target, int *colp)
+static void draw_mside(int mode, int row, int offset, int start, int cols,
+		       struct file fm, struct file fb, struct file fa,
+		       struct merge *m,
+		       struct mpos pos,
+		       int target, int *colp)
 {
 	struct elmnt e;
 	int col = 0;
@@ -821,11 +826,11 @@ void draw_mside(int mode, int row, int offset, int start, int cols,
 	}
 }
 
-void draw_mline(int mode, int row, int start, int cols,
-		struct file fm, struct file fb, struct file fa,
-		struct merge *m,
-		struct mpos pos,
-		int target, int *colp)
+static void draw_mline(int mode, int row, int start, int cols,
+		       struct file fm, struct file fb, struct file fa,
+		       struct merge *m,
+		       struct mpos pos,
+		       int target, int *colp)
 {
 	/*
 	 * Draw the left and right images of this line
@@ -855,9 +860,7 @@ void draw_mline(int mode, int row, int start, int cols,
 			   fm,fb,fa,m, pos, target, colp);
 }
 
-extern void cleanlist(struct file a, struct file b, struct csl *list);
-
-char *merge_help[] = {
+static char *merge_help[] = {
 	"This view shows a the merge of the patch with the",
 	"original file.  It is like a full-context diff showing",
 	"removed lines with a '-' prefix and added lines with a",
@@ -876,7 +879,7 @@ char *merge_help[] = {
 	"why there was a conflict",
 	NULL
 };
-char *diff_help[] = {
+static char *diff_help[] = {
 	"This is the 'diff' or 'patch' view.  It shows",
 	"only the patch that is being applied without the",
 	"original to which it is being applied.",
@@ -885,14 +888,14 @@ char *diff_help[] = {
 	"original.",
 	NULL
 };
-char *orig_help[] = {
+static char *orig_help[] = {
 	"This is the 'original' view which simple shows",
 	"the original file before applying the patch.",
 	"Sections of code that would be changed by the patch",
 	"are highlighted in red.",
 	NULL
 };
-char *result_help[] = {
+static char *result_help[] = {
 	"This is the 'result' view which show just the",
 	"result of applying the patch.  When a conflict",
 	"occurred this view does not show the full conflict",
@@ -901,7 +904,7 @@ char *result_help[] = {
 	"views.",
 	NULL
 };
-char *before_help[] = {
+static char *before_help[] = {
 	"This view shows the 'before' section of a patch.",
 	"It allows the expected match text to be seen uncluttered",
 	"by text that is meant to replaced it."
@@ -909,7 +912,7 @@ char *before_help[] = {
 	"removed by the patch",
 	NULL
 };
-char *after_help[] = {
+static char *after_help[] = {
 	"This view shows the 'after' section of a patch.",
 	"It allows the intended result to be seen uncluttered",
 	"by text that was meant to be matched and replaced."
@@ -918,7 +921,7 @@ char *after_help[] = {
 	"part of the patch",
 	NULL
 };
-char *sidebyside_help[] = {
+static char *sidebyside_help[] = {
 	"This is the Side By Side view of a patched file.",
 	"The left side shows the original and the result.",
 	"The right side shows the patch which was applied",
@@ -930,7 +933,7 @@ char *sidebyside_help[] = {
 	"yellow family (depending on your terminal window).",
 	NULL
 };
-char *merge_window_help[] = {
+static char *merge_window_help[] = {
 	"  Highlight Colours and Keystroke commands",
 	"",
 	"In all different views of a merge, highlight colours",
@@ -987,7 +990,8 @@ char *merge_window_help[] = {
 	" |                   display side-by-side view",
 	NULL
 };
-void merge_window(struct plist *p, FILE *f, int reverse)
+
+static void merge_window(struct plist *p, FILE *f, int reverse)
 {
 	/* display the merge in two side-by-side
 	 * panes.
@@ -1585,8 +1589,8 @@ void merge_window(struct plist *p, FILE *f, int reverse)
 	}
 }
 
-void show_merge(char *origname, FILE *patch, int reverse, int is_merge,
-		char *before, char *after)
+static void show_merge(char *origname, FILE *patch, int reverse,
+		       int is_merge, char *before, char *after)
 {
 	struct plist p;
 
@@ -1605,8 +1609,8 @@ void show_merge(char *origname, FILE *patch, int reverse, int is_merge,
 	merge_window(&p, patch, reverse);
 }
 
-struct plist *patch_add_file(struct plist *pl, int *np, char *file,
-	       unsigned int start, unsigned int end)
+static struct plist *patch_add_file(struct plist *pl, int *np, char *file,
+				    unsigned int start, unsigned int end)
 {
 	/* size of pl is 0, 16, n^2 */
 	int n = *np;
@@ -1648,7 +1652,7 @@ struct plist *patch_add_file(struct plist *pl, int *np, char *file,
 	return pl;
 }
 
-struct plist *parse_patch(FILE *f, FILE *of, int *np)
+static struct plist *parse_patch(FILE *f, FILE *of, int *np)
 {
 	/* read a multi-file patch from 'f' and record relevant
 	 * details in a plist.
@@ -1736,15 +1740,14 @@ static struct stream load_segment(FILE *f,
 	return s;
 }
 
-
-int pl_cmp(const void *av, const void *bv)
+static int pl_cmp(const void *av, const void *bv)
 {
 	const struct plist *a = av;
 	const struct plist *b = bv;
 	return strcmp(a->file, b->file);
 }
 
-int common_depth(char *a, char *b)
+static int common_depth(char *a, char *b)
 {
 	/* find number of path segments that these two have
 	 * in common
@@ -1768,7 +1771,7 @@ int common_depth(char *a, char *b)
 	}
 }
 
-struct plist *add_dir(struct plist *pl, int *np, char *file, char *curr)
+static struct plist *add_dir(struct plist *pl, int *np, char *file, char *curr)
 {
 	/* any parent of file that is not a parent of curr
 	 * needs to be added to pl
@@ -1799,7 +1802,7 @@ struct plist *add_dir(struct plist *pl, int *np, char *file, char *curr)
 	return pl;
 }
 
-struct plist *sort_patches(struct plist *pl, int *np)
+static struct plist *sort_patches(struct plist *pl, int *np)
 {
 	/* sort the patches, add directory names, and re-sort */
 	char curr[1024];
@@ -1843,7 +1846,7 @@ struct plist *sort_patches(struct plist *pl, int *np)
  * paths to find them from current directory.  This is
  * used to guess correct '-p' value.
  */
-int get_strip(char *file)
+static int get_strip(char *file)
 {
 	int fd;
 	int strip = 0;
@@ -1864,7 +1867,7 @@ int get_strip(char *file)
 
 }
 
-int set_prefix(struct plist *pl, int n, int strip)
+static int set_prefix(struct plist *pl, int n, int strip)
 {
 	int i;
 	for(i=0; i<4 && i<n  && strip < 0; i++)
@@ -1892,7 +1895,7 @@ int set_prefix(struct plist *pl, int n, int strip)
 	return 1;
 }
 
-void calc_one(struct plist *pl, FILE *f, int reverse)
+static void calc_one(struct plist *pl, FILE *f, int reverse)
 {
 	struct stream s1, s2;
 	struct stream s = load_segment(f, pl->start, pl->end);
@@ -1941,7 +1944,7 @@ void calc_one(struct plist *pl, FILE *f, int reverse)
 	pl->calced = 1;
 }
 
-int get_prev(int pos, struct plist *pl, int n, int mode)
+static int get_prev(int pos, struct plist *pl, int n, int mode)
 {
 	int found = 0;
 	if (pos == -1) return pos;
@@ -1965,7 +1968,7 @@ int get_prev(int pos, struct plist *pl, int n, int mode)
 	return pos;
 }
 
-int get_next(int pos, struct plist *pl, int n, int mode,
+static int get_next(int pos, struct plist *pl, int n, int mode,
 	     FILE *f, int reverse)
 {
 	int found = 0;
@@ -1997,8 +2000,7 @@ int get_next(int pos, struct plist *pl, int n, int mode,
 	return pos;
 }
 
-
-void draw_one(int row, struct plist *pl, FILE *f, int reverse)
+static void draw_one(int row, struct plist *pl, FILE *f, int reverse)
 {
 	char hdr[12];
 	hdr[0] = 0;
@@ -2035,7 +2037,7 @@ void draw_one(int row, struct plist *pl, FILE *f, int reverse)
 	clrtoeol();
 }
 
-char *main_help[] = {
+static char *main_help[] = {
 	"   You are using the \"browse\" mode of wiggle.",
 	"This page shows a list of files in a patch together with",
 	"the directories that contain them.",
@@ -2066,7 +2068,8 @@ char *main_help[] = {
 	"  C          only list files with a conflict",
 	NULL
 };
-void main_window(struct plist *pl, int n, FILE *f, int reverse)
+
+static void main_window(struct plist *pl, int n, FILE *f, int reverse)
 {
 	/* The main window lists all files together with summary information:
 	 * number of chunks, number of wiggles, number of conflicts.
@@ -2215,9 +2218,7 @@ void main_window(struct plist *pl, int n, FILE *f, int reverse)
 	}
 }
 
-
-
-void catch(int sig)
+static void catch(int sig)
 {
 	if (sig == SIGINT) {
 		signal(sig, catch);
@@ -2321,6 +2322,10 @@ int vpatch(int argc, char *argv[], int patch, int strip,
 		}
 		/* use stderr for keyboard input */
 		dup2(2,0);
+		if (set_prefix(pl, num_patches, strip) == 0) {
+			fprintf(stderr, "%s: aborting\n", Cmd);
+			exit(2);
+		}
 		main_window(pl, num_patches, in, reverse);
 		break;
 
@@ -2332,6 +2337,10 @@ int vpatch(int argc, char *argv[], int patch, int strip,
 		}
 		if (patch) {
 			pl = parse_patch(f, NULL, &num_patches);
+			if (set_prefix(pl, num_patches, strip) == 0) {
+				fprintf(stderr, "%s: aborting\n", Cmd);
+				exit(2);
+			}
 			main_window(pl, num_patches, f, reverse);
 		} else if (strlen(argv[0]) > 4 &&
 			 strcmp(argv[0]+strlen(argv[0])-4, ".rej") == 0) {

@@ -110,10 +110,11 @@ static void printsep(struct elmnt e1, struct elmnt e2)
 }
 
 
+#if 0
 /* Remove any entries from the common-sublist that are
  * just spaces, tabs, or newlines
  */
-void cleanlist(struct file a, struct file b, struct csl *list)
+static void cleanlist(struct file a, struct file b, struct csl *list)
 {
 	struct csl *new = list;
 
@@ -136,6 +137,7 @@ void cleanlist(struct file a, struct file b, struct csl *list)
 	}
 	*new = *list;
 }
+#endif
 
 int main(int argc, char *argv[])
 {

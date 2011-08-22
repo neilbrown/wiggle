@@ -523,7 +523,7 @@ static void print_merger(FILE *out, struct file *a, struct file *c,
 	}
 }
 
-static int inline at_sol(struct file *f, int i)
+static inline int at_sol(struct file *f, int i)
 {
 	return i == 0 || i == f->elcnt ||
 		ends_line(f->list[i-1]);
