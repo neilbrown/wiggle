@@ -139,7 +139,8 @@ int split_patch(struct stream f, struct stream *f1, struct stream *f2)
 				if (acnt == 0)
 					state = 0;
 			} else {
-				fprintf(stderr, "wiggle: bad context patch at line %d\n", lineno);
+				fprintf(stderr, "%s: bad context patch at line %d\n",
+					Cmd, lineno);
 				return 0;
 			}
 			break;
@@ -152,7 +153,8 @@ int split_patch(struct stream f, struct stream *f1, struct stream *f2)
 				if (bcnt == 0)
 					state = 0;
 			} else {
-				fprintf(stderr, "wiggle: bad context patch/2 at line %d\n", lineno);
+				fprintf(stderr, "%s: bad context patch/2 at line %d\n",
+					Cmd, lineno);
 				return 0;
 			}
 			break;
@@ -173,7 +175,8 @@ int split_patch(struct stream f, struct stream *f1, struct stream *f2)
 				copyline(&r2, &cp, end);
 				bcnt--;
 			} else {
-				fprintf(stderr, "wiggle: bad unified patch at line %d\n", lineno);
+				fprintf(stderr, "%s: bad unified patch at line %d\n",
+					Cmd, lineno);
 				return 0;
 			}
 			if (acnt <= 0 && bcnt <= 0)

@@ -87,7 +87,7 @@ char *Cmd = "wiggle";
 
 void die()
 {
-	fprintf(stderr, "wiggle: fatal error\n");
+	fprintf(stderr, "%s: fatal error\n", Cmd);
 	abort();
 	exit(3);
 }
@@ -219,8 +219,8 @@ int main(int argc, char *argv[])
 				continue;
 			}
 			fprintf(stderr,
-				"wiggle: mode is '%c' - cannot set to '%c'\n",
-				mode, opt);
+				"%s: mode is '%c' - cannot set to '%c'\n",
+				Cmd, mode, opt);
 			exit(2);
 
 		case 'w':
@@ -230,7 +230,7 @@ int main(int argc, char *argv[])
 				continue;
 			}
 			fprintf(stderr,
-				"wiggle: cannot select both words and lines.\n");
+				"%s: cannot select both words and lines.\n", Cmd);
 			exit(2);
 
 		case 'r':
@@ -252,7 +252,7 @@ int main(int argc, char *argv[])
 				continue;
 			}
 			fprintf(stderr,
-				"wiggle: can only select one of -1, -2, -3\n");
+				"%s: can only select one of -1, -2, -3\n", Cmd);
 			exit(2);
 
 		case 'p': /* 'patch' or 'strip' */
@@ -280,34 +280,36 @@ int main(int argc, char *argv[])
 
 	if (obj && mode == 'x') {
 		fprintf(stderr,
-			"wiggle: cannot specify --line or --word with --extract\n");
+			"%s: cannot specify --line or --word with --extract\n",
+			Cmd);
 		exit(2);
 	}
 	if (mode != 'm' && !obj)
 		obj = 'w';
 	if (replace && mode != 'm') {
 		fprintf(stderr,
-			"wiggle: --replace only allowed with --merge\n");
+			"%s: --replace only allowed with --merge\n", Cmd);
 		exit(2);
 	}
 	if (mode == 'x' && !which) {
 		fprintf(stderr,
-			"wiggle: must specify -1, -2 or -3 with --extract\n");
+			"%s: must specify -1, -2 or -3 with --extract\n", Cmd);
 		exit(2);
 	}
 	if (mode != 'x' && mode != 'd' && which) {
 		fprintf(stderr,
-			"wiggle: -1, -2 or -3 only allowed with --extract or --diff\n");
+			"%s: -1, -2 or -3 only allowed with --extract or --diff\n",
+			Cmd);
 		exit(2);
 	}
 	if (ispatch && (mode != 'x' && mode != 'd')) {
 		fprintf(stderr,
-			"wiggle: --patch only allowed with --extract or --diff\n");
+			"%s: --patch only allowed with --extract or --diff\n", Cmd);
 		exit(2);
 	}
 	if (ispatch && which == '3') {
 		fprintf(stderr,
-			"wiggle: cannot extract -3 from a patch.\n");
+			"%s: cannot extract -3 from a patch.\n", Cmd);
 		exit(2);
 	}
 
@@ -318,18 +320,18 @@ int main(int argc, char *argv[])
 		 */
 		if (optind == argc) {
 			fprintf(stderr,
-				"wiggle: no file given for --extract\n");
+				"%s: no file given for --extract\n", Cmd);
 			exit(2);
 		}
 		if (optind < argc-1) {
 			fprintf(stderr,
-				"wiggle: only give one file for --extract\n");
+				"%s: only give one file for --extract\n", Cmd);
 			exit(2);
 		}
 		f = load_file(argv[optind]);
 		if (f.body == NULL) {
 			fprintf(stderr,
-				"wiggle: cannot load file '%s' - %s\n",
+				"%s: cannot load file '%s' - %s\n", Cmd,
 				argv[optind], strerror(errno));
 			exit(2);
 		}
@@ -339,14 +341,14 @@ int main(int argc, char *argv[])
 		else {
 			if (!split_merge(f, &flist[0], &flist[1], &flist[2])) {
 				fprintf(stderr,
-					"wiggle: merge file %s looks bad.\n",
+					"%s: merge file %s looks bad.\n", Cmd,
 					argv[optind]);
 				exit(2);
 			}
 		}
 		if (flist[which-'1'].body == NULL) {
 			fprintf(stderr,
-				"wiggle: %s has no -%c component.\n",
+				"%s: %s has no -%c component.\n", Cmd,
 				argv[optind], which);
 			exit(2);
 		} else {
@@ -361,13 +363,13 @@ int main(int argc, char *argv[])
 		/* create a diff (line or char) of two streams */
 		switch (argc-optind) {
 		case 0:
-			fprintf(stderr, "wiggle: no file given for --diff\n");
+			fprintf(stderr, "%s: no file given for --diff\n", Cmd);
 			exit(2);
 		case 1:
 			f = load_file(argv[optind]);
 			if (f.body == NULL) {
 				fprintf(stderr,
-					"wiggle: cannot load file '%s' - %s\n",
+					"%s: cannot load file '%s' - %s\n", Cmd,
 					argv[optind], strerror(errno));
 				exit(2);
 			}
@@ -375,7 +377,7 @@ int main(int argc, char *argv[])
 				split_patch(f, &flist[0], &flist[1]);
 			if (!flist[0].body || !flist[1].body) {
 				fprintf(stderr,
-					"wiggle: couldn't parse patch %s\n",
+					"%s: couldn't parse patch %s\n", Cmd,
 					argv[optind]);
 				exit(2);
 			}
@@ -384,7 +386,7 @@ int main(int argc, char *argv[])
 			flist[0] = load_file(argv[optind]);
 			if (flist[0].body == NULL) {
 				fprintf(stderr,
-					"wiggle: cannot load file '%s' - %s\n",
+					"%s: cannot load file '%s' - %s\n", Cmd,
 					argv[optind], strerror(errno));
 				exit(2);
 			}
@@ -392,8 +394,8 @@ int main(int argc, char *argv[])
 				f = load_file(argv[optind+1]);
 				if (f.body == NULL) {
 					fprintf(stderr,
-						"wiggle: cannot load patch"
-						" '%s' - %s\n",
+						"%s: cannot load patch"
+						" '%s' - %s\n", Cmd,
 						argv[optind], strerror(errno));
 					exit(2);
 				}
@@ -410,15 +412,15 @@ int main(int argc, char *argv[])
 				flist[1] = load_file(argv[optind+1]);
 			if (flist[1].body == NULL) {
 				fprintf(stderr,
-					"wiggle: cannot load file"
-					" '%s' - %s\n",
+					"%s: cannot load file"
+					" '%s' - %s\n", Cmd,
 					argv[optind+1], strerror(errno));
 				exit(2);
 			}
 			break;
 		default:
 			fprintf(stderr,
-				"wiggle: too many files given for --diff\n");
+				"%s: too many files given for --diff\n", Cmd);
 			exit(2);
 		}
 		if (reverse) {
@@ -610,7 +612,7 @@ int main(int argc, char *argv[])
 		 */
 		switch (argc-optind) {
 		case 0:
-			fprintf(stderr, "wiggle: no files given for --merge\n");
+			fprintf(stderr, "%s: no files given for --merge\n", Cmd);
 			exit(2);
 		case 3:
 		case 2:
@@ -618,21 +620,24 @@ int main(int argc, char *argv[])
 			for (i = 0; i < argc-optind; i++) {
 				flist[i] = load_file(argv[optind+i]);
 				if (flist[i].body == NULL) {
-					fprintf(stderr, "wiggle: cannot load file '%s' - %s\n",
+					fprintf(stderr, "%s: cannot load file '%s' - %s\n",
+						Cmd,
 						argv[optind+i], strerror(errno));
 					exit(2);
 				}
 			}
 			break;
 		default:
-			fprintf(stderr, "wiggle: too many files given for --merge\n");
+			fprintf(stderr, "%s: too many files given for --merge\n",
+				Cmd);
 			exit(2);
 		}
 		switch (argc-optind) {
 		case 1: /* a merge file */
 			f = flist[0];
 			if (!split_merge(f, &flist[0], &flist[1], &flist[2])) {
-				fprintf(stderr, "wiggle: merge file %s looks bad.\n",
+				fprintf(stderr, "%s: merge file %s looks bad.\n",
+					Cmd,
 					argv[optind]);
 				exit(2);
 			}
@@ -652,7 +657,7 @@ int main(int argc, char *argv[])
 
 		for (i = 0; i < 3; i++) {
 			if (flist[i].body == NULL) {
-				fprintf(stderr, "wiggle: file %d missing\n", i);
+				fprintf(stderr, "%s: file %d missing\n", Cmd, i);
 				exit(2);
 			}
 		}
@@ -669,7 +674,8 @@ int main(int argc, char *argv[])
 			strcat(orignew, ".porig");
 			if (open(orignew, O_RDONLY) >= 0 ||
 			    errno != ENOENT) {
-				fprintf(stderr, "wiggle: %s already exists\n",
+				fprintf(stderr, "%s: %s already exists\n",
+					Cmd,
 					orignew);
 				exit(2);
 			}
@@ -677,7 +683,8 @@ int main(int argc, char *argv[])
 			fd = mkstemp(replacename);
 			if (fd == -1) {
 				fprintf(stderr,
-					"wiggle: could not create temporary file for %s\n",
+					"%s: could not create temporary file for %s\n",
+					Cmd,
 					replacename);
 				exit(2);
 			}
@@ -728,7 +735,9 @@ int main(int argc, char *argv[])
 			    rename(replacename, argv[optind]) == 0)
 				/* all ok */;
 			else {
-				fprintf(stderr, "wiggle: failed to move new file into place.\n");
+				fprintf(stderr,
+					"%s: failed to move new file into place.\n",
+					Cmd);
 				exit(2);
 			}
 		}

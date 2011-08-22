@@ -2416,7 +2416,7 @@ int vpatch(int argc, char *argv[], int patch, int strip,
 
 	switch (argc) {
 	default:
-		fprintf(stderr, "wiggle: too many file names given.\n");
+		fprintf(stderr, "%s: too many file names given.\n", Cmd);
 		exit(1);
 
 	case 0: /* stdin is a patch */
@@ -2424,7 +2424,7 @@ int vpatch(int argc, char *argv[], int patch, int strip,
 			/* cannot seek, so need to copy to a temp file */
 			f = tmpfile();
 			if (!f) {
-				fprintf(stderr, "wiggle: Cannot create temp file\n");
+				fprintf(stderr, "%s: Cannot create temp file\n", Cmd);
 				exit(1);
 			}
 			pl = parse_patch(stdin, f, &num_patches);
@@ -2445,7 +2445,7 @@ int vpatch(int argc, char *argv[], int patch, int strip,
 	case 1: /* a patch, a .rej, or a merge file */
 		f = fopen(argv[0], "r");
 		if (!f) {
-			fprintf(stderr, "wiggle: cannot open %s\n", argv[0]);
+			fprintf(stderr, "%s: cannot open %s\n", Cmd, argv[0]);
 			exit(1);
 		}
 		if (patch) {
@@ -2467,7 +2467,7 @@ int vpatch(int argc, char *argv[], int patch, int strip,
 	case 2: /* an orig and a diff/.ref */
 		f = fopen(argv[1], "r");
 		if (!f) {
-			fprintf(stderr, "wiggle: cannot open %s\n", argv[0]);
+			fprintf(stderr, "%s: cannot open %s\n", Cmd, argv[0]);
 			exit(1);
 		}
 		show_merge(argv[0], f, reverse, 0, NULL, NULL);
