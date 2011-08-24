@@ -108,7 +108,7 @@ extern struct stream load_file(char *name);
 extern int split_patch(struct stream, struct stream*, struct stream*);
 extern int split_merge(struct stream, struct stream*, struct stream*,
 		       struct stream*);
-extern struct file split_stream(struct stream s, int type, int reverse);
+extern struct file split_stream(struct stream s, int type);
 extern struct csl *pdiff(struct file a, struct file b, int chunks);
 extern struct csl *diff(struct file a, struct file b);
 extern struct csl *diff_partial(struct file a, struct file b,
@@ -158,4 +158,3 @@ extern void cleanlist(struct file a, struct file b, struct csl *list);
 
 #define	ByLine	0
 #define	ByWord	1
-#define	ApproxWord 2

@@ -430,8 +430,8 @@ int main(int argc, char *argv[])
 		}
 		if (obj == 'l') {
 			int a, b;
-			fl[0] = split_stream(flist[0], ByLine, 0);
-			fl[1] = split_stream(flist[1], ByLine, 0);
+			fl[0] = split_stream(flist[0], ByLine);
+			fl[1] = split_stream(flist[1], ByLine);
 			if (chunks2 && !chunks1)
 				csl1 = pdiff(fl[0], fl[1], chunks2);
 			else
@@ -476,8 +476,8 @@ int main(int argc, char *argv[])
 		} else {
 			int a, b;
 			int sol = 1; /* start of line */
-			fl[0] = split_stream(flist[0], ByWord, 0);
-			fl[1] = split_stream(flist[1], ByWord, 0);
+			fl[0] = split_stream(flist[0], ByWord);
+			fl[1] = split_stream(flist[1], ByWord);
 			if (chunks2 && !chunks1)
 				csl1 = pdiff(fl[0], fl[1], chunks2);
 			else
@@ -692,13 +692,13 @@ int main(int argc, char *argv[])
 		}
 
 		if (obj == 'l') {
-			fl[0] = split_stream(flist[0], ByLine, 0);
-			fl[1] = split_stream(flist[1], ByLine, 0);
-			fl[2] = split_stream(flist[2], ByLine, 0);
+			fl[0] = split_stream(flist[0], ByLine);
+			fl[1] = split_stream(flist[1], ByLine);
+			fl[2] = split_stream(flist[2], ByLine);
 		} else {
-			fl[0] = split_stream(flist[0], ByWord, 0);
-			fl[1] = split_stream(flist[1], ByWord, 0);
-			fl[2] = split_stream(flist[2], ByWord, 0);
+			fl[0] = split_stream(flist[0], ByWord);
+			fl[1] = split_stream(flist[1], ByWord);
+			fl[2] = split_stream(flist[2], ByWord);
 		}
 		if (chunks2 && !chunks1)
 			csl1 = pdiff(fl[0], fl[1], chunks2);

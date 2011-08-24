@@ -1115,9 +1115,9 @@ static void merge_window(struct plist *p, FILE *f, int reverse)
 			sm = load_file(p->file);
 		}
 	}
-	fm = split_stream(sm, ByWord, 0);
-	fb = split_stream(sb, ByWord, 0);
-	fa = split_stream(sa, ByWord, 0);
+	fm = split_stream(sm, ByWord);
+	fb = split_stream(sb, ByWord);
+	fa = split_stream(sa, ByWord);
 
 	if (ch)
 		csl1 = pdiff(fm, fb, ch);
@@ -2014,9 +2014,9 @@ static void calc_one(struct plist *pl, FILE *f, int reverse)
 		struct file ff, fp1, fp2;
 		struct csl *csl1, *csl2;
 		struct ci ci;
-		ff = split_stream(sf, ByWord, 0);
-		fp1 = split_stream(s1, ByWord, 0);
-		fp2 = split_stream(s2, ByWord, 0);
+		ff = split_stream(sf, ByWord);
+		fp1 = split_stream(s1, ByWord);
+		fp2 = split_stream(s2, ByWord);
 		if (pl->chunks)
 			csl1 = pdiff(ff, fp1, pl->chunks);
 		else
