@@ -21,7 +21,7 @@ if $TIME true > /dev/null 2>&1
 then :
 else TIME=
 fi
-
+#TIME=valgrind
 status=0
 ok=0
 fail=0

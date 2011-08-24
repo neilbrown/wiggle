@@ -34,8 +34,8 @@ struct stream {
 
 
 struct elmnt {
-	int hash;
 	char *start;
+	int hash;
 	int len;
 };
 

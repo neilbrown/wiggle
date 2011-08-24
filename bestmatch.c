@@ -234,7 +234,8 @@ static void find_best(struct file *a, struct file *b,
 		update_value(&v[khi], -1, khi, x);
 		while (khi-2 > (ahi-bhi) &&
 		       (x > ahi ||
-			(best_val(&v[khi], min(ahi-x, bhi-y)) < best[v[khi].c].val &&
+			(v[khi].c >= 0 &&
+			 best_val(&v[khi], min(ahi-x, bhi-y)) < best[v[khi].c].val &&
 			 best_val(&v[khi-1], min(ahi-x+1, bhi-y)) < best[v[khi].c].val
 				)
 			       )) {
@@ -375,12 +376,12 @@ static void remap(struct best *best, int cnt,
 		best[b].ylo = pb;
 
 		while (pa < a2.elcnt &&
-		       a2.list[pa-1].start != a1.list[best[b].xhi-1].start)
+		       (pa == 0 || a2.list[pa-1].start != a1.list[best[b].xhi-1].start))
 			pa++;
 		if (pa == a2.elcnt && best[b].xhi != a1.elcnt)
 			abort();
 		while (pb < b2.elcnt &&
-		       b2.list[pb-1].start != b1.list[best[b].yhi-1].start)
+		       (pb == 0 || b2.list[pb-1].start != b1.list[best[b].yhi-1].start))
 			pb++;
 		if (pb == b2.elcnt && best[b].yhi != b1.elcnt)
 			abort();

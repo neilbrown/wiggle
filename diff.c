@@ -136,7 +136,9 @@ static int find_common(struct file *a, struct file *b,
 		}
 
 		for (k = klo+1; k <= khi-1 ; k += 2) {
-			if (v[k-1].x+1 >= v[k+1].x) {
+			if (v[k-1].x+1 > ahi) {
+				v[k] = v[k+1];
+			} else if (v[k+1].x - k > bhi || v[k-1].x+1 >= v[k+1].x) {
 				v[k] = v[k-1];
 				v[k].x++;
 			} else {
@@ -146,29 +148,19 @@ static int find_common(struct file *a, struct file *b,
 
 		x = v[klo].x; y = x - (klo-1);
 		dist = abs((ahi-x)-(bhi-y));
-		if (dist <= best) {
+		if (y <= bhi && dist <= best) {
 			v[klo-1] = v[klo];
 			klo--;
 		} else
-			while (dist > best) {
-				klo++;
-				x = v[klo].x;
-				y = x - (klo-1);
-				dist = abs((ahi-x)-(bhi-y));
-			}
-
+			klo++;
 		x = v[khi].x+1; y = x - (khi+1);
 		dist = abs((ahi-x)-(bhi-y));
-		if (dist <= best) {
+		if (x <= ahi && dist <= best) {
 			v[khi+1] = v[khi];
 			v[khi+1].x++;
 			khi++;
 		} else
-			while (dist > best) {
-				khi--;
-				x = v[khi].x+1; y = x - (khi+1);
-				dist = abs((ahi-x)-(bhi-y));
-			}
+			khi--;
 	}
 }
 
