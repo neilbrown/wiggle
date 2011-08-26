@@ -81,7 +81,7 @@ unsigned int a_delete, a_added, a_common, a_sep, a_void,
  * We display help in an insert, leaving 5 columns left and right,
  * and 2 rows top and bottom, but at most 58x15 plus border
  * In help mode:
- *   SPC or RTN move down or to next page
+ *   SPC or RTN moves down or to next page
  *   BKSPC goes backwards
  *   'q' returns to origin screen
  *   '?' show help on help
@@ -94,7 +94,7 @@ char *help_help[] = {
 	"   You are viewing the help page for the help viewer.",
 	"You normally get here by typing '?'",
 	"",
-	"The following keystokes work in help the help viewer:",
+	"The following keystrokes work in the help viewer:",
 	"  ?     display this help message",
 	"  q     return to previous view",
 	"  SPC   move forward through help document",
@@ -146,8 +146,8 @@ static void help_window(char *page1[], char *page2[])
 	mvaddch(top-1, left+cols,  '\\');
 	mvaddch(top+rows, left-1, '\\');
 	mvaddch(top+rows, left+cols, '/');
-	mvaddstr(top-1, left + cols/2 - 2, "HELP");
-	mvaddstr(top+rows, left+cols/2 - 16, "Press SPACE for more, ? for help");
+	mvaddstr(top-1, left + cols/2 - 9, "HELP - 'q' to exit");
+	mvaddstr(top+rows, left+cols/2 - 17, "Press SPACE for more, '?' for help");
 	(void)attrset(A_NORMAL);
 
 	while (1) {
@@ -894,7 +894,7 @@ static void draw_mline(int mode, int row, int start, int cols,
 }
 
 static char *merge_help[] = {
-	"This view shows a the merge of the patch with the",
+	"This view shows the merge of the patch with the",
 	"original file.  It is like a full-context diff showing",
 	"removed lines with a '-' prefix and added lines with a",
 	"'+' prefix.",
@@ -922,7 +922,7 @@ static char *diff_help[] = {
 	NULL
 };
 static char *orig_help[] = {
-	"This is the 'original' view which simple shows",
+	"This is the 'original' view which simply shows",
 	"the original file before applying the patch.",
 	"Sections of code that would be changed by the patch",
 	"are highlighted in red.",
@@ -970,14 +970,14 @@ static char *merge_window_help[] = {
 	"  Highlight Colours and Keystroke commands",
 	"",
 	"In all different views of a merge, highlight colours",
-	"are used to show which parts of line were added,",
+	"are used to show which parts of lines were added,",
 	"removed, already changed, unchanged or in conflict.",
-	"Colours are their use are:",
+	"Colours and their use are:",
 	" normal              unchanged text",
 	" red background      text that was removed or changed",
-	" blue background     text that was added or result",
+	" blue background     text that was added or the result",
 	"                     of a change",
-	" yellow background   used in side-by-side of a line",
+	" yellow background   used in side-by-side for a line",
 	"                     which has no match on the other",
 	"                     side",
 	" blue foreground     text in the original which did not",
@@ -990,7 +990,7 @@ static char *merge_window_help[] = {
 	"                     underlined indicating that it",
 	"                     was involved in a conflict",
 	""
-	"While viewing a merge various keystroke command can",
+	"While viewing a merge various keystroke commands can",
 	"be used to move around and change the view.  Basic",
 	"movement commands from both 'vi' and 'emacs' are",
 	"available:",
@@ -1005,7 +1005,7 @@ static char *merge_window_help[] = {
 	" ?                   Display help message",
 	" ESC-<  0-G          Go to start of file",
 	" ESC->  G            Go to end of file",
-	" q                   Return to list of files",
+	" q                   Return to list of files or exit",
 	" control-L           recenter current line",
 	" control-V           page down",
 	" ESC-v	              page up",
