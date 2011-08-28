@@ -17,8 +17,8 @@ LDLIBS = -lncurses
 all: wiggle wiggle.man test
 
 wiggle : wiggle.o load.o split.o extract.o diff.o bestmatch.o ReadMe.o \
-              merge.o merge2.o vpatch.o
-wiggle.o load.o split.o extract.o diff.o bestmatch.o ReadMe.o merge.o \
+              merge2.o vpatch.o
+wiggle.o load.o split.o extract.o diff.o bestmatch.o ReadMe.o \
                merge2.o vpatch.o : wiggle.h
 
 test: wiggle dotest
