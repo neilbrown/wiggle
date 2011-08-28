@@ -75,16 +75,16 @@ struct file {
  * or the same.
  * When a conflict occurs we need to treat some surrounding
  * sections as being involved in that conflict.  For
- * word-based merging, all surrounding sections until an Unchanged
+ * line-based merging, all surrounding sections until an Unchanged
  * section are part of the conflict - the Unchanged isn't.
- * For line based merging, we need to find Unchanged sections
+ * For word-based merging, we need to find Unchanged sections
  * that include a newline.  Further, text within the unchanged
  * section upto the newline (in whichever direction) is treated
  * as part of the whole conflict.
  * Actually... it is possibly for a 'Changed' section to bound
  * a conflict as it indicates a successful match of A and B.
- * For wordwise merges, any Changed or Unchanged section bounds a conflict
- * For linewise merges, and Changed or Unchanged section that matches
+ * For line-wise merges, any Changed or Unchanged section bounds a conflict
+ * For word-wise merges, and Changed or Unchanged section that matches
  * a newline, or immediately follows a newline (in all files) can bound
  * a conflict.
  */
@@ -95,7 +95,7 @@ struct merge {
 	} type;
 	int a, b, c; /* start of ranges */
 	int al, bl, cl; /* length of ranges */
-	int c1, c2; /* this or next commonsequence */
+	int c1, c2; /* this or next common-sequence */
 	int in_conflict;
 	int lo, hi; /* region of a Changed or Unchanged that is not involved
 		    * in a conflict.

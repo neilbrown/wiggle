@@ -2,7 +2,7 @@
  * wiggle - apply rejected patches
  *
  * Copyright (C) 2005 Neil Brown <neilb@cse.unsw.edu.au>
- * Copyright (C) 2010 Neil Brown <neilb@suse.de>
+ * Copyright (C) 2010-2011 Neil Brown <neilb@suse.de>
  *
  *
  *    This program is free software; you can redistribute it and/or modify
@@ -24,17 +24,16 @@
  */
 
 /*
- * vpatch - visual front end for wiggle
+ * vpatch - visual front end for wiggle - aka Browse mode.
  *
  * "files" display, lists all files with statistics
  *    - can hide various lines including subdirectories
  *      and files without wiggles or conflicts
- * "merge" display shows merged file with different parts
- *      in different colours
+ * "merge" display shows various views of  merged file with different
+ *  parts in different colours.
  *
- *  The window can be split horiz or vert and two different
- *  views displayed.  They will have different parts missing
- *
+ *  The window can be split horizontally to show the original and result
+ *  beside the diff, and each different branch can be shown alone.
  *
  */
 
@@ -50,25 +49,6 @@ static void term_init(void);
 
 #define assert(x) do { if (!(x)) abort(); } while (0)
 
-
-/* plist stores a list of patched files in an array
- * Each entry identifies a file, the range of the
- * original patch which applies to this file, some
- * statistics concerning how many conflicts etc, and
- * some linkage information so the list can be viewed
- * as a directory-try.
- */
-struct plist {
-	char *file;
-	unsigned int start, end;
-	int parent;
-	int next, prev, last;
-	int open;
-	int chunks, wiggles, conflicts;
-	int calced;
-	int is_merge;
-	char *before, *after;
-};
 static struct stream load_segment(FILE *f,
 				  unsigned int start, unsigned int end);
 
@@ -105,6 +85,10 @@ char *help_help[] = {
 	NULL
 };
 
+/* We can give one or two pages to display in the help window.
+ * The first is specific to the current context.  The second
+ * is optional and  may provide help in a more broad context.
+ */
 static void help_window(char *page1[], char *page2[])
 {
 	int rows, cols;
@@ -133,6 +117,7 @@ static void help_window(char *page1[], char *page2[])
 		rows = 15;
 	}
 
+	/* Draw a bow around the 'help' area */
 	(void)attrset(A_STANDOUT);
 	for (c = left; c < left+cols; c++) {
 		mvaddch(top-1, c, '-');
@@ -152,6 +137,10 @@ static void help_window(char *page1[], char *page2[])
 
 	while (1) {
 		char **lnp = page + line;
+
+		/* Draw as much of the page at the current offset
+		 * as fits.
+		 */
 		for (r = 0; r < rows; r++) {
 			char *ln = *lnp;
 			int sh = shift;
@@ -184,7 +173,7 @@ static void help_window(char *page1[], char *page2[])
 				help_window(help_help, NULL);
 			break;
 		case ' ':
-		case '\r':
+		case '\r': /* page-down */
 			for (r = 0; r < rows-2; r++)
 				if (page[line])
 					line++;
@@ -199,7 +188,7 @@ static void help_window(char *page1[], char *page2[])
 			}
 			break;
 
-		case '\b':
+		case '\b': /* page up */
 			if (line > 0) {
 				line -= (rows-2);
 				if (line < 0)
@@ -236,6 +225,7 @@ static void help_window(char *page1[], char *page2[])
 }
 
 
+/* Type names are needed for tracing only. */
 static char *typenames[] = {
 	[End] = "End",
 	[Unmatched] = "Unmatched",
@@ -246,6 +236,14 @@ static char *typenames[] = {
 	[AlreadyApplied] = "AlreadyApplied",
 };
 
+/* When we merge the original and the diff together we need
+ * to keep track of where everything came from.
+ * When we display the different views, we need to be able to
+ * select certain portions of the whole document.
+ * These flags are used to identify what is present, and to
+ * request different parts be extracted.  They also help
+ * guide choice of colour.
+ */
 #define BEFORE	1
 #define AFTER	2
 #define	ORIG	4
@@ -265,13 +263,15 @@ static char *typenames[] = {
  * For browsing the merge we only ever show two alternates in-line.
  * When there are three we use two panes with 1 or 2 alternates in each.
  * So to linearise the two streams we find lines that are completely
- * unchanged (same or all 3 streams, or missing in 2nd and 3rd) which bound
+ * unchanged (same for all 3 streams, or missing in 2nd and 3rd) which bound
  * a region where there are changes.  We include everything between
  * these twice, in two separate passes.  The exact interpretation of the
  * passes is handled at a higher level but will be one of:
  *  original and result
  *  before and after
  *  original and after (for a conflict)
+ * This is all encoded in the 'struct merge'.  An array of these describes
+ * the whole document.
  *
  * At any position in the merge we can be in one of 3 states:
  *  0: unchanged section
@@ -530,10 +530,8 @@ static int visible(int mode, enum mergetype type, int stream)
 	return -1;
 }
 
-
-
 /* checkline creates a summary of the sort of changes that
- * are in a line, returning an or of
+ * are in a line, returning an "or" of
  *  CHANGED
  *  CHANGES
  *  WIGGLED
@@ -568,6 +566,13 @@ static int check_line(struct mpos pos, struct file fm, struct file fb,
 	return rv;
 }
 
+/* Find the next line in the merge which is visible.
+ * If we hit the end of a conflicted set during pass-1
+ * we rewind for pass-2.
+ * 'mode' tells which bits we want to see, possible one of
+ * the 4 parts (before/after/orig/result) or one of the pairs
+ * before+after or orig+result.
+ */
 static void next_mline(struct mpos *pos, struct file fm, struct file fb,
 		       struct file fa,
 		       struct merge *m, int mode)
@@ -594,16 +599,18 @@ static void next_mline(struct mpos *pos, struct file fm, struct file fb,
 			pos->state = 1;
 		} else if (!(mode2 & CHANGES) && pos->state) {
 			/* Come to the end of a diff-set */
-			if (pos->state == 1)
+			switch (pos->state) {
+			case 1:
 				/* Need to record the end */
 				pos->hi = prv;
-			if (pos->state == 2) {
-				/* finished final pass */
-				pos->state = 0;
-			} else {
 				/* time for another pass */
 				pos->p = pos->lo;
 				pos->state++;
+				break;
+			case 2:
+				/* finished final pass */
+				pos->state = 0;
+				break;
 			}
 		}
 		mask = ORIG|RESULT|BEFORE|AFTER|CHANGES|CHANGED;
@@ -619,6 +626,7 @@ static void next_mline(struct mpos *pos, struct file fm, struct file fb,
 
 }
 
+/* Move to previous line - simply the reverse of next_mline */
 static void prev_mline(struct mpos *pos, struct file fm, struct file fb,
 		       struct file fa,
 		       struct merge *m, int mode)
@@ -647,16 +655,18 @@ static void prev_mline(struct mpos *pos, struct file fm, struct file fb,
 			pos->state = 2;
 		} else if (!(mode2 & CHANGES) && pos->state) {
 			/* Come to the end (start) of a diff-set */
-			if (pos->state == 2)
-				/* Need to record the start */
-				pos->lo = prv;
-			if (pos->state == 1) {
+			switch (pos->state) {
+			case 1:
 				/* finished final pass */
 				pos->state = 0;
-			} else {
+				break;
+			case 2:
+				/* Need to record the start */
+				pos->lo = prv;
 				/* time for another pass */
 				pos->p = pos->hi;
 				pos->state--;
+				break;
 			}
 		}
 		mask = ORIG|RESULT|BEFORE|AFTER|CHANGES|CHANGED;
@@ -710,7 +720,7 @@ static int mcontains(struct mpos pos,
  * There are 7 different ways we can display the data, each
  * of which can be configured by a keystroke:
  *  o   original - just show the original file with no changes, but still
- *                 which highlights of what is changed or unmatched
+ *                 with highlights of what is changed or unmatched
  *  r   result   - show just the result of the merge.  Conflicts just show
  *                 the original, not the before/after options
  *  b   before   - show the 'before' stream of the patch
@@ -728,21 +738,21 @@ static int mcontains(struct mpos pos,
  * - The window is split when we first visit a line that contains
  *   a wiggle or a conflict, and the second pane is removed when
  *   we next visit a line that contains no changes (is fully Unchanged).
- * - to display the second pane, we go do the previous mline for that
- *   alternate mode (BEFORE|AFTER) same point is not visible.  Then
- *   we centre that line
+ * - to display the second pane, we find a visible end-of-line in the
+ *   (BEFORE|AFTER) mode at-or-before the current end-of-line and
+ *   the we centre that line.
  * - We need to rewind to an unchanged section, and wind forward again
  *   to make sure that 'lo' and 'hi' are set properly.
  * - every time we move, we redraw the second pane (see how that goes).
  */
 
-
-
 /* draw_mside draws one text line or, in the case of sidebyside, one side
  * of a textline.
  * The 'mode' tells us what to draw via the 'visible()' function.
  * It is one of ORIG RESULT BEFORE AFTER or ORIG|RESULT or BEFORE|AFTER
- * It may also have WIGGLED or CONFLICTED ored in
+ * It may also have WIGGLED or CONFLICTED ored in to trigger extra highlights.
+ * The desired cursor position is given in 'target' the actual end
+ * cursor position (allowing e.g. for tabs) is returned in *colp.
  */
 static void draw_mside(int mode, int row, int offset, int start, int cols,
 		       struct file fm, struct file fb, struct file fa,
@@ -795,7 +805,8 @@ static void draw_mside(int mode, int row, int offset, int start, int cols,
 		int l;
 		e = next_melmnt(&pos.p, fm, fb, fa, m);
 		if (e.start == NULL ||
-		    (ends_mline(e) && visible(mode, m[pos.p.m].type, pos.p.s) != -1)) {
+		    (ends_mline(e)
+		     && visible(mode, m[pos.p.m].type, pos.p.s) != -1)) {
 			if (colp)
 				*colp = col;
 			if (col < start)
@@ -858,6 +869,8 @@ static void draw_mside(int mode, int row, int offset, int start, int cols,
 		}
 	}
 }
+
+/* Draw either 1 or 2 sides depending on the mode. */
 
 static void draw_mline(int mode, int row, int start, int cols,
 		       struct file fm, struct file fb, struct file fa,
@@ -1024,66 +1037,78 @@ static char *merge_window_help[] = {
 	NULL
 };
 
+/* plist stores a list of patched files in an array
+ * Each entry identifies a file, the range of the
+ * original patch which applies to this file, some
+ * statistics concerning how many conflicts etc, and
+ * some linkage information so the list can be viewed
+ * as a directory-tree.
+ */
+struct plist {
+	char *file;
+	unsigned int start, end;
+	int parent;
+	int next, prev, last;
+	int open;
+	int chunks, wiggles, conflicts;
+	int calced;
+	int is_merge;
+	char *before, *after;
+};
+
 static void merge_window(struct plist *p, FILE *f, int reverse)
 {
-	/* display the merge in two side-by-side
-	 * panes.
-	 * left side shows diff between original and new
-	 * right side shows the requested patch
-	 *
-	 * Unmatched: c_unmatched - left only
-	 * Unchanged: c_normal - left and right
-	 * Extraneous: c_extra - right only
-	 * Changed-a: c_changed - left and right
-	 * Changed-c: c_new - left and right
-	 * AlreadyApplied-b: c_old - right only
-	 * AlreadyApplied-c: c_applied - left and right
-	 * Conflict-a: ?? left only
-	 * Conflict-b: ?? left and right
-	 * Conflict-c: ??
-	 *
-	 * A Conflict is displayed as the original in the
-	 * left side, and the highlighted diff in the right.
+	/* Display the merge window in one of the selectable modes,
+	 * starting with the 'merge' mode.
 	 *
 	 * Newlines are the key to display.
-	 * 'pos' is always a newline (or eof).
-	 * For each side that this newline is visible on, we
-	 * rewind the previous newline visible on this side, and
-	 * the display the stuff in between
+	 * 'pos' is always a visible newline (or eof).
+	 * In sidebyside mode it might only be visible on one side,
+	 * in which case the other side will be blank.
+	 * Where the newline is visible, we rewind the previous visible
+	 * newline visible and display the stuff in between
 	 *
-	 * A 'position' is an offset in the merger, a stream
-	 * choice (a,b,c - some aren't relevant) and an offset in
-	 * that stream
+	 * A 'position' is a struct mpos
 	 */
 
 	struct stream sm, sb, sa, sp; /* main, before, after, patch */
 	struct file fm, fb, fa;
 	struct csl *csl1, *csl2;
 	struct ci ci;
-	char buf[100];
-	int ch;
+	int ch; /* count of chunks */
+	/* Always refresh the current line.
+	 * If refresh == 1, refresh all lines.  If == 2, clear first
+	 */
 	int refresh = 2;
 	int rows = 0, cols = 0;
-	int splitrow = -1;
-	int lastrow = 0;
+	int splitrow = -1; /* screen row for split - diff appears below */
+	int lastrow = 0; /* end of screen, or just above 'splitrow' */
 	int i, c, cswitch;
 	int mode = ORIG|RESULT;
 	char *modename = "merge";
 	char **modehelp = merge_help;
 
 	int row, start = 0;
-	int trow;
+	int trow; /* screen-row while searching.  If we cannot find, 
+		   * we forget this number */
 	int col = 0, target = 0;
-	struct mpos pos;
-	struct mpos tpos, toppos, botpos;
+	struct mpos pos;  /* current point */
+	struct mpos tpos, /* temp point while drawing lines above and below pos */
+		toppos,   /* pos at top of screen - for page-up */
+		botpos;   /* pos at bottom of screen - for page-down */
 	struct mpos vpos, tvpos;
 	int botrow = 0;
-	int meta = 0, tmeta;
-	int num = -1, tnum;
-	char search[80];
+	int meta = 0,     /* mode for multi-key commands- SEARCH or META */
+		tmeta;
+	int num = -1,     /* numeric arg being typed. */
+		tnum;
+	char search[80];  /* string we are searching for */
 	unsigned int searchlen = 0;
 	int search_notfound = 0;
 	int searchdir = 0;
+	/* We record all the places we find so 'backspace'
+	 * can easily return to the previous one
+	 */
 	struct search_anchor {
 		struct search_anchor *next;
 		struct mpos pos;
@@ -1139,8 +1164,9 @@ static void merge_window(struct plist *p, FILE *f, int reverse)
 	vpos = pos;
 	while (1) {
 		if (refresh == 2) {
+			char buf[100];
 			clear();
-			sprintf(buf, "File: %s%s Mode: %s\n",
+			snprintf(buf, 100, "File: %s%s Mode: %s\n",
 				p->file, reverse ? " - reversed" : "", modename);
 			(void)attrset(A_BOLD);
 			mvaddstr(0, 0, buf);
@@ -1150,8 +1176,6 @@ static void merge_window(struct plist *p, FILE *f, int reverse)
 		}
 		if (row < 1 || row >= lastrow)
 			refresh = 1;
-
-
 
 		if (mode == (ORIG|RESULT)) {
 			int cmode = check_line(pos, fm, fb, fa, ci.merger, mode);
@@ -1225,7 +1249,7 @@ static void merge_window(struct plist *p, FILE *f, int reverse)
 		{
 			char lbuf[20];
 			(void)attrset(A_BOLD);
-			sprintf(lbuf, "ln:%d", (pos.p.lineno-1)/2);
+			snprintf(lbuf, 19, "ln:%d", (pos.p.lineno-1)/2);
 			mvaddstr(0, cols - strlen(lbuf) - 4, "       ");
 			mvaddstr(0, cols - strlen(lbuf) - 1, lbuf);
 		}
@@ -1325,7 +1349,7 @@ static void merge_window(struct plist *p, FILE *f, int reverse)
 		(void)attrset(A_NORMAL);
 		if (num >= 0) {
 			char buf[10];
-			sprintf(buf, "%d ", num);
+			snprintf(buf, 10, "%d ", num);
 			addstr(buf);
 		}
 		if (meta & META(0))
