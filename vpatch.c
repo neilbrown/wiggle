@@ -38,7 +38,6 @@
  */
 
 #include "wiggle.h"
-#include <malloc.h>
 #include <curses.h>
 #include <unistd.h>
 #include <stdlib.h>

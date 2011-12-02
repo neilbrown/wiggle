@@ -25,7 +25,6 @@
 
 #include "wiggle.h"
 #include <stdlib.h>
-#include <malloc.h>
 
 /*
  * Second attempt at merging....

@@ -38,7 +38,7 @@
 #include	<sys/stat.h>
 #include	<unistd.h>
 #include	<fcntl.h>
-#include	<malloc.h>
+#include	<stdlib.h>
 
 static void join_streams(struct stream list[], int cnt)
 {

@@ -128,7 +128,6 @@
  *
  */
 
-#include	<malloc.h>
 #include	"wiggle.h"
 #include	<stdlib.h>
 

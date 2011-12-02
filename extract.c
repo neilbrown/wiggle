@@ -29,7 +29,6 @@
  */
 
 #include	"wiggle.h"
-#include	<malloc.h>
 #include	<stdlib.h>
 
 static void skip_eol(char **cp, char *end)

@@ -1,5 +1,13 @@
 #!/bin/bash
 
+# Redirect for non-GNU time systems
+if [ "xxTIME_CMD" = "xx" ]
+then
+  time_cmd=/usr/bin/time
+else
+  time_cmd=$TIME_CMD
+fi
+
 dir=$PWD
 
 while [ ! -f $dir/wiggle ]
@@ -16,7 +24,7 @@ if [ -d tests ]
 then cd tests
 fi
 
-TIME="/usr/bin/time -o .time -f %U"
+TIME="$time_cmd -o .time -f %U"
 if $TIME true > /dev/null 2>&1
 then :
 else TIME=

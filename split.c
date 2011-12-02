@@ -45,7 +45,7 @@
 #include	"wiggle.h"
 #include	<stdlib.h>
 #include	<ctype.h>
-#include	<malloc.h>
+#include	<stdlib.h>
 #define BITS_PER_LONG 32
 
 #include "hash.h"
