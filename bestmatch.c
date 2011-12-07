@@ -477,7 +477,6 @@ static void find_best_inorder(struct file *a, struct file *b,
 
 struct csl *pdiff(struct file a, struct file b, int chunks)
 {
-	int alo, ahi, blo, bhi;
 	struct csl *csl1, *csl2;
 	struct best *best = malloc(sizeof(struct best)*(chunks+1));
 	int i;
@@ -485,10 +484,6 @@ struct csl *pdiff(struct file a, struct file b, int chunks)
 
 	asmall = reduce(a);
 	bsmall = reduce(b);
-
-	alo = blo = 0;
-	ahi = asmall.elcnt;
-	bhi = bsmall.elcnt;
 
 	for (i = 0; i < chunks+1; i++)
 		best[i].val = 0;

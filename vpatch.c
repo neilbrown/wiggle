@@ -2251,6 +2251,7 @@ static void main_window(struct plist *pl, int n, FILE *f, int reverse)
 		if (refresh) {
 			refresh = 0;
 			getmaxyx(stdscr, rows, cols);
+			cols = cols; /* Silence warning that 'cols' isn't used */
 			if (row >= rows + 3)
 				row = (rows+1)/2;
 			if (row >= rows)
