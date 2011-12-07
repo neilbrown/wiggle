@@ -1,3 +1,12 @@
+- search show go to right column and highlight
+- do we always recenter top when we split - what if near but not at bottom
+- side-by-side sometimes shows last line of a chunk with
+  the next chunk
+- '|' should go from sidebyside to merge
+- sometimes the split page gets white spaces - 'int bl_count'
+- use next_mline in print_merge2
++ discard merge.c
+
 
 - extract.c should be able to extract half of a word-diff
 - extract.c should work on word-merges

@@ -326,7 +326,7 @@ static int same_mpos(struct mpos a, struct mpos b)
 	return a.p.m == b.p.m &&
 		a.p.s == b.p.s &&
 		a.p.o == b.p.o &&
-		a.state == b.state;
+		(a.state == b.state || a.state == 0 || b.state == 0);
 }
 
 /* Check if a particular stream is meaningful in a particular merge
@@ -1320,7 +1320,6 @@ static void merge_window(struct plist *p, FILE *f, int reverse)
 				prev_mline(&spos, fm, fb, fa, ci.merger, smode);
 			while (!same_mpos(spos, tpos))
 				next_mline(&spos, fm, fb, fa, ci.merger, smode);
-
 
 			(void)attrset(a_sep);
 			for (i = 0; i < cols; i++)
