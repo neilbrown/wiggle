@@ -1,4 +1,4 @@
 
-	- Don't use --quite in dotest as it is a Debian specific extension
+	- Don't use --quiet in dotest as it is a Debian specific extension
 	  to /usr/bin/time
-	
+
