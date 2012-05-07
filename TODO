@@ -12,7 +12,7 @@
 
   best guess only included if there is one.
 
-- search show go to right column and highlight
+- search should go to right column and highlight
 - do we always recenter top when we split - what if near but not at bottom
 - side-by-side sometimes shows last line of a chunk with
   the next chunk

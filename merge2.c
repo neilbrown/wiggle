@@ -214,7 +214,6 @@ static int isolate_conflicts(struct file af, struct file bf, struct file cf,
 	return cnt;
 }
 
-
 struct ci make_merger(struct file af, struct file bf, struct file cf,
 		      struct csl *csl1, struct csl *csl2, int words,
 		      int ignore_already)

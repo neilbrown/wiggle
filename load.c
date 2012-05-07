@@ -63,6 +63,7 @@ static void join_streams(struct stream list[], int cnt)
 		memcpy(c, list[i].body, list[i].len);
 		c += list[i].len;
 		list[i].len = 0;
+		free(list[i].body);
 	}
 	c[0] = 0;
 }
@@ -79,6 +80,7 @@ static struct stream load_regular(int fd)
 		if (read(fd, s.body, s.len) != s.len) {
 			free(s.body);
 			s.body = NULL;
+			die();
 		}
 	} else
 		die();

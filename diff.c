@@ -577,7 +577,6 @@ struct csl *diff_partial(struct file a, struct file b,
 	return csl;
 }
 
-
 #ifdef MAIN
 
 main(int argc, char *argv[])

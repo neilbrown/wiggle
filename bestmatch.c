@@ -36,7 +36,7 @@
  * We walk the whole matrix in a breadth first fashion following a
  * 'front' on which x+y is constant.  Along this front we examine each
  * diagonal.  For each point we calculate a 'value' for the match so
- * far.  This will be in some particlar chunk.  For each chunk we
+ * far.  This will be in some particular chunk.  For each chunk we
  * separately record the best value found so far, and where it was.
  * To choose a new value for each point we calculate based on the
  * previous value on each neighbouring diagonal and on this diagonal.
@@ -299,19 +299,6 @@ static struct csl *csl_join(struct csl *c1, struct csl *c2)
 	free(c2);
 	return rv;
 }
-
-#if 0
-static void printword(struct elmnt e)
-{
-	if (e.start[0])
-		printf("%.*s", e.len, e.start);
-	else {
-		int a, b, c;
-		sscanf(e.start+1, "%d %d %d", &a, &b, &c);
-		printf("*** %d,%d **** %d\n", b, c, a);
-	}
-}
-#endif
 
 /*
  * Reduce a file by discarding less interesting words

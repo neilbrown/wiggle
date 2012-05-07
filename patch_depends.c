@@ -16,8 +16,6 @@
  *
  */
 
-
-
 struct chunk {
 	struct patch *patch;	/* the patch this chunk is from */
 	struct file *file;	/* the file this chunk patches */
@@ -37,8 +35,6 @@ struct patch {
 	struct patch *depends;	/* array of patches we depend on */
 	struct patch *next;	/* previous patch that was loaded */
 } *patches = NULL;
-
-
 
 void report(void)
 {
@@ -77,7 +73,6 @@ void add_depends(struct patch *new, struct patch *old)
 		new->depends = realloc(new->depends, size*sizeof(struct patch *));
 	new->depends[new->cnt-1] = old;
 }
-
 
 void add_chunk(struct patch *p, struct file *f, int os, int oe, int ns, int ne)
 {

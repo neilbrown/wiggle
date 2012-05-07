@@ -25,12 +25,12 @@
 
 /*
  * split patch or merge files.
- *
  */
 
 #include	"wiggle.h"
 #include	<stdlib.h>
 
+/* skip 'cp' past the new '\n', or all the way to 'end' */
 static void skip_eol(char **cp, char *end)
 {
 	char *c = *cp;
@@ -41,6 +41,9 @@ static void skip_eol(char **cp, char *end)
 	*cp = c;
 }
 
+/* copy one line, or to end, from 'cp' into the stream, extending
+ * the stream.
+ */
 static void copyline(struct stream *s, char **cp, char *end)
 {
 	char *from = *cp;

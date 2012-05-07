@@ -116,7 +116,7 @@ static void help_window(char *page1[], char *page2[])
 		rows = 15;
 	}
 
-	/* Draw a bow around the 'help' area */
+	/* Draw a border around the 'help' area */
 	(void)attrset(A_STANDOUT);
 	for (c = left; c < left+cols; c++) {
 		mvaddch(top-1, c, '-');
@@ -223,7 +223,6 @@ static void help_window(char *page1[], char *page2[])
 	}
 }
 
-
 /* Type names are needed for tracing only. */
 static char *typenames[] = {
 	[End] = "End",
@@ -251,7 +250,6 @@ static char *typenames[] = {
 #define CHANGES 32 /* AFTER is different to BEFORE */
 #define WIGGLED 64 /* a conflict that was successfully resolved */
 #define CONFLICTED 128 /* a conflict that was not successfully resolved */
-
 
 /* Displaying a Merge.
  * The first step is to linearise the merge.  The merge in inherently
@@ -543,7 +541,6 @@ static int check_line(struct mpos pos, struct file fm, struct file fb,
 	int rv = 0;
 	struct elmnt e;
 	int unmatched = 0;
-
 
 	do {
 		if (m[pos.p.m].type == Changed)
@@ -941,7 +938,7 @@ static char *orig_help[] = {
 	NULL
 };
 static char *result_help[] = {
-	"This is the 'result' view which show just the",
+	"This is the 'result' view which shows just the",
 	"result of applying the patch.  When a conflict",
 	"occurred this view does not show the full conflict",
 	"but only the 'after' part of the patch.  To see",
@@ -1088,7 +1085,7 @@ static void merge_window(struct plist *p, FILE *f, int reverse)
 	char **modehelp = merge_help;
 
 	int row, start = 0;
-	int trow; /* screen-row while searching.  If we cannot find, 
+	int trow; /* screen-row while searching.  If we cannot find,
 		   * we forget this number */
 	int col = 0, target = 0;
 	struct mpos pos;  /* current point */
@@ -1139,6 +1136,7 @@ static void merge_window(struct plist *p, FILE *f, int reverse)
 			sm = load_file(p->file);
 		}
 	}
+	/* FIXME check for errors in the stream */
 	fm = split_stream(sm, ByWord);
 	fb = split_stream(sb, ByWord);
 	fa = split_stream(sa, ByWord);

@@ -31,7 +31,7 @@
  *
  * Wiggle can also read patch and merge files.  Unlike 'merge' it does not
  * need to be given three separate files, but can be given a file and a patch
- * and it will extract the pieces of the two two other files that it needs from
+ * and it will extract the pieces of the two other files that it needs from
  * the patch.
  *
  * Wiggle performs one of three core function:
@@ -39,8 +39,11 @@
  *   --diff -d       report differences between two files
  *   --merge -m      merge the changes between two files into a third file
  *
+ * This is also a --browse (-B) mode which provides interactive access
+ * to the merger.
+ *
  * To perform these, wiggle requires 1, 2, or 3 input streams respectively.
- * I can get there from individual files, from a diff (unified or context) or
+ * I can get these from individual files, from a diff (unified or context) or
  * from a merge file.
  *
  * For merge:
@@ -59,9 +62,12 @@
  *    One of the flags -1 -2 or -3 must also be given and they indicate which
  *    part of the patch or merge to extract.
  *
- * Difference calculate and merging is performed on lines (-l) or words (-w).
- * In the case of -w, an initial diff is computed based on non-trivial words.
- *  i.e. spaces are ignored
+ * Difference calculation and merging is performed on lines (-l) or words (-w).
+ * Each 'word' is either 1/all alphnumeric (or '_'), 2/ all space or tab,
+ * or 3/ any other single character.
+ *
+ * In the case of -w, an initial diff is computed based on non-trivial words
+ * which includes alhpanumeric words and newlines.
  *
  * This diff is computed from the ends of the file and is used to find
  * a suitable starting point and range.  Then a more precise diff is
@@ -111,36 +117,6 @@ static void printsep(struct elmnt e1, struct elmnt e2)
 	printf("@@ -%d,%d +%d,%d @@\n", b, c, e, f);
 }
 
-
-#if 0
-/* Remove any entries from the common-sublist that are
- * just spaces, tabs, or newlines
- */
-static void cleanlist(struct file a, struct file b, struct csl *list)
-{
-	struct csl *new = list;
-
-	while (list->len) {
-		int i;
-		int ap;
-		for (ap = list->a; ap < list->a+list->len; ap++) {
-			for (i = 0; i < a.list[ap].len; i++) {
-				char c = a.list[ap].start[i];
-				if (isalnum(c))
-					break;
-			}
-			if (i != a.list[ap].len)
-				break;
-		}
-		if (ap == list->a+list->len)
-			list++;
-		else
-			*new++ = *list++;
-	}
-	*new = *list;
-}
-#endif
-
 int main(int argc, char *argv[])
 {
 	int opt;
@@ -161,6 +137,7 @@ int main(int argc, char *argv[])
 	FILE *outfile = stdout;
 	char *helpmsg;
 	char *base0;
+	struct ci ci;
 
 	struct stream f, flist[3];
 	struct file fl[3];
@@ -171,13 +148,7 @@ int main(int argc, char *argv[])
 		base0++;
 	else
 		base0 = argv[0];
-#if 0
-	/* The name 'vpatch' seems to be used elsewhere */
-	if (strcmp(base0, "vpatch") == 0) {
-		Cmd = base0;
-		mode = 'B';
-	}
-#endif
+
 	while ((opt = getopt_long(argc, argv,
 				  short_options(mode), long_options,
 				  &option_index)) != -1)
@@ -706,29 +677,21 @@ int main(int argc, char *argv[])
 			csl1 = diff(fl[0], fl[1]);
 		csl2 = diff(fl[1], fl[2]);
 
-#if 0
-		cleanlist(fl[0], fl[1], csl1);
-		cleanlist(fl[1], fl[2], csl2);
-#endif
+		ci = print_merge2(outfile, &fl[0], &fl[1], &fl[2],
+				  csl1, csl2, obj == 'w',
+				  ignore);
+		if (!quiet && ci.conflicts)
+			fprintf(stderr,
+				"%d unresolved conflict%s found\n",
+				ci.conflicts,
+				ci.conflicts == 1 ? "" : "s");
+		if (!quiet && ci.ignored)
+			fprintf(stderr,
+				"%d already-applied change%s ignored\n",
+				ci.ignored,
+				ci.ignored == 1 ? "" : "s");
+		exit_status = (ci.conflicts > 0);
 
-		{
-			struct ci ci;
-
-			ci = print_merge2(outfile, &fl[0], &fl[1], &fl[2],
-					  csl1, csl2, obj == 'w',
-					  ignore);
-			if (!quiet && ci.conflicts)
-				fprintf(stderr,
-					"%d unresolved conflict%s found\n",
-					ci.conflicts,
-					ci.conflicts == 1 ? "" : "s");
-			if (!quiet && ci.ignored)
-				fprintf(stderr,
-					"%d already-applied change%s ignored\n",
-					ci.ignored,
-					ci.ignored == 1 ? "" : "s");
-			exit_status = (ci.conflicts > 0);
-		}
 		if (replace) {
 			fclose(outfile);
 			if (rename(argv[optind], orignew) == 0 &&

@@ -32,7 +32,15 @@ struct stream {
 	int len;
 };
 
-
+/* an 'elmnt' is a word or a line from the file.
+ * 'start' points into a 'body' in a stream.
+ * When a stream is made of 'diff' hunks, there is a special
+ * elmnt at the start of each hunk which starts with '\0' and
+ * records the line offsets of the hunk.  These are 20 bytes long.
+ * "\0\d{5} \d{5} \d{5}\n\0"
+ * The 3 numbers are: chunk number, starting line, number if lines.
+ * An element with len==0 marks EOF.
+ */
 struct elmnt {
 	char *start;
 	int hash;
@@ -47,6 +55,11 @@ static  inline int match(struct elmnt *a, struct elmnt *b)
 		strncmp(a->start, b->start, a->len) == 0;
 }
 
+/* end-of-line is important for narrowing conflicts.
+ * In line mode, every element is a line and 'ends a line'
+ * In word mode, the newline element and the diff-hunk element
+ * end a line.
+ */
 static inline int ends_line(struct elmnt e)
 {
 	if (e.len == 20 && e.start[0] == 0)
@@ -84,7 +97,7 @@ struct file {
  * Actually... it is possibly for a 'Changed' section to bound
  * a conflict as it indicates a successful match of A and B.
  * For line-wise merges, any Changed or Unchanged section bounds a conflict
- * For word-wise merges, and Changed or Unchanged section that matches
+ * For word-wise merges, any Changed or Unchanged section that matches
  * a newline, or immediately follows a newline (in all files) can bound
  * a conflict.
  */
@@ -120,10 +133,6 @@ struct ci {
 	int conflicts, wiggles, ignored;
 	struct merge *merger;
 };
-extern struct ci print_merge(FILE *out,
-			     struct file *a, struct file *b, struct file *c,
-			     struct csl *c1, struct csl *c2,
-			     int words);
 extern struct ci print_merge2(FILE *out,
 			      struct file *a, struct file *b, struct file *c,
 			      struct csl *c1, struct csl *c2,
@@ -156,5 +165,7 @@ extern char HelpBrowse[];
 
 extern void cleanlist(struct file a, struct file b, struct csl *list);
 
-#define	ByLine	0
-#define	ByWord	1
+enum {
+	ByLine,
+	ByWord,
+};
