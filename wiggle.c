@@ -117,6 +117,54 @@ static void printsep(struct elmnt e1, struct elmnt e2)
 	printf("@@ -%d,%d +%d,%d @@\n", b, c, e, f);
 }
 
+static int extract(int argc, char *argv[], int ispatch, int which)
+{
+	/* extract a branch of a diff or diff3 or merge output
+	 * We need one file
+	 */
+	struct stream f, flist[3];
+
+	if (optind == argc) {
+		fprintf(stderr,
+			"%s: no file given for --extract\n", Cmd);
+		return 2;
+	}
+	if (optind < argc-1) {
+		fprintf(stderr,
+			"%s: only give one file for --extract\n", Cmd);
+		return 2;
+	}
+	f = load_file(argv[optind]);
+	if (f.body == NULL) {
+		fprintf(stderr,
+			"%s: cannot load file '%s' - %s\n", Cmd,
+			argv[optind], strerror(errno));
+		return 2;
+	}
+	if (ispatch)
+		split_patch(f, &flist[0], &flist[1]);
+	else {
+		if (!split_merge(f, &flist[0], &flist[1], &flist[2])) {
+			fprintf(stderr,
+				"%s: merge file %s looks bad.\n", Cmd,
+				argv[optind]);
+			return 2;
+		}
+	}
+	if (flist[which-'1'].body == NULL) {
+		fprintf(stderr,
+			"%s: %s has no -%c component.\n", Cmd,
+			argv[optind], which);
+		return 2;
+	} else {
+		if (write(1, flist[which-'1'].body,
+			  flist[which-'1'].len)
+		    != flist[which-'1'].len)
+			return 2;
+	}
+	return 0;
+}
+
 int main(int argc, char *argv[])
 {
 	int opt;
@@ -286,49 +334,7 @@ int main(int argc, char *argv[])
 
 	switch (mode) {
 	case 'x':
-		/* extract a branch of a diff or diff3 or merge output
-		 * We need one file
-		 */
-		if (optind == argc) {
-			fprintf(stderr,
-				"%s: no file given for --extract\n", Cmd);
-			exit(2);
-		}
-		if (optind < argc-1) {
-			fprintf(stderr,
-				"%s: only give one file for --extract\n", Cmd);
-			exit(2);
-		}
-		f = load_file(argv[optind]);
-		if (f.body == NULL) {
-			fprintf(stderr,
-				"%s: cannot load file '%s' - %s\n", Cmd,
-				argv[optind], strerror(errno));
-			exit(2);
-		}
-		if (ispatch)
-			chunks1 = chunks2 =
-				split_patch(f, &flist[0], &flist[1]);
-		else {
-			if (!split_merge(f, &flist[0], &flist[1], &flist[2])) {
-				fprintf(stderr,
-					"%s: merge file %s looks bad.\n", Cmd,
-					argv[optind]);
-				exit(2);
-			}
-		}
-		if (flist[which-'1'].body == NULL) {
-			fprintf(stderr,
-				"%s: %s has no -%c component.\n", Cmd,
-				argv[optind], which);
-			exit(2);
-		} else {
-			if (write(1, flist[which-'1'].body,
-				  flist[which-'1'].len)
-			    != flist[which-'1'].len)
-				exit(2);
-		}
-
+		exit_status = extract(argc, argv, ispatch, which);
 		break;
 	case 'd':
 		/* create a diff (line or char) of two streams */
