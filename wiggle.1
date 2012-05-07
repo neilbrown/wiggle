@@ -158,7 +158,7 @@ attempts to revert changes rather than apply them.
 
 .TP
 .BR -i ", " \-\-no\-ignore
-Normally wiggle with ignore changes in the patch which appear to
+Normally wiggle will ignore changes in the patch which appear to
 already have been applied in the original.  With this flag those
 changes are reported as conflicts rather than being ignored.
 
@@ -196,9 +196,9 @@ two other texts and imposing those changes on the given text.
 
 Normally
 .I wiggle
-considers words which have changed so as to maximise the possibility
+focuses on which words have changed so as to maximise the possibility
 of finding a good match in the given text for the context of a given
-change.  However it can consider only whole lines.
+change.  However it can consider only whole lines instead.
 
 .I wiggle
 extracts the three texts that it needs from files listed on the
@@ -249,7 +249,7 @@ are reported as whole lines that need to be replaced.
 With the
 .B \-\-words
 option, individual words are compared and any
-conflicts are reported just covering the words affected.  This used
+conflicts are reported just covering the words affected.  This uses
 the \f(CW <<<|||===>>> \fP conflict format.
 
 Without either of these options, a hybrid approach is taken.
@@ -344,7 +344,7 @@ This last option causes
 to apply a "best-fit" algorithm for aligning patch hunks with the
 file before computing the differences.  This algorithm is used when
 merging a patch with a file, and its value can be seen by comparing
-the difference produced this was with the difference produced by first
+the difference produced this way with the difference produced by first
 extracting one branch of a patch into a file, and then computing the
 difference of that file with the main file.
 
