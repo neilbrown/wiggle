@@ -46,9 +46,8 @@
 #include	<stdlib.h>
 #include	<ctype.h>
 #include	<stdlib.h>
-#define BITS_PER_LONG 32
 
-#include "hash.h"
+#include "ccan/hash/hash.h"
 
 static int split_internal(char *start, char *end, int type,
 			  struct elmnt *list)
@@ -90,8 +89,7 @@ static int split_internal(char *start, char *end, int type,
 			list->start = start;
 			list->len = cp-start;
 			if (*start)
-				list->hash = hash_mem(start, list->len,
-						      BITS_PER_LONG);
+				list->hash = hash(start, list->len, 0);
 			else
 				list->hash = atoi(start+1);
 			list++;

@@ -3,7 +3,7 @@
 #OptDbg=-O3
 #OptDbg=-O3 -march=pentium2
 OptDbg=-ggdb
-CFLAGS=$(OptDbg) -Wall -Werror -Wstrict-prototypes -Wextra -Wno-unused-parameter
+CFLAGS=$(OptDbg) -I. -Wall -Werror -Wstrict-prototypes -Wextra -Wno-unused-parameter
 
 # STRIP = -s
 INSTALL = /usr/bin/install
@@ -17,9 +17,11 @@ LDLIBS = -lncurses
 all: wiggle wiggle.man test
 
 wiggle : wiggle.o load.o split.o extract.o diff.o bestmatch.o ReadMe.o \
-              merge2.o vpatch.o
+              merge2.o vpatch.o ccan/hash/hash.o
 wiggle.o load.o split.o extract.o diff.o bestmatch.o ReadMe.o \
-               merge2.o vpatch.o : wiggle.h
+               merge2.o vpatch.o :: wiggle.h
+split.o :: ccan/hash/hash.h config.h
+
 
 test: wiggle dotest
 	./dotest
