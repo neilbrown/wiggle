@@ -580,13 +580,6 @@ int main(int argc, char *argv[])
 	int exit_status = 0;
 	int ignore = 1;
 	char *helpmsg;
-	char *base0;
-
-	base0 = strrchr(argv[0], '/');
-	if (base0)
-		base0++;
-	else
-		base0 = argv[0];
 
 	while ((opt = getopt_long(argc, argv,
 				  short_options(mode), long_options,
