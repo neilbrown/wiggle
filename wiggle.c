@@ -165,6 +165,163 @@ static int extract(int argc, char *argv[], int ispatch, int which)
 	return 0;
 }
 
+static int do_diff_lines(struct file fl[2], struct csl *csl)
+{
+	int a, b;
+	int exit_status = 0;
+	a = b = 0;
+	while (a < fl[0].elcnt || b < fl[1].elcnt) {
+		if (a < csl->a) {
+			if (fl[0].list[a].start[0]) {
+				printf("-");
+				printword(stdout,
+					  fl[0].list[a]);
+			}
+			a++;
+			exit_status++;
+		} else if (b < csl->b) {
+			if (fl[1].list[b].start[0]) {
+				printf("+");
+				printword(stdout,
+					  fl[1].list[b]);
+			}
+			b++;
+			exit_status++;
+		} else {
+			if (fl[0].list[a].start[0] == '\0')
+				printsep(fl[0].list[a],
+					 fl[1].list[b]);
+			else {
+				printf(" ");
+				printword(stdout,
+					  fl[0].list[a]);
+			}
+			a++;
+			b++;
+			if (a >= csl->a+csl->len)
+				csl++;
+		}
+	}
+	return exit_status;
+}
+
+static int do_diff_words(struct file fl[2], struct csl *csl)
+{
+	int a, b;
+	int exit_status  = 0;
+	int sol = 1; /* start of line */
+	a = b = 0;
+	while (a < fl[0].elcnt || b < fl[1].elcnt) {
+		if (a < csl->a) {
+			exit_status++;
+			if (sol) {
+				int a1;
+				/* If we remove a
+				 * whole line, output
+				 * +line else clear
+				 * sol and retry */
+				sol = 0;
+				for (a1 = a; a1 < csl->a ; a1++)
+					if (ends_line(fl[0].list[a1])) {
+						sol = 1;
+						break;
+					}
+				if (sol) {
+					printf("-");
+					for (; a < csl->a ; a++) {
+						printword(stdout, fl[0].list[a]);
+						if (ends_line(fl[0].list[a])) {
+							a++;
+							break;
+						}
+					}
+				} else
+					printf("|");
+			}
+			if (!sol) {
+				printf("<<<--");
+				do {
+					if (sol)
+						printf("|");
+					printword(stdout, fl[0].list[a]);
+					sol = ends_line(fl[0].list[a]);
+					a++;
+				} while (a < csl->a);
+				printf("%s-->>>", sol ? "|" : "");
+				sol = 0;
+			}
+		} else if (b < csl->b) {
+			exit_status++;
+			if (sol) {
+				int b1;
+				sol = 0;
+				for (b1 = b; b1 < csl->b; b1++)
+					if (ends_line(fl[1].list[b1])) {
+						sol = 1;
+						break;
+					}
+				if (sol) {
+					printf("+");
+					for (; b < csl->b ; b++) {
+						printword(stdout, fl[1].list[b]);
+						if (ends_line(fl[1].list[b])) {
+							b++;
+							break;
+						}
+					}
+				} else
+					printf("|");
+			}
+			if (!sol) {
+				printf("<<<++");
+				do {
+					if (sol)
+						printf("|");
+					printword(stdout, fl[1].list[b]);
+					sol = ends_line(fl[1].list[b]);
+					b++;
+				} while (b < csl->b);
+				printf("%s++>>>", sol ? "|" : "");
+				sol = 0;
+			}
+		} else {
+			if (sol) {
+				int a1;
+				sol = 0;
+				for (a1 = a; a1 < csl->a+csl->len; a1++)
+					if (ends_line(fl[0].list[a1]))
+						sol = 1;
+				if (sol) {
+					if (fl[0].list[a].start[0]) {
+						printf(" ");
+						for (; a < csl->a+csl->len; a++, b++) {
+							printword(stdout, fl[0].list[a]);
+							if (ends_line(fl[0].list[a])) {
+								a++, b++;
+								break;
+							}
+						}
+					} else {
+						printsep(fl[0].list[a], fl[1].list[b]);
+						a++; b++;
+					}
+				} else
+					printf("|");
+			}
+			if (!sol) {
+				printword(stdout, fl[0].list[a]);
+				if (ends_line(fl[0].list[a]))
+					sol = 1;
+				a++;
+				b++;
+			}
+			if (a >= csl->a+csl->len)
+				csl++;
+		}
+	}
+	return exit_status;
+}
+
 static int do_diff(int argc, char *argv[], int obj, int ispatch,
 		   int which, int reverse)
 {
@@ -241,7 +398,6 @@ static int do_diff(int argc, char *argv[], int obj, int ispatch,
 		flist[2] = f;
 	}
 	if (obj == 'l') {
-		int a, b;
 		struct file fl[2];
 		struct csl *csl;
 		fl[0] = split_stream(flist[0], ByLine);
@@ -254,42 +410,8 @@ static int do_diff(int argc, char *argv[], int obj, int ispatch,
 		if (!chunks1)
 			printf("@@ -1,%d +1,%d @@\n",
 			       fl[0].elcnt, fl[1].elcnt);
-		a = b = 0;
-		while (a < fl[0].elcnt || b < fl[1].elcnt) {
-			if (a < csl->a) {
-				if (fl[0].list[a].start[0]) {
-					printf("-");
-					printword(stdout,
-						  fl[0].list[a]);
-				}
-				a++;
-				exit_status++;
-			} else if (b < csl->b) {
-				if (fl[1].list[b].start[0]) {
-					printf("+");
-					printword(stdout,
-						  fl[1].list[b]);
-				}
-				b++;
-				exit_status++;
-			} else {
-				if (fl[0].list[a].start[0] == '\0')
-					printsep(fl[0].list[a],
-						 fl[1].list[b]);
-				else {
-					printf(" ");
-					printword(stdout,
-						  fl[0].list[a]);
-				}
-				a++;
-				b++;
-				if (a >= csl->a+csl->len)
-					csl++;
-			}
-		}
+		exit_status = do_diff_lines(fl, csl);
 	} else {
-		int a, b;
-		int sol = 1; /* start of line */
 		struct file fl[2];
 		struct csl *csl;
 		fl[0] = split_stream(flist[0], ByWord);
@@ -311,116 +433,7 @@ static int do_diff(int argc, char *argv[], int obj, int ispatch,
 					l2++;
 			printf("@@ -1,%d +1,%d @@\n", l1, l2);
 		}
-		a = b = 0;
-		while (a < fl[0].elcnt || b < fl[1].elcnt) {
-			if (a < csl->a) {
-				exit_status++;
-				if (sol) {
-					int a1;
-					/* If we remove a
-					 * whole line, output
-					 * +line else clear
-					 * sol and retry */
-					sol = 0;
-					for (a1 = a; a1 < csl->a ; a1++)
-						if (ends_line(fl[0].list[a1])) {
-							sol = 1;
-							break;
-						}
-					if (sol) {
-						printf("-");
-						for (; a < csl->a ; a++) {
-							printword(stdout, fl[0].list[a]);
-							if (ends_line(fl[0].list[a])) {
-								a++;
-								break;
-							}
-						}
-					} else
-						printf("|");
-				}
-				if (!sol) {
-					printf("<<<--");
-					do {
-						if (sol)
-							printf("|");
-						printword(stdout, fl[0].list[a]);
-						sol = ends_line(fl[0].list[a]);
-						a++;
-					} while (a < csl->a);
-					printf("%s-->>>", sol ? "|" : "");
-					sol = 0;
-				}
-			} else if (b < csl->b) {
-				exit_status++;
-				if (sol) {
-					int b1;
-					sol = 0;
-					for (b1 = b; b1 < csl->b; b1++)
-						if (ends_line(fl[1].list[b1])) {
-							sol = 1;
-							break;
-						}
-					if (sol) {
-						printf("+");
-						for (; b < csl->b ; b++) {
-							printword(stdout, fl[1].list[b]);
-							if (ends_line(fl[1].list[b])) {
-								b++;
-								break;
-							}
-						}
-					} else
-						printf("|");
-				}
-				if (!sol) {
-					printf("<<<++");
-					do {
-						if (sol)
-							printf("|");
-						printword(stdout, fl[1].list[b]);
-						sol = ends_line(fl[1].list[b]);
-						b++;
-					} while (b < csl->b);
-					printf("%s++>>>", sol ? "|" : "");
-					sol = 0;
-				}
-			} else {
-				if (sol) {
-					int a1;
-					sol = 0;
-					for (a1 = a; a1 < csl->a+csl->len; a1++)
-						if (ends_line(fl[0].list[a1]))
-							sol = 1;
-					if (sol) {
-						if (fl[0].list[a].start[0]) {
-							printf(" ");
-							for (; a < csl->a+csl->len; a++, b++) {
-								printword(stdout, fl[0].list[a]);
-								if (ends_line(fl[0].list[a])) {
-									a++, b++;
-									break;
-								}
-							}
-						} else {
-							printsep(fl[0].list[a], fl[1].list[b]);
-							a++; b++;
-						}
-					} else
-						printf("|");
-				}
-				if (!sol) {
-					printword(stdout, fl[0].list[a]);
-					if (ends_line(fl[0].list[a]))
-						sol = 1;
-					a++;
-					b++;
-				}
-				if (a >= csl->a+csl->len)
-					csl++;
-			}
-		}
-
+		exit_status = do_diff_words(fl, csl);
 	}
 	return exit_status;
 }
