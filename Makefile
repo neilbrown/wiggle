@@ -37,7 +37,7 @@ install : wiggle wiggle.1
 
 version : ReadMe.c wiggle.1
 	@rm -f version
-	@sed -n -e 's/.*wiggle - v\([0-9.]*\) - .*/\1/p' ReadMe.c > .version-readme
+	@sed -n -e 's/.*wiggle \([0-9.]*\) .*/\1/p' ReadMe.c > .version-readme
 	@sed -n -e 's/.*WIGGLE 1 "" v\([0-9.]*\)$$/\1/p' wiggle.1 > .version-man
 	@cmp -s .version-readme .version-man && cat .version-man > version || { echo Inconsistant versions.; exit 1;}
 
