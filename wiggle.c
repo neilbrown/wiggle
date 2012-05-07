@@ -165,6 +165,266 @@ static int extract(int argc, char *argv[], int ispatch, int which)
 	return 0;
 }
 
+static int do_diff(int argc, char *argv[], int obj, int ispatch,
+		   int which, int reverse)
+{
+	/* create a diff (line or char) of two streams */
+	struct stream f, flist[3];
+	int chunks1 = 0, chunks2 = 0, chunks3 = 0;
+	int exit_status = 0;
+
+	switch (argc-optind) {
+	case 0:
+		fprintf(stderr, "%s: no file given for --diff\n", Cmd);
+		return 2;
+	case 1:
+		f = load_file(argv[optind]);
+		if (f.body == NULL) {
+			fprintf(stderr,
+				"%s: cannot load file '%s' - %s\n", Cmd,
+				argv[optind], strerror(errno));
+			return 2;
+		}
+		chunks1 = chunks2 =
+			split_patch(f, &flist[0], &flist[1]);
+		if (!flist[0].body || !flist[1].body) {
+			fprintf(stderr,
+				"%s: couldn't parse patch %s\n", Cmd,
+				argv[optind]);
+			return 2;
+		}
+		break;
+	case 2:
+		flist[0] = load_file(argv[optind]);
+		if (flist[0].body == NULL) {
+			fprintf(stderr,
+				"%s: cannot load file '%s' - %s\n", Cmd,
+				argv[optind], strerror(errno));
+			return 2;
+		}
+		if (ispatch) {
+			f = load_file(argv[optind+1]);
+			if (f.body == NULL) {
+				fprintf(stderr,
+					"%s: cannot load patch"
+					" '%s' - %s\n", Cmd,
+					argv[optind], strerror(errno));
+				return 2;
+			}
+			if (which == '2')
+				chunks2 = chunks3 =
+					split_patch(f, &flist[2],
+						    &flist[1]);
+			else
+				chunks2 = chunks3 =
+					split_patch(f, &flist[1],
+						    &flist[2]);
+
+		} else
+			flist[1] = load_file(argv[optind+1]);
+		if (flist[1].body == NULL) {
+			fprintf(stderr,
+				"%s: cannot load file"
+				" '%s' - %s\n", Cmd,
+				argv[optind+1], strerror(errno));
+			return 2;
+		}
+		break;
+	default:
+		fprintf(stderr,
+			"%s: too many files given for --diff\n", Cmd);
+		return 2;
+	}
+	if (reverse) {
+		f = flist[1];
+		flist[1] = flist[2];
+		flist[2] = f;
+	}
+	if (obj == 'l') {
+		int a, b;
+		struct file fl[2];
+		struct csl *csl;
+		fl[0] = split_stream(flist[0], ByLine);
+		fl[1] = split_stream(flist[1], ByLine);
+		if (chunks2 && !chunks1)
+			csl = pdiff(fl[0], fl[1], chunks2);
+		else
+			csl = diff(fl[0], fl[1]);
+
+		if (!chunks1)
+			printf("@@ -1,%d +1,%d @@\n",
+			       fl[0].elcnt, fl[1].elcnt);
+		a = b = 0;
+		while (a < fl[0].elcnt || b < fl[1].elcnt) {
+			if (a < csl->a) {
+				if (fl[0].list[a].start[0]) {
+					printf("-");
+					printword(stdout,
+						  fl[0].list[a]);
+				}
+				a++;
+				exit_status++;
+			} else if (b < csl->b) {
+				if (fl[1].list[b].start[0]) {
+					printf("+");
+					printword(stdout,
+						  fl[1].list[b]);
+				}
+				b++;
+				exit_status++;
+			} else {
+				if (fl[0].list[a].start[0] == '\0')
+					printsep(fl[0].list[a],
+						 fl[1].list[b]);
+				else {
+					printf(" ");
+					printword(stdout,
+						  fl[0].list[a]);
+				}
+				a++;
+				b++;
+				if (a >= csl->a+csl->len)
+					csl++;
+			}
+		}
+	} else {
+		int a, b;
+		int sol = 1; /* start of line */
+		struct file fl[2];
+		struct csl *csl;
+		fl[0] = split_stream(flist[0], ByWord);
+		fl[1] = split_stream(flist[1], ByWord);
+		if (chunks2 && !chunks1)
+			csl = pdiff(fl[0], fl[1], chunks2);
+		else
+			csl = diff(fl[0], fl[1]);
+
+		if (!chunks1) {
+			/* count lines in each file */
+			int l1, l2, i;
+			l1 = l2 = 0;
+			for (i = 0 ; i < fl[0].elcnt ; i++)
+				if (ends_line(fl[0].list[i]))
+					l1++;
+			for (i = 0 ; i < fl[1].elcnt ; i++)
+				if (ends_line(fl[1].list[i]))
+					l2++;
+			printf("@@ -1,%d +1,%d @@\n", l1, l2);
+		}
+		a = b = 0;
+		while (a < fl[0].elcnt || b < fl[1].elcnt) {
+			if (a < csl->a) {
+				exit_status++;
+				if (sol) {
+					int a1;
+					/* If we remove a
+					 * whole line, output
+					 * +line else clear
+					 * sol and retry */
+					sol = 0;
+					for (a1 = a; a1 < csl->a ; a1++)
+						if (ends_line(fl[0].list[a1])) {
+							sol = 1;
+							break;
+						}
+					if (sol) {
+						printf("-");
+						for (; a < csl->a ; a++) {
+							printword(stdout, fl[0].list[a]);
+							if (ends_line(fl[0].list[a])) {
+								a++;
+								break;
+							}
+						}
+					} else
+						printf("|");
+				}
+				if (!sol) {
+					printf("<<<--");
+					do {
+						if (sol)
+							printf("|");
+						printword(stdout, fl[0].list[a]);
+						sol = ends_line(fl[0].list[a]);
+						a++;
+					} while (a < csl->a);
+					printf("%s-->>>", sol ? "|" : "");
+					sol = 0;
+				}
+			} else if (b < csl->b) {
+				exit_status++;
+				if (sol) {
+					int b1;
+					sol = 0;
+					for (b1 = b; b1 < csl->b; b1++)
+						if (ends_line(fl[1].list[b1])) {
+							sol = 1;
+							break;
+						}
+					if (sol) {
+						printf("+");
+						for (; b < csl->b ; b++) {
+							printword(stdout, fl[1].list[b]);
+							if (ends_line(fl[1].list[b])) {
+								b++;
+								break;
+							}
+						}
+					} else
+						printf("|");
+				}
+				if (!sol) {
+					printf("<<<++");
+					do {
+						if (sol)
+							printf("|");
+						printword(stdout, fl[1].list[b]);
+						sol = ends_line(fl[1].list[b]);
+						b++;
+					} while (b < csl->b);
+					printf("%s++>>>", sol ? "|" : "");
+					sol = 0;
+				}
+			} else {
+				if (sol) {
+					int a1;
+					sol = 0;
+					for (a1 = a; a1 < csl->a+csl->len; a1++)
+						if (ends_line(fl[0].list[a1]))
+							sol = 1;
+					if (sol) {
+						if (fl[0].list[a].start[0]) {
+							printf(" ");
+							for (; a < csl->a+csl->len; a++, b++) {
+								printword(stdout, fl[0].list[a]);
+								if (ends_line(fl[0].list[a])) {
+									a++, b++;
+									break;
+								}
+							}
+						} else {
+							printsep(fl[0].list[a], fl[1].list[b]);
+							a++; b++;
+						}
+					} else
+						printf("|");
+				}
+				if (!sol) {
+					printword(stdout, fl[0].list[a]);
+					if (ends_line(fl[0].list[a]))
+						sol = 1;
+					a++;
+					b++;
+				}
+				if (a >= csl->a+csl->len)
+					csl++;
+			}
+		}
+
+	}
+	return exit_status;
+}
+
 int main(int argc, char *argv[])
 {
 	int opt;
@@ -337,252 +597,7 @@ int main(int argc, char *argv[])
 		exit_status = extract(argc, argv, ispatch, which);
 		break;
 	case 'd':
-		/* create a diff (line or char) of two streams */
-		switch (argc-optind) {
-		case 0:
-			fprintf(stderr, "%s: no file given for --diff\n", Cmd);
-			exit(2);
-		case 1:
-			f = load_file(argv[optind]);
-			if (f.body == NULL) {
-				fprintf(stderr,
-					"%s: cannot load file '%s' - %s\n", Cmd,
-					argv[optind], strerror(errno));
-				exit(2);
-			}
-			chunks1 = chunks2 =
-				split_patch(f, &flist[0], &flist[1]);
-			if (!flist[0].body || !flist[1].body) {
-				fprintf(stderr,
-					"%s: couldn't parse patch %s\n", Cmd,
-					argv[optind]);
-				exit(2);
-			}
-			break;
-		case 2:
-			flist[0] = load_file(argv[optind]);
-			if (flist[0].body == NULL) {
-				fprintf(stderr,
-					"%s: cannot load file '%s' - %s\n", Cmd,
-					argv[optind], strerror(errno));
-				exit(2);
-			}
-			if (ispatch) {
-				f = load_file(argv[optind+1]);
-				if (f.body == NULL) {
-					fprintf(stderr,
-						"%s: cannot load patch"
-						" '%s' - %s\n", Cmd,
-						argv[optind], strerror(errno));
-					exit(2);
-				}
-				if (which == '2')
-					chunks2 = chunks3 =
-						split_patch(f, &flist[2],
-							    &flist[1]);
-				else
-					chunks2 = chunks3 =
-						split_patch(f, &flist[1],
-							    &flist[2]);
-
-			} else
-				flist[1] = load_file(argv[optind+1]);
-			if (flist[1].body == NULL) {
-				fprintf(stderr,
-					"%s: cannot load file"
-					" '%s' - %s\n", Cmd,
-					argv[optind+1], strerror(errno));
-				exit(2);
-			}
-			break;
-		default:
-			fprintf(stderr,
-				"%s: too many files given for --diff\n", Cmd);
-			exit(2);
-		}
-		if (reverse) {
-			f = flist[1];
-			flist[1] = flist[2];
-			flist[2] = f;
-		}
-		if (obj == 'l') {
-			int a, b;
-			fl[0] = split_stream(flist[0], ByLine);
-			fl[1] = split_stream(flist[1], ByLine);
-			if (chunks2 && !chunks1)
-				csl1 = pdiff(fl[0], fl[1], chunks2);
-			else
-				csl1 = diff(fl[0], fl[1]);
-
-			if (!chunks1)
-				printf("@@ -1,%d +1,%d @@\n",
-				       fl[0].elcnt, fl[1].elcnt);
-			a = b = 0;
-			while (a < fl[0].elcnt || b < fl[1].elcnt) {
-				if (a < csl1->a) {
-					if (fl[0].list[a].start[0]) {
-						printf("-");
-						printword(stdout,
-							  fl[0].list[a]);
-					}
-					a++;
-					exit_status++;
-				} else if (b < csl1->b) {
-					if (fl[1].list[b].start[0]) {
-						printf("+");
-						printword(stdout,
-							  fl[1].list[b]);
-					}
-					b++;
-					exit_status++;
-				} else {
-					if (fl[0].list[a].start[0] == '\0')
-						printsep(fl[0].list[a],
-							 fl[1].list[b]);
-					else {
-						printf(" ");
-						printword(stdout,
-							  fl[0].list[a]);
-					}
-					a++;
-					b++;
-					if (a >= csl1->a+csl1->len)
-						csl1++;
-				}
-			}
-		} else {
-			int a, b;
-			int sol = 1; /* start of line */
-			fl[0] = split_stream(flist[0], ByWord);
-			fl[1] = split_stream(flist[1], ByWord);
-			if (chunks2 && !chunks1)
-				csl1 = pdiff(fl[0], fl[1], chunks2);
-			else
-				csl1 = diff(fl[0], fl[1]);
-
-			if (!chunks1) {
-				/* count lines in each file */
-				int l1, l2, i;
-				l1 = l2 = 0;
-				for (i = 0 ; i < fl[0].elcnt ; i++)
-					if (ends_line(fl[0].list[i]))
-						l1++;
-				for (i = 0 ; i < fl[1].elcnt ; i++)
-					if (ends_line(fl[1].list[i]))
-						l2++;
-				printf("@@ -1,%d +1,%d @@\n", l1, l2);
-			}
-			a = b = 0;
-			while (a < fl[0].elcnt || b < fl[1].elcnt) {
-				if (a < csl1->a) {
-					exit_status++;
-					if (sol) {
-						int a1;
-						/* If we remove a
-						 * whole line, output
-						 * +line else clear
-						 * sol and retry */
-						sol = 0;
-						for (a1 = a; a1 < csl1->a ; a1++)
-							if (ends_line(fl[0].list[a1])) {
-								sol = 1;
-								break;
-							}
-						if (sol) {
-							printf("-");
-							for (; a < csl1->a ; a++) {
-								printword(stdout, fl[0].list[a]);
-								if (ends_line(fl[0].list[a])) {
-									a++;
-									break;
-								}
-							}
-						} else
-							printf("|");
-					}
-					if (!sol) {
-						printf("<<<--");
-						do {
-							if (sol)
-								printf("|");
-							printword(stdout, fl[0].list[a]);
-							sol = ends_line(fl[0].list[a]);
-							a++;
-						} while (a < csl1->a);
-						printf("%s-->>>", sol ? "|" : "");
-						sol = 0;
-					}
-				} else if (b < csl1->b) {
-					exit_status++;
-					if (sol) {
-						int b1;
-						sol = 0;
-						for (b1 = b; b1 < csl1->b; b1++)
-							if (ends_line(fl[1].list[b1])) {
-								sol = 1;
-								break;
-							}
-						if (sol) {
-							printf("+");
-							for (; b < csl1->b ; b++) {
-								printword(stdout, fl[1].list[b]);
-								if (ends_line(fl[1].list[b])) {
-									b++;
-									break;
-								}
-							}
-						} else
-							printf("|");
-					}
-					if (!sol) {
-						printf("<<<++");
-						do {
-							if (sol)
-								printf("|");
-							printword(stdout, fl[1].list[b]);
-							sol = ends_line(fl[1].list[b]);
-							b++;
-						} while (b < csl1->b);
-						printf("%s++>>>", sol ? "|" : "");
-						sol = 0;
-					}
-				} else {
-					if (sol) {
-						int a1;
-						sol = 0;
-						for (a1 = a; a1 < csl1->a+csl1->len; a1++)
-							if (ends_line(fl[0].list[a1]))
-								sol = 1;
-						if (sol) {
-							if (fl[0].list[a].start[0]) {
-								printf(" ");
-								for (; a < csl1->a+csl1->len; a++, b++) {
-									printword(stdout, fl[0].list[a]);
-									if (ends_line(fl[0].list[a])) {
-										a++, b++;
-										break;
-									}
-								}
-							} else {
-								printsep(fl[0].list[a], fl[1].list[b]);
-								a++; b++;
-							}
-						} else
-							printf("|");
-					}
-					if (!sol) {
-						printword(stdout, fl[0].list[a]);
-						if (ends_line(fl[0].list[a]))
-							sol = 1;
-						a++;
-						b++;
-					}
-					if (a >= csl1->a+csl1->len)
-						csl1++;
-				}
-			}
-
-		}
+		exit_status = do_diff(argc, argv, obj, ispatch, which, reverse);
 		break;
 	case 'm':
 		/* merge three files, A B C, so changed between B and C get made to A
