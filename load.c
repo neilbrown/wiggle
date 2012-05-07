@@ -75,15 +75,10 @@ static struct stream load_regular(int fd)
 	fstat(fd, &stb);
 
 	s.len = stb.st_size;
-	s.body = malloc(s.len+1);
-	if (s.body) {
-		if (read(fd, s.body, s.len) != s.len) {
-			free(s.body);
-			s.body = NULL;
-			die();
-		}
-	} else
+	s.body = xmalloc(s.len+1);
+	if (read(fd, s.body, s.len) != s.len)
 		die();
+
 	s.body[s.len] = 0;
 	return s;
 }
@@ -95,9 +90,7 @@ static struct stream load_other(int fd)
 	int i = 0;
 
 	while (1) {
-		list[i].body = malloc(8192);
-		if (!list[i].body)
-			die();
+		list[i].body = xmalloc(8192);
 		list[i].len = read(fd, list[i].body, 8192);
 		if (list[i].len < 0)
 			die();

@@ -111,9 +111,7 @@ struct file split_stream(struct stream s, int type)
 	c = s.body;
 
 	cnt = split_internal(c, end, type, NULL);
-	f.list = malloc(cnt*sizeof(struct elmnt));
-	if (!f.list)
-		die();
+	f.list = xmalloc(cnt*sizeof(struct elmnt));
 
 	f.elcnt = split_internal(c, end, type, f.list);
 	return f;

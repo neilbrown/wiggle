@@ -353,7 +353,7 @@ static struct csl *lcsl(struct file *a, int alo, int ahi,
 
 	if (csl == NULL) {
 		/* 'len+1' to hold a sentinel */
-		rv = csl = malloc((len+1)*sizeof(*csl));
+		rv = csl = xmalloc((len+1)*sizeof(*csl));
 		csl->len = 0;
 	}
 	if (len) {
@@ -541,7 +541,7 @@ struct csl *diff(struct file a, struct file b)
 {
 	struct v *v;
 	struct csl *csl;
-	v = malloc(sizeof(struct v)*(a.elcnt+b.elcnt+2));
+	v = xmalloc(sizeof(struct v)*(a.elcnt+b.elcnt+2));
 	v += b.elcnt+1;
 
 	csl = lcsl(&a, 0, a.elcnt,
@@ -550,7 +550,7 @@ struct csl *diff(struct file a, struct file b)
 	free(v-(b.elcnt+1));
 	fixup(&a, &b, csl);
 	if (!csl) {
-		csl = malloc(sizeof(*csl));
+		csl = xmalloc(sizeof(*csl));
 		csl->len = 0;
 		csl->a = a.elcnt;
 		csl->b = b.elcnt;
@@ -566,7 +566,7 @@ struct csl *diff_partial(struct file a, struct file b,
 {
 	struct v *v;
 	struct csl *csl;
-	v = malloc(sizeof(struct v)*(ahi-alo+bhi-blo+2));
+	v = xmalloc(sizeof(struct v)*(ahi-alo+bhi-blo+2));
 	v += bhi-alo+1;
 
 	csl = lcsl(&a, alo, ahi,
@@ -583,7 +583,7 @@ main(int argc, char *argv[])
 {
 	struct file a, b;
 	struct csl *csl;
-	struct elmnt *lst = malloc(argc*sizeof(*lst));
+	struct elmnt *lst = xmalloc(argc*sizeof(*lst));
 	int arg;
 	struct v *v;
 	int ln;

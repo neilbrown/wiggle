@@ -1663,7 +1663,7 @@ static void merge_window(struct plist *p, FILE *f, int reverse)
 			    !same_mpos(anchor->pos, pos) ||
 			    anchor->searchlen != searchlen ||
 			    anchor->col != col) {
-				struct search_anchor *a = malloc(sizeof(*a));
+				struct search_anchor *a = xmalloc(sizeof(*a));
 				a->pos = pos;
 				a->row = row;
 				a->col = col;
@@ -1730,7 +1730,7 @@ static struct plist *patch_add_file(struct plist *pl, int *np, char *file,
 			asize += asize;
 		npl = realloc(pl, asize * sizeof(struct plist));
 		if (!npl) {
-			fprintf(stderr, "malloc failed - skipping %s\n", file);
+			fprintf(stderr, "realloc failed - skipping %s\n", file);
 			return pl;
 		}
 		pl = npl;
@@ -1827,14 +1827,9 @@ static struct stream load_segment(FILE *f,
 {
 	struct stream s;
 	s.len = end - start;
-	s.body = malloc(s.len);
-	if (s.body) {
-		fseek(f, start, 0);
-		if (fread(s.body, 1, s.len, f) != (size_t)s.len) {
-			free(s.body);
-			s.body = NULL;
-		}
-	} else
+	s.body = xmalloc(s.len);
+	fseek(f, start, 0);
+	if (fread(s.body, 1, s.len, f) != (size_t)s.len)
 		die();
 	return s;
 }

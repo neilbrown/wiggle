@@ -70,11 +70,8 @@ int split_patch(struct stream f, struct stream *f1, struct stream *f2)
 
 	f1->body = f2->body = NULL;
 
-	r1.body = malloc(f.len);
-	r2.body = malloc(f.len);
-	if (!r1.body || !r2.body)
-		die();
-
+	r1.body = xmalloc(f.len);
+	r2.body = xmalloc(f.len);
 	r1.len = r2.len = 0;
 
 	cp = f.body;
@@ -205,12 +202,9 @@ int split_merge(struct stream f, struct stream *f1, struct stream *f2, struct st
 	f1->body = NULL;
 	f2->body = NULL;
 
-	r1.body = malloc(f.len);
-	r2.body = malloc(f.len);
-	r3.body = malloc(f.len);
-	if (!r1.body || !r2.body || !r3.body)
-		die();
-
+	r1.body = xmalloc(f.len);
+	r2.body = xmalloc(f.len);
+	r3.body = xmalloc(f.len);
 	r1.len = r2.len = r3.len = 0;
 
 	cp = f.body;

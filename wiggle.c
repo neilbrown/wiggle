@@ -98,6 +98,17 @@ void die()
 	exit(3);
 }
 
+void *xmalloc(int size)
+{
+	void *rv = malloc(size);
+	if (size && !rv) {
+		char *msg = "Failed to allocate memory - aborting\n";
+		write(2, msg, strlen(msg));
+		exit(3);
+	}
+	return rv;
+}
+
 void printword(FILE *f, struct elmnt e)
 {
 	if (e.start[0])
@@ -501,12 +512,8 @@ static int do_merge(int argc, char *argv[], int obj,
 	}
 	if (replace) {
 		int fd;
-		replacename = malloc(strlen(argv[optind]) + 20);
-		if (!replacename)
-			die();
-		orignew = malloc(strlen(argv[optind]) + 20);
-		if (!orignew)
-			die();
+		replacename = xmalloc(strlen(argv[optind]) + 20);
+		orignew = xmalloc(strlen(argv[optind]) + 20);
 		strcpy(replacename, argv[optind]);
 		strcpy(orignew, argv[optind]);
 		strcat(orignew, ".porig");

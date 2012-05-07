@@ -236,9 +236,7 @@ struct ci make_merger(struct file af, struct file bf, struct file cf,
 	/* maybe a bit of slack at each end */
 	l = l * 4 + 10;
 
-	rv.merger = malloc(sizeof(struct merge)*l);
-	if (!rv.merger)
-		return rv;
+	rv.merger = xmalloc(sizeof(struct merge)*l);
 
 	a = b = c = c1 = c2 = 0;
 	i = 0;
