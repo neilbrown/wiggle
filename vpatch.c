@@ -84,6 +84,19 @@ char *help_help[] = {
 	NULL
 };
 
+char *help_missing[] = {
+	"The file that this patch applies to appears",
+	"to be missing.",
+	"Please type 'q' to continue",
+	NULL
+};
+
+char *help_corrupt[] = {
+	"This patch appears to be corrupt",
+	"Please type 'q' to continue",
+	NULL
+};
+
 /* We can give one or two pages to display in the help window.
  * The first is specific to the current context.  The second
  * is optional and  may provide help in a more broad context.
@@ -1136,6 +1149,14 @@ static void merge_window(struct plist *p, FILE *f, int reverse)
 			sm = load_file(p->file);
 		}
 	}
+	if (!sm.body || !sb.body || !sa.body) {
+		term_init();
+		if (!sm.body)
+			help_window(help_missing, NULL);
+		else
+			help_window(help_corrupt, NULL);
+		return;
+	}
 	/* FIXME check for errors in the stream */
 	fm = split_stream(sm, ByWord);
 	fb = split_stream(sb, ByWord);
@@ -1699,6 +1720,7 @@ static void show_merge(char *origname, FILE *patch, int reverse,
 	p.before = before;
 	p.after = after;
 
+	freopen("/dev/null","w",stderr);
 	merge_window(&p, patch, reverse);
 }
 
@@ -1982,7 +2004,7 @@ static int set_prefix(struct plist *pl, int n, int strip)
 		strip = get_strip(pl[i].file);
 
 	if (strip < 0) {
-		fprintf(stderr, "%s: Cannot file files to patch: please specify --strip\n",
+		fprintf(stderr, "%s: Cannot find files to patch: please specify --strip\n",
 			Cmd);
 		return 0;
 	}
@@ -2023,7 +2045,7 @@ static void calc_one(struct plist *pl, FILE *f, int reverse)
 		else
 			pl->chunks = split_patch(s, &s1, &s2);
 	}
-	if (sf.body == NULL) {
+	if (sf.body == NULL || s1.body == NULL || s1.body == NULL) {
 		pl->wiggles = pl->conflicts = -1;
 	} else {
 		struct file ff, fp1, fp2;
@@ -2227,6 +2249,7 @@ static void main_window(struct plist *pl, int n, FILE *f, int reverse)
 	int c = 0;
 	int mode = 0; /* 0=all, 1= only wiggled, 2=only conflicted */
 
+	freopen("/dev/null","w",stderr);
 	term_init();
 	pl = sort_patches(pl, &n);
 
@@ -2420,7 +2443,7 @@ int vpatch(int argc, char *argv[], int patch, int strip,
 	 *    'new' needs to be applied to 'original'.
 	 *
 	 * If a multi-file patch is being read, 'strip' tells how many
-	 * path components to stripe.  If it is -1, we guess based on
+	 * path components to strip.  If it is -1, we guess based on
 	 * existing files.
 	 * If 'reverse' is given, when we invert any patch or diff
 	 * If 'replace' then we save the resulting merge.
