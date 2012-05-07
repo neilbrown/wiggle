@@ -1,0 +1,14 @@
+
+<<<<<<<
+This is one line of the file
+|||||||
+This is 1 line of the file
+=======
+This is 1 line of the document
+&&&&&&&
+This is one line of the document
+>>>>>>>
+
+I think this is another line
+
+So is this

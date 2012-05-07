@@ -163,6 +163,32 @@ already have been applied in the original.  With this flag those
 changes are reported as conflicts rather than being ignored.
 
 .TP
+.BR -W ", " \-\-show\-wiggle
+When used with
+.IR \-\-merge ,
+conflicts that can be wiggled into place are reported as conflicts
+with an extra stanza which shows what the result would be if this flag
+had not been used.  The extra stanza is introduce with a line
+containing 7 ampersand
+.RB ( & )
+characters thus:
+.in +5
+.nf
+.ft CW
+<<<<<<<
+Some portion of the original file
+|||||||
+text to replace
+=======
+text to replace it with
+&&&&&&&
+Text that would result from a successful wiggle
+>>>>>>>
+.ft
+.fi
+.in -5
+
+.TP
 .BR -h ", " \-\-help
 Print a simple help message.  If given after one of the function
 selectors (\-\-merge, \-\-diff, \-\-extract) help specific to that function

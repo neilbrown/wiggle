@@ -136,12 +136,12 @@ struct ci {
 extern struct ci print_merge2(FILE *out,
 			      struct file *a, struct file *b, struct file *c,
 			      struct csl *c1, struct csl *c2,
-			      int words, int ignore_already);
+			      int words, int ignore_already, int show_wiggles);
 extern void printword(FILE *f, struct elmnt e);
 
 extern struct ci make_merger(struct file a, struct file b, struct file c,
 			     struct csl *c1, struct csl *c2, int words,
-			     int ignore_already);
+			     int ignore_already, int show_wiggles);
 
 extern void die(void);
 extern void *xmalloc(int len);

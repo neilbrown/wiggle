@@ -446,7 +446,7 @@ static int do_diff(int argc, char *argv[], int obj, int ispatch,
 }
 
 static int do_merge(int argc, char *argv[], int obj,
-		    int reverse, int replace, int ignore,
+		    int reverse, int replace, int ignore, int show_wiggles,
 		    int quiet)
 {
 	/* merge three files, A B C, so changed between B and C get made to A
@@ -554,7 +554,7 @@ static int do_merge(int argc, char *argv[], int obj,
 
 	ci = print_merge2(outfile, &fl[0], &fl[1], &fl[2],
 			  csl1, csl2, obj == 'w',
-			  ignore);
+			  ignore, show_wiggles);
 	if (!quiet && ci.conflicts)
 		fprintf(stderr,
 			"%d unresolved conflict%s found\n",
@@ -595,6 +595,7 @@ int main(int argc, char *argv[])
 	int strip = -1;
 	int exit_status = 0;
 	int ignore = 1;
+	int show_wiggles = 0;
 	char *helpmsg;
 	char *trace;
 
@@ -665,6 +666,10 @@ int main(int argc, char *argv[])
 			continue;
 
 		case 'i':
+			ignore = 0;
+			continue;
+		case 'W':
+			show_wiggles = 1;
 			ignore = 0;
 			continue;
 
@@ -746,7 +751,7 @@ int main(int argc, char *argv[])
 		break;
 	case 'm':
 		exit_status = do_merge(argc, argv, obj, reverse, replace,
-				       ignore, quiet);
+				       ignore, show_wiggles, quiet);
 		break;
 	}
 	exit(exit_status);

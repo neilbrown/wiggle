@@ -1168,7 +1168,7 @@ static void merge_window(struct plist *p, FILE *f, int reverse)
 		csl1 = diff(fm, fb);
 	csl2 = diff(fb, fa);
 
-	ci = make_merger(fm, fb, fa, csl1, csl2, 0, 1);
+	ci = make_merger(fm, fb, fa, csl1, csl2, 0, 1, 0);
 
 	term_init();
 
@@ -2059,7 +2059,7 @@ static void calc_one(struct plist *pl, FILE *f, int reverse)
 		else
 			csl1 = diff(ff, fp1);
 		csl2 = diff(fp1, fp2);
-		ci = make_merger(ff, fp1, fp2, csl1, csl2, 0, 1);
+		ci = make_merger(ff, fp1, fp2, csl1, csl2, 0, 1, 0);
 		pl->wiggles = ci.wiggles;
 		pl->conflicts = ci.conflicts;
 		free(csl1);

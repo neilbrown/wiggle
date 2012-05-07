@@ -36,7 +36,8 @@ fail=0
 
 find . -name core | xargs rm -f
 list=$(find . -type f \( -name script -o -name diff -o -name ldiff \
-	-o -name rediff -o -name merge -o -name wmerge -o -name lmerge -o -name replace \) 
+	-o -name rediff -o -name merge -o -name wmerge -o -name lmerge \
+        -o -name replace -o -name Wmerge \)
       )
 for path in $list
 do
@@ -84,6 +85,11 @@ do
 	wmerge )  if [ -f patch ]
 		 then $TIME $WIGGLE -mw orig patch | diff -u wmerge - ; xit=$?
 		 else $TIME $WIGGLE -mw orig new new2 | diff -u wmerge - ; xit=$?
+		 fi
+		 ;;
+	Wmerge )  if [ -f patch ]
+		 then $TIME $WIGGLE -mW orig patch | diff -u Wmerge - ; xit=$?
+		 else $TIME $WIGGLE -mW orig new new2 | diff -u Wmerge - ; xit=$?
 		 fi
 		 ;;
    esac

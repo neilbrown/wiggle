@@ -1,16 +1,3 @@
-- --no-wiggle mode does line-mode merge, but for any conflict it adds
-  a section to show what the wiggle would have looked like
-  <<<<
-  I found this
-  |||||
-  but wanted this
-  ====
-  and would replace it with this
-  &&&&
-  and my best guess is this.
-  >>>>
-
-  best guess only included if there is one.
 
 - search should go to right column and highlight
 - do we always recenter top when we split - what if near but not at bottom

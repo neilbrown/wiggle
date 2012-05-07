@@ -1,0 +1,13 @@
+Openning line
+
+<<<<<<<
+content line with content
+|||||||
+content line content
+=======
+middle line content
+&&&&&&&
+middle line with content
+>>>>>>>
+
+closing line

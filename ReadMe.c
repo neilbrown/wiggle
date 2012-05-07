@@ -31,8 +31,8 @@
 
 char Version[] = "wiggle 0.8 2010-03-24 GPL-2+ http://neil.brown.name/wiggle/\n";
 
-char short_options1[] = "xdmwlrhi123pVRvqB"; /* not mode B */
-char short_options2[] = "xdmwlrhi123p::VRvqB"; /* mode B */
+char short_options1[] = "xdmwlrhiW123pVRvqB"; /* not mode B */
+char short_options2[] = "xdmwlrhiW123p::VRvqB"; /* mode B */
 
 struct option long_options[] = {
 	{"browse",	0, 0, 'B'},
@@ -50,6 +50,7 @@ struct option long_options[] = {
 	{"quiet",	0, 0, 'q'},
 	{"strip",	1, 0, 'p'},
 	{"no-ignore",	0, 0, 'i'},
+	{"show-wiggle",	0, 0, 'W'},
 	{0, 0, 0, 0}
 };
 
@@ -77,6 +78,8 @@ char Help[] =  "\n"
 "   --patch     -p    : treat last file as a patch file.\n"
 "   -1  -2  -3        : select which component of patch or merge to use.\n"
 "   --reverse   -R    : swap 'before' and 'after' for diff function.\n"
+"   --no-ignore -i    : Don't ignore already-applied changes.\n"
+"   --show-wiggle -W  : Report wiggles like conflicts with an extra stanza.\n"
 "\n"
 "   --help      -h    : get help.\n"
 "   --version   -V    : get version of wiggle.\n"

@@ -81,7 +81,7 @@ static int check_alreadyapplied(struct file af, struct file cf,
 
 static int isolate_conflicts(struct file af, struct file bf, struct file cf,
 			     struct csl *csl1, struct csl *csl2, int words,
-			     struct merge *m)
+			     struct merge *m, int show_wiggles)
 {
 	/* A conflict indicates that something is definitely wrong
 	 * and so we need to be a bit suspicious of nearby apparent matches.
@@ -97,13 +97,26 @@ static int isolate_conflicts(struct file af, struct file bf, struct file cf,
 	 * conflict as does any part of the original before
 	 * a newline.
 	 *
+	 * If 'show_wiggles' is set we treat wiggles like conflicts.
+	 * A 'wiggle' is implied by any Extraneous text being ignored,
+	 * or any line that has both Changed and Unmatched content.
+	 * (Unmatched content where nothing is changed is common and not
+	 *  really a 'wiggle').
 	 */
 	int i, j, k;
 	int cnt = 0;
+	int changed = 0;
+	int unmatched = 0;
 
-	for (i = 0; m[i].type != End; i++)
-		if (m[i].type == Conflict) {
-			/* We have a conflict here.
+	for (i = 0; m[i].type != End; i++) {
+		if (m[i].type == Changed)
+			changed = 1;
+		if (m[i].type == Unmatched)
+			unmatched = 1;
+		if (m[i].type == Conflict ||
+		    (show_wiggles && ((changed && unmatched)
+					|| m[i].type == Extraneous))) {
+			/* We have a conflict (or wiggle) here.
 			 * First search backwards for an Unchanged marking
 			 * things as in_conflict.  Then find the
 			 * cut-point in the Unchanged.  If there isn't one,
@@ -160,15 +173,7 @@ static int isolate_conflicts(struct file af, struct file bf, struct file cf,
 						break;
 				}
 			}
-#if 0
-			if (j >= 0 && m[j].in_conflict && m[j].type == Unchanged &&
-			    m[j].hi == m[j].lo) {
-				/* nothing to separate conflicts, merge them */
-				m[j].lo = 0;
-				m[j].hi = -1;
-				cnt--;
-			}
-#endif
+
 			/* now the forward search */
 			for (j = i+1; m[j].type != End; j++) {
 				m[j].in_conflict = 1;
@@ -211,12 +216,17 @@ static int isolate_conflicts(struct file af, struct file bf, struct file cf,
 			}
 			i = j - 1;
 		}
+		if (ends_line(af.list[m[i].a+m[i].al-1])) {
+			unmatched = 0;
+			changed = 0;
+		}
+	}
 	return cnt;
 }
 
 struct ci make_merger(struct file af, struct file bf, struct file cf,
 		      struct csl *csl1, struct csl *csl2, int words,
-		      int ignore_already)
+		      int ignore_already, int show_wiggles)
 {
 	/* find the wiggles and conflicts between csl1 and csl2
 	 */
@@ -336,7 +346,8 @@ struct ci make_merger(struct file af, struct file bf, struct file cf,
 	}
 	rv.merger[i].type = End;
 	rv.merger[i].in_conflict = 0;
-	rv.conflicts = isolate_conflicts(af, bf, cf, csl1, csl2, words, rv.merger);
+	rv.conflicts = isolate_conflicts(af, bf, cf, csl1, csl2, words,
+					 rv.merger, show_wiggles);
 	if (wiggle_found)
 		rv.wiggles++;
 	return rv;
@@ -353,10 +364,10 @@ static void printrange(FILE *out, struct file *f, int start, int len)
 
 struct ci print_merge2(FILE *out, struct file *a, struct file *b, struct file *c,
 		       struct csl *c1, struct csl *c2,
-		       int words, int ignore_already)
+		       int words, int ignore_already, int show_wiggles)
 {
 	struct ci rv = make_merger(*a, *b, *c, c1, c2,
-				   words, ignore_already);
+				   words, ignore_already, show_wiggles);
 	struct merge *m;
 
 	for (m = rv.merger; m->type != End ; m++) {
@@ -379,6 +390,7 @@ struct ci print_merge2(FILE *out, struct file *a, struct file *b, struct file *c
 			/* need to print from 'hi' to 'lo' of next
 			 * Unchanged which is < it's hi
 			 */
+			int found_conflict = 0;
 			int st = 0, st1;
 			if (m->type == Unchanged || m->type == Changed)
 				if (m->hi >= m->lo)
@@ -409,6 +421,8 @@ struct ci print_merge2(FILE *out, struct file *a, struct file *b, struct file *c
 
 			fputs(words ? "<<<---" : "<<<<<<<\n", out);
 			for (cm = m; cm->in_conflict; cm++) {
+				if (cm->type == Conflict)
+					found_conflict = 1;
 				if ((cm->type == Unchanged || cm->type == Changed)
 				    && cm != m && cm->lo < cm->hi) {
 					printrange(out, a, cm->a, cm->lo);
@@ -440,6 +454,40 @@ struct ci print_merge2(FILE *out, struct file *a, struct file *b, struct file *c
 					st1 = 0; /* All of result of change must be printed */
 				printrange(out, c, cm->c+st1, cm->cl-st1);
 				st1 = 0;
+			}
+			if (!found_conflict) {
+				/* This section was wiggled in successfully,
+				 * but full conflict display was requested.
+				 * So now print out the wiggled result as well.
+				 */
+				fputs(words ? "&&&" : "&&&&&&&\n", out);
+				st1 = st;
+				for (cm = m; cm->in_conflict; cm++) {
+					int last = 0;
+					if ((cm->type == Unchanged || cm->type == Changed)
+					    && cm != m && cm->lo < cm->hi)
+						last = 1;
+					switch (cm->type) {
+					case Unchanged:
+					case AlreadyApplied:
+					case Unmatched:
+						printrange(out, a, cm->a+st1,
+							   last ? cm->lo : cm->al-st1);
+						break;
+					case Extraneous:
+						break;
+					case Changed:
+						printrange(out, c, cm->c+st1,
+							   last ? cm->lo : cm->cl-st1);
+						break;
+					case Conflict:
+					case End:
+						assert(0);
+					}
+					if (last)
+						break;
+					st1 = 0;
+				}
 			}
 			fputs(words ? "--->>>" : ">>>>>>>\n", out);
 			m = cm;
