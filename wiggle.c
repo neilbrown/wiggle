@@ -141,9 +141,14 @@ static int extract(int argc, char *argv[], int ispatch, int which)
 			argv[optind], strerror(errno));
 		return 2;
 	}
-	if (ispatch)
-		split_patch(f, &flist[0], &flist[1]);
-	else {
+	if (ispatch) {
+		if (split_patch(f, &flist[0], &flist[1]) == 0) {
+			fprintf(stderr,
+				"%s: No chunk found in patch: %s\n", Cmd,
+				argv[optind]);
+			return 0;
+		}
+	} else {
 		if (!split_merge(f, &flist[0], &flist[1], &flist[2])) {
 			fprintf(stderr,
 				"%s: merge file %s looks bad.\n", Cmd,
