@@ -145,6 +145,7 @@ extern struct ci make_merger(struct file a, struct file b, struct file c,
 
 extern void die(void);
 extern void *xmalloc(int len);
+extern int do_trace;
 
 extern int vpatch(int argc, char *argv[], int patch, int strip,
 		  int reverse, int replace);

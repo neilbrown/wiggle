@@ -69,12 +69,12 @@ static int check_alreadyapplied(struct file af, struct file cf,
 			    af.list[m->a+i].len) != 0)
 			return 0;
 	}
-#if 0
-	printf("already applied %d,%d,%d - %d,%d,%d\n",
-	       m->a, m->b, m->c, m->al, m->bl, m->cl);
-	printf(" %.10s - %.10s\n", af.list[m->a].start,
-	       cf.list[m->c].start);
-#endif
+	if (do_trace) {
+		printf("already applied %d,%d,%d - %d,%d,%d\n",
+		       m->a, m->b, m->c, m->al, m->bl, m->cl);
+		printf(" %.10s - %.10s\n", af.list[m->a].start,
+		       cf.list[m->c].start);
+	}
 	m->type = AlreadyApplied;
 	return 1;
 }
@@ -361,15 +361,7 @@ struct ci print_merge2(FILE *out, struct file *a, struct file *b, struct file *c
 
 	for (m = rv.merger; m->type != End ; m++) {
 		struct merge *cm;
-#if 1
-		static int v = -1;
-		if (v == -1) {
-			if (getenv("WiggleVerbose"))
-				v = 1;
-			else
-				v = 0;
-		}
-		if (v)
+		if (do_trace)
 			printf("[%s: %d-%d,%d-%d,%d-%d%s(%d,%d)]\n",
 			       m->type==Unmatched ? "Unmatched" :
 			       m->type==Unchanged ? "Unchanged" :
@@ -382,7 +374,7 @@ struct ci print_merge2(FILE *out, struct file *a, struct file *b, struct file *c
 			       m->c, m->c+m->cl-1,
 			       m->in_conflict ? " in_conflict" : "",
 			       m->lo, m->hi);
-#endif
+
 		while (m->in_conflict) {
 			/* need to print from 'hi' to 'lo' of next
 			 * Unchanged which is < it's hi
@@ -396,29 +388,29 @@ struct ci print_merge2(FILE *out, struct file *a, struct file *b, struct file *c
 			if (m->type == Unchanged)
 				printrange(out, a, m->a+m->lo, m->hi - m->lo);
 
-#if 1
-		if (v)
-			for (cm = m; cm->in_conflict; cm++) {
-				printf("{%s: %d-%d,%d-%d,%d-%d%s(%d,%d)}\n",
-				       cm->type==Unmatched?"Unmatched":
-				       cm->type==Unchanged?"Unchanged":
-				       cm->type==Extraneous?"Extraneous":
-				       cm->type==Changed?"Changed":
-				       cm->type==AlreadyApplied?"AlreadyApplied":
-				       cm->type==Conflict?"Conflict":"unknown",
-				       cm->a, cm->a+cm->al-1,
-				       cm->b, cm->b+cm->bl-1,
-				       cm->c, cm->c+cm->cl-1,
-				       cm->in_conflict ? " in_conflict" : "",
-				       cm->lo, cm->hi);
-				if ((cm->type == Unchanged || cm->type == Changed) && cm != m && cm->lo < cm->hi)
-					break;
-			}
-#endif
+			if (do_trace)
+				for (cm = m; cm->in_conflict; cm++) {
+					printf("{%s: %d-%d,%d-%d,%d-%d%s(%d,%d)}\n",
+					       cm->type==Unmatched?"Unmatched":
+					       cm->type==Unchanged?"Unchanged":
+					       cm->type==Extraneous?"Extraneous":
+					       cm->type==Changed?"Changed":
+					       cm->type==AlreadyApplied?"AlreadyApplied":
+					       cm->type==Conflict?"Conflict":"unknown",
+					       cm->a, cm->a+cm->al-1,
+					       cm->b, cm->b+cm->bl-1,
+					       cm->c, cm->c+cm->cl-1,
+					       cm->in_conflict ? " in_conflict" : "",
+					       cm->lo, cm->hi);
+					if ((cm->type == Unchanged || cm->type == Changed)
+					    && cm != m && cm->lo < cm->hi)
+						break;
+				}
 
 			fputs(words ? "<<<---" : "<<<<<<<\n", out);
 			for (cm = m; cm->in_conflict; cm++) {
-				if ((cm->type == Unchanged || cm->type == Changed) && cm != m && cm->lo < cm->hi) {
+				if ((cm->type == Unchanged || cm->type == Changed)
+				    && cm != m && cm->lo < cm->hi) {
 					printrange(out, a, cm->a, cm->lo);
 					break;
 				}
@@ -428,7 +420,8 @@ struct ci print_merge2(FILE *out, struct file *a, struct file *b, struct file *c
 			fputs(words ? "|||" : "|||||||\n", out);
 			st1 = st;
 			for (cm = m; cm->in_conflict; cm++) {
-				if ((cm->type == Unchanged || cm->type == Changed) && cm != m && cm->lo < cm->hi) {
+				if ((cm->type == Unchanged || cm->type == Changed)
+				    && cm != m && cm->lo < cm->hi) {
 					printrange(out, b, cm->b, cm->lo);
 					break;
 				}
@@ -438,7 +431,8 @@ struct ci print_merge2(FILE *out, struct file *a, struct file *b, struct file *c
 			fputs(words ? "===" : "=======\n", out);
 			st1 = st;
 			for (cm = m; cm->in_conflict; cm++) {
-				if (cm->type == Unchanged && cm != m && cm->lo < cm->hi) {
+				if (cm->type == Unchanged &&
+				    cm != m && cm->lo < cm->hi) {
 					printrange(out, c, cm->c, cm->lo);
 					break;
 				}
@@ -461,8 +455,8 @@ struct ci print_merge2(FILE *out, struct file *a, struct file *b, struct file *c
 		 */
 		if (m->type == End)
 			break;
-#if 1
-		if (v) {
+
+		if (do_trace) {
 			printf("<<%s: %d-%d,%d-%d,%d-%d%s(%d,%d)>>\n",
 			       m->type==Unmatched?"Unmatched":
 			       m->type==Unchanged?"Unchanged":
@@ -476,7 +470,7 @@ struct ci print_merge2(FILE *out, struct file *a, struct file *b, struct file *c
 			       m->in_conflict ? " in_conflict" : "",
 			       m->lo, m->hi);
 		}
-#endif
+
 		switch (m->type) {
 		case Unchanged:
 		case AlreadyApplied:

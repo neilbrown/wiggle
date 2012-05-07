@@ -90,6 +90,7 @@
 #include	<ctype.h>
 
 char *Cmd = "wiggle";
+int do_trace = 0;
 
 void die()
 {
@@ -595,6 +596,11 @@ int main(int argc, char *argv[])
 	int exit_status = 0;
 	int ignore = 1;
 	char *helpmsg;
+	char *trace;
+
+	trace = getenv("WIGGLE_TRACE");
+	if (trace && *trace)
+		do_trace = 1;
 
 	while ((opt = getopt_long(argc, argv,
 				  short_options(mode), long_options,
