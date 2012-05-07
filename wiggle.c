@@ -334,6 +334,8 @@ static int do_diff(int argc, char *argv[], int obj, int ispatch,
 	struct stream f, flist[3];
 	int chunks1 = 0, chunks2 = 0, chunks3 = 0;
 	int exit_status = 0;
+	struct file fl[2];
+	struct csl *csl;
 
 	switch (argc-optind) {
 	case 0:
@@ -402,30 +404,18 @@ static int do_diff(int argc, char *argv[], int obj, int ispatch,
 		flist[1] = flist[2];
 		flist[2] = f;
 	}
+	fl[0] = split_stream(flist[0], obj == 'l' ? ByLine : ByWord);
+	fl[1] = split_stream(flist[1], obj == 'l' ? ByLine : ByWord);
+	if (chunks2 && !chunks1)
+		csl = pdiff(fl[0], fl[1], chunks2);
+	else
+		csl = diff(fl[0], fl[1]);
 	if (obj == 'l') {
-		struct file fl[2];
-		struct csl *csl;
-		fl[0] = split_stream(flist[0], ByLine);
-		fl[1] = split_stream(flist[1], ByLine);
-		if (chunks2 && !chunks1)
-			csl = pdiff(fl[0], fl[1], chunks2);
-		else
-			csl = diff(fl[0], fl[1]);
-
 		if (!chunks1)
 			printf("@@ -1,%d +1,%d @@\n",
 			       fl[0].elcnt, fl[1].elcnt);
 		exit_status = do_diff_lines(fl, csl);
 	} else {
-		struct file fl[2];
-		struct csl *csl;
-		fl[0] = split_stream(flist[0], ByWord);
-		fl[1] = split_stream(flist[1], ByWord);
-		if (chunks2 && !chunks1)
-			csl = pdiff(fl[0], fl[1], chunks2);
-		else
-			csl = diff(fl[0], fl[1]);
-
 		if (!chunks1) {
 			/* count lines in each file */
 			int l1, l2, i;
