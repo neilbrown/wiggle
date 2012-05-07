@@ -425,6 +425,146 @@ static int do_diff(int argc, char *argv[], int obj, int ispatch,
 	return exit_status;
 }
 
+static int do_merge(int argc, char *argv[], int obj,
+		    int reverse, int replace, int ignore,
+		    int quiet)
+{
+	/* merge three files, A B C, so changed between B and C get made to A
+	 */
+	struct stream f, flist[3];
+	struct file fl[3];
+	int i;
+	int chunks1 = 0, chunks2 = 0, chunks3 = 0;
+	char *replacename = NULL, *orignew = NULL;
+	struct csl *csl1, *csl2;
+	struct ci ci;
+	FILE *outfile = stdout;
+
+	switch (argc-optind) {
+	case 0:
+		fprintf(stderr, "%s: no files given for --merge\n", Cmd);
+		return 2;
+	case 3:
+	case 2:
+	case 1:
+		for (i = 0; i < argc-optind; i++) {
+			flist[i] = load_file(argv[optind+i]);
+			if (flist[i].body == NULL) {
+				fprintf(stderr, "%s: cannot load file '%s' - %s\n",
+					Cmd,
+					argv[optind+i], strerror(errno));
+				return 2;
+			}
+		}
+		break;
+	default:
+		fprintf(stderr, "%s: too many files given for --merge\n",
+			Cmd);
+		return 2;
+	}
+	switch (argc-optind) {
+	case 1: /* a merge file */
+		f = flist[0];
+		if (!split_merge(f, &flist[0], &flist[1], &flist[2])) {
+			fprintf(stderr, "%s: merge file %s looks bad.\n",
+				Cmd,
+				argv[optind]);
+			return 2;
+		}
+		break;
+	case 2: /* a file and a patch */
+		f = flist[1];
+		chunks2 = chunks3 = split_patch(f, &flist[1], &flist[2]);
+		break;
+	case 3: /* three separate files */
+		break;
+	}
+	if (reverse) {
+		f = flist[1];
+		flist[1] = flist[2];
+		flist[2] = f;
+	}
+
+	for (i = 0; i < 3; i++) {
+		if (flist[i].body == NULL) {
+			fprintf(stderr, "%s: file %d missing\n", Cmd, i);
+			return 2;
+		}
+	}
+	if (replace) {
+		int fd;
+		replacename = malloc(strlen(argv[optind]) + 20);
+		if (!replacename)
+			die();
+		orignew = malloc(strlen(argv[optind]) + 20);
+		if (!orignew)
+			die();
+		strcpy(replacename, argv[optind]);
+		strcpy(orignew, argv[optind]);
+		strcat(orignew, ".porig");
+		if (open(orignew, O_RDONLY) >= 0 ||
+		    errno != ENOENT) {
+			fprintf(stderr, "%s: %s already exists\n",
+				Cmd,
+				orignew);
+			return 2;
+		}
+		strcat(replacename, "XXXXXX");
+		fd = mkstemp(replacename);
+		if (fd == -1) {
+			fprintf(stderr,
+				"%s: could not create temporary file for %s\n",
+				Cmd,
+				replacename);
+			return 2;
+		}
+		outfile = fdopen(fd, "w");
+	}
+
+	if (obj == 'l') {
+		fl[0] = split_stream(flist[0], ByLine);
+		fl[1] = split_stream(flist[1], ByLine);
+		fl[2] = split_stream(flist[2], ByLine);
+	} else {
+		fl[0] = split_stream(flist[0], ByWord);
+		fl[1] = split_stream(flist[1], ByWord);
+		fl[2] = split_stream(flist[2], ByWord);
+	}
+	if (chunks2 && !chunks1)
+		csl1 = pdiff(fl[0], fl[1], chunks2);
+	else
+		csl1 = diff(fl[0], fl[1]);
+	csl2 = diff(fl[1], fl[2]);
+
+	ci = print_merge2(outfile, &fl[0], &fl[1], &fl[2],
+			  csl1, csl2, obj == 'w',
+			  ignore);
+	if (!quiet && ci.conflicts)
+		fprintf(stderr,
+			"%d unresolved conflict%s found\n",
+			ci.conflicts,
+			ci.conflicts == 1 ? "" : "s");
+	if (!quiet && ci.ignored)
+		fprintf(stderr,
+			"%d already-applied change%s ignored\n",
+			ci.ignored,
+			ci.ignored == 1 ? "" : "s");
+
+	if (replace) {
+		fclose(outfile);
+		if (rename(argv[optind], orignew) == 0 &&
+		    rename(replacename, argv[optind]) == 0)
+			/* all ok */;
+		else {
+			fprintf(stderr,
+				"%s: failed to move new file into place.\n",
+				Cmd);
+			return 2;
+		}
+	}
+	return (ci.conflicts > 0);
+}
+
 int main(int argc, char *argv[])
 {
 	int opt;
@@ -432,24 +572,15 @@ int main(int argc, char *argv[])
 	int mode = 0;
 	int obj = 0;
 	int replace = 0;
-	char *replacename = NULL, *orignew = NULL;
 	int which = 0;
 	int ispatch = 0;
 	int reverse = 0;
 	int verbose = 0, quiet = 0;
-	int i;
 	int strip = -1;
-	int chunks1 = 0, chunks2 = 0, chunks3 = 0;
 	int exit_status = 0;
 	int ignore = 1;
-	FILE *outfile = stdout;
 	char *helpmsg;
 	char *base0;
-	struct ci ci;
-
-	struct stream f, flist[3];
-	struct file fl[3];
-	struct csl *csl1, *csl2;
 
 	base0 = strrchr(argv[0], '/');
 	if (base0)
@@ -600,133 +731,9 @@ int main(int argc, char *argv[])
 		exit_status = do_diff(argc, argv, obj, ispatch, which, reverse);
 		break;
 	case 'm':
-		/* merge three files, A B C, so changed between B and C get made to A
-		 */
-		switch (argc-optind) {
-		case 0:
-			fprintf(stderr, "%s: no files given for --merge\n", Cmd);
-			exit(2);
-		case 3:
-		case 2:
-		case 1:
-			for (i = 0; i < argc-optind; i++) {
-				flist[i] = load_file(argv[optind+i]);
-				if (flist[i].body == NULL) {
-					fprintf(stderr, "%s: cannot load file '%s' - %s\n",
-						Cmd,
-						argv[optind+i], strerror(errno));
-					exit(2);
-				}
-			}
-			break;
-		default:
-			fprintf(stderr, "%s: too many files given for --merge\n",
-				Cmd);
-			exit(2);
-		}
-		switch (argc-optind) {
-		case 1: /* a merge file */
-			f = flist[0];
-			if (!split_merge(f, &flist[0], &flist[1], &flist[2])) {
-				fprintf(stderr, "%s: merge file %s looks bad.\n",
-					Cmd,
-					argv[optind]);
-				exit(2);
-			}
-			break;
-		case 2: /* a file and a patch */
-			f = flist[1];
-			chunks2 = chunks3 = split_patch(f, &flist[1], &flist[2]);
-			break;
-		case 3: /* three separate files */
-			break;
-		}
-		if (reverse) {
-			f = flist[1];
-			flist[1] = flist[2];
-			flist[2] = f;
-		}
-
-		for (i = 0; i < 3; i++) {
-			if (flist[i].body == NULL) {
-				fprintf(stderr, "%s: file %d missing\n", Cmd, i);
-				exit(2);
-			}
-		}
-		if (replace) {
-			int fd;
-			replacename = malloc(strlen(argv[optind]) + 20);
-			if (!replacename)
-				die();
-			orignew = malloc(strlen(argv[optind]) + 20);
-			if (!orignew)
-				die();
-			strcpy(replacename, argv[optind]);
-			strcpy(orignew, argv[optind]);
-			strcat(orignew, ".porig");
-			if (open(orignew, O_RDONLY) >= 0 ||
-			    errno != ENOENT) {
-				fprintf(stderr, "%s: %s already exists\n",
-					Cmd,
-					orignew);
-				exit(2);
-			}
-			strcat(replacename, "XXXXXX");
-			fd = mkstemp(replacename);
-			if (fd == -1) {
-				fprintf(stderr,
-					"%s: could not create temporary file for %s\n",
-					Cmd,
-					replacename);
-				exit(2);
-			}
-			outfile = fdopen(fd, "w");
-		}
-
-		if (obj == 'l') {
-			fl[0] = split_stream(flist[0], ByLine);
-			fl[1] = split_stream(flist[1], ByLine);
-			fl[2] = split_stream(flist[2], ByLine);
-		} else {
-			fl[0] = split_stream(flist[0], ByWord);
-			fl[1] = split_stream(flist[1], ByWord);
-			fl[2] = split_stream(flist[2], ByWord);
-		}
-		if (chunks2 && !chunks1)
-			csl1 = pdiff(fl[0], fl[1], chunks2);
-		else
-			csl1 = diff(fl[0], fl[1]);
-		csl2 = diff(fl[1], fl[2]);
-
-		ci = print_merge2(outfile, &fl[0], &fl[1], &fl[2],
-				  csl1, csl2, obj == 'w',
-				  ignore);
-		if (!quiet && ci.conflicts)
-			fprintf(stderr,
-				"%d unresolved conflict%s found\n",
-				ci.conflicts,
-				ci.conflicts == 1 ? "" : "s");
-		if (!quiet && ci.ignored)
-			fprintf(stderr,
-				"%d already-applied change%s ignored\n",
-				ci.ignored,
-				ci.ignored == 1 ? "" : "s");
-		exit_status = (ci.conflicts > 0);
-
-		if (replace) {
-			fclose(outfile);
-			if (rename(argv[optind], orignew) == 0 &&
-			    rename(replacename, argv[optind]) == 0)
-				/* all ok */;
-			else {
-				fprintf(stderr,
-					"%s: failed to move new file into place.\n",
-					Cmd);
-				exit(2);
-			}
-		}
+		exit_status = do_merge(argc, argv, obj, reverse, replace,
+				       ignore, quiet);
 		break;
-
 	}
 	exit(exit_status);
 }
