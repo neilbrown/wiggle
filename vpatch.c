@@ -1359,6 +1359,8 @@ static void merge_window(struct plist *p, FILE *f, int reverse)
 					   tpos, 0, NULL);
 				next_mline(&tpos, fm, fb, fa, ci.merger, smode);
 			}
+			while (i < rows)
+				blank(i++, 0, cols, a_void);
 		}
 #define META(c) ((c)|0x1000)
 #define	SEARCH(c) ((c)|0x2000)
