@@ -2,3 +2,9 @@
 demo.patch
 wiggle
 TAGS
+.time
+wiggle.man
+.version-*
+version
+DIST
+RCS
