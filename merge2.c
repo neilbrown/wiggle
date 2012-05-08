@@ -347,7 +347,8 @@ struct ci make_merger(struct file af, struct file bf, struct file cf,
 			 * align with an end-of-line in 'a', so adjust endpoint
 			 */
 			int newa = csl1[c1].a;
-			if (bf.list[b].start && bf.list[b].start[0] == '\0') {
+			if (b < bf.elcnt && bf.list[b].start
+			    && bf.list[b].start[0] == '\0') {
 				while (newa > a &&
 				       !ends_line(af.list[newa-1]))
 					newa--;
