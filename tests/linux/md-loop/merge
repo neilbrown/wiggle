@@ -3950,11 +3950,13 @@ MD_EXPORT_SYMBOL(md_update_sb);
 MD_EXPORT_SYMBOL(md_wakeup_thread);
 MD_EXPORT_SYMBOL(md_print_devices);
 MD_EXPORT_SYMBOL(find_rdev_nr);
-MD_EXPORT_SYMBOL(md_interrupt_thread);
 <<<<<<<
+MD_EXPORT_SYMBOL(md_interrupt_thread);
 MD_EXPORT_SYMBOL(mddev_map);
 |||||||
+MD_EXPORT_SYMBOL(md_interrupt_thread);
 EXPORT_SYMBOL(mddev_map);
 =======
+MD_EXPORT_SYMBOL(md_interrupt_thread);
 >>>>>>>
 MODULE_LICENSE("GPL");

@@ -121,6 +121,13 @@ static int isolate_conflicts(struct file af, struct file bf, struct file cf,
 	 *
 	 * A hunk header is never considered part of a conflict.  It
 	 * thereby can serve as a separator between conflicts.
+	 *
+	 * We need to ensure there is adequate context for the conflict.
+	 * So ensure there are at least 3 newlines in Extraneous or
+	 * Unchanged on both sides of a Conflict - but don't go so far
+	 * as including a hunk header.
+	 * If there are 3, and they are all in 'Unchanged' sections, then
+	 * that much context is not really needed - reduce it a bit.
 	 */
 	int i, j, k;
 	int cnt = 0;
@@ -143,6 +150,7 @@ static int isolate_conflicts(struct file af, struct file bf, struct file cf,
 			 *
 			 * Then search forward doing the same thing.
 			 */
+			int newlines = 0;
 			cnt++;
 			m[i].in_conflict = 1;
 			j = i;
@@ -161,8 +169,19 @@ static int isolate_conflicts(struct file af, struct file bf, struct file cf,
 					cnt--;
 					break;
 				}
+				if (m[j].type == Extraneous) {
+					for (k = m[j].bl; k > 0; k--)
+						if (ends_line(bf.list[m[j].b+k-1]))
+							newlines++;
+				}
 
 				if (m[j].type == Unchanged || m[j].type == Changed) {
+					/* If we find enough newlines in this section,
+					 * then we only really need 1, but would rather
+					 * it wasn't the first one.  'firstk' allows us
+					 * to track which newline we actually use
+					 */
+					int firstk = m[j].al;
 					if (words) {
 						m[j].hi = m[j].al;
 						break;
@@ -172,8 +191,15 @@ static int isolate_conflicts(struct file af, struct file bf, struct file cf,
 					 * is one, or might be at the start
 					 */
 					for (k = m[j].al; k > 0; k--)
-						if (ends_line(af.list[m[j].a+k-1]))
-							break;
+						if (ends_line(af.list[m[j].a+k-1])) {
+							if (firstk == m[j].al)
+								firstk = k;
+							newlines++;
+							if (newlines >= 3) {
+								k = firstk;
+								break;
+							}
+						}
 					if (k > 0)
 						m[j].hi = k;
 					else if (is_cutpoint(m[j], af,bf,cf))
@@ -195,12 +221,18 @@ static int isolate_conflicts(struct file af, struct file bf, struct file cf,
 			}
 
 			/* now the forward search */
+			newlines = 0;
 			for (j = i+1; m[j].type != End; j++) {
 				if (m[j].type == Extraneous &&
 				    bf.list[m[j].b].start[0] == '\0')
 					/* hunk header - not conflict any more */
 					break;
 				m[j].in_conflict = 1;
+				if (m[j].type == Extraneous) {
+					for (k = 0; k < m[j].bl; k++)
+						if (ends_line(bf.list[m[j].b+k]))
+							newlines++;
+				}
 				if (m[j].type == Unchanged || m[j].type == Changed) {
 					m[j].hi = m[j].al;
 					if (words) {
@@ -214,9 +246,22 @@ static int isolate_conflicts(struct file af, struct file bf, struct file cf,
 					if (is_cutpoint(m[j], af,bf,cf))
 						m[j].lo = 0;
 					else {
+						/* If we find enough newlines in this section,
+						 * then we only really need 1, but would rather
+						 * it wasn't the first one.  'firstk' allows us
+						 * to track which newline we actually use
+						 */
+						int firstk = 0;
 						for (k = 0 ; k < m[j].al ; k++)
-							if (ends_line(af.list[m[j].a+k]))
-								break;
+							if (ends_line(af.list[m[j].a+k])) {
+								if (firstk == 0)
+									firstk = k;
+								newlines++;
+								if (newlines >= 3) {
+									k = firstk;
+									break;
+								}
+							}
 						if (k < m[j].al)
 							m[j].lo = k+1;
 						else

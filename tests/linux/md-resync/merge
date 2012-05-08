@@ -980,13 +980,13 @@ static int raid1_diskop(mddev_t *mddev, mdp_disk_t **d, int state)
 <<<<<<<
 		if (conf->start_future > 0) {
 			MD_BUG();
+			err = -EBUSY;
+			break;
+		}
 |||||||
 		close_sync(conf);
 =======
 >>>>>>>
-			err = -EBUSY;
-			break;
-		}
 		sdisk = conf->mirrors + spare_disk;
 		sdisk->operational = 0;
 		sdisk->write_only = 0;
@@ -1002,13 +1002,13 @@ static int raid1_diskop(mddev_t *mddev, mdp_disk_t **d, int state)
 <<<<<<<
 		if (conf->start_future > 0) {
 			MD_BUG();
+			err = -EBUSY;
+			break;
+		}
 |||||||
 		close_sync(conf);
 =======
 >>>>>>>
-			err = -EBUSY;
-			break;
-		}
 		sdisk = conf->mirrors + spare_disk;
 		fdisk = conf->mirrors + failed_disk;
 
@@ -1306,12 +1306,14 @@ static int init_resync (conf_t *conf)
 *** 1144,16 **** 8
 <<<<<<<
 	raid1_conf_t *conf = data;
+	mddev_t *mddev = conf->mddev;
 |||||||
 	conf_t *conf = data;
+	mddev_t *mddev = conf->mddev;
 =======
 	sector_t max_sector, nr_sectors;
->>>>>>>
 	int disk, partial;
+>>>>>>>
 
 	if (sector_nr == 0)
 		if (init_resync(conf))
@@ -1497,19 +1499,6 @@ nomem:
 	raid1_shrink_buffers(conf);
 	return -ENOMEM;
 }
-|||||||
-	if (!sector_nr)
-		if (init_resync(conf))
-			return -ENOMEM;
-	/*
-=======
-	if (sector_nr >= max_sector) {
-		close_sync(conf);
-		return 0;
-	}
-
-	/*
->>>>>>>
 
 static void end_sync_read(struct buffer_head *bh, int uptodate)
 {
@@ -1539,6 +1528,23 @@ static void end_sync_write(struct buffer_head *bh, int uptodate)
 		raid1_free_buf(r1_bh);
 		sync_request_done(sect, mddev_to_conf(mddev));
 		md_done_sync(mddev,size>>9, uptodate);
+|||||||
+	if (!sector_nr)
+		if (init_resync(conf))
+			return -ENOMEM;
+	/*
+	 * If there is non-resync activity waiting for us then
+	 * put in a delay to throttle resync.
+=======
+	if (sector_nr >= max_sector) {
+		close_sync(conf);
+		return 0;
+	}
+
+	/*
+	 * If there is non-resync activity waiting for us then
+	 * put in a delay to throttle resync.
+>>>>>>>
 	}
 }
 
@@ -1761,11 +1767,13 @@ static int raid1_run (mddev_t *mddev)
 	}
 
 <<<<<<<
+	if (!start_recovery && !(sb->state & (1 << MD_SB_CLEAN)) &&
 	    (conf->working_disks > 1)) {
 		const char * name = "raid1syncd";
 
 		conf->resync_thread = md_register_thread(raid1syncd, conf,name);
 |||||||
+	if (!start_recovery && !(sb->state & (1 << MD_SB_CLEAN)) &&
 						(conf->working_disks > 1)) {
 		const char * name = "raid1syncd";
 
