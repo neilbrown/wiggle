@@ -1538,7 +1538,8 @@ static void end_sync_write(struct buffer_head *bh, int uptodate)
 		int size = bh->b_size;
 		raid1_free_buf(r1_bh);
 		sync_request_done(sect, mddev_to_conf(mddev));
-		md_done_sync(mddev,size>>9, uptodate	}
+		md_done_sync(mddev,size>>9, uptodate);
+	}
 }
 
 #define INVALID_LEVEL KERN_WARNING \

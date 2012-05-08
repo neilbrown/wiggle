@@ -1,6 +1,5 @@
 <<<<<<<
 |||||||
-*** 55,6 **** 1
 #define IDMAP_STATUS_LOOKUPFAIL IDMAP_STATUS_FAIL
 
 
@@ -8,7 +7,6 @@
 #define IDMAP_NAMESZ  128
 
 =======
-*** 55,8 **** 1
 #define IDMAP_STATUS_LOOKUPFAIL IDMAP_STATUS_FAIL
 
 

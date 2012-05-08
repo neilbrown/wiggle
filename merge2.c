@@ -131,6 +131,10 @@ static int isolate_conflicts(struct file af, struct file bf, struct file cf,
 			m[i].in_conflict = 1;
 			j = i;
 			while (--j >= 0) {
+				if (m[j].type == Extraneous &&
+				    bf.list[m[j].b].start[0] == '\0')
+					/* hunk header - not conflict any more */
+					break;
 				if (!m[j].in_conflict) {
 					m[j].in_conflict = 1;
 					m[j].lo = 0;
@@ -179,6 +183,10 @@ static int isolate_conflicts(struct file af, struct file bf, struct file cf,
 
 			/* now the forward search */
 			for (j = i+1; m[j].type != End; j++) {
+				if (m[j].type == Extraneous &&
+				    bf.list[m[j].b].start[0] == '\0')
+					/* hunk header - not conflict any more */
+					break;
 				m[j].in_conflict = 1;
 				if (m[j].type == Unchanged || m[j].type == Changed) {
 					m[j].hi = m[j].al;
@@ -266,10 +274,22 @@ struct ci make_merger(struct file af, struct file bf, struct file cf,
 		rv.merger[i].in_conflict = 0;
 
 		if (!match1 && match2) {
-			if (a < csl1[c1].a) {
+			/* This is either Unmatched or Extraneous - probably both.
+			 * If the match2 is a hunk-header Extraneous, it must
+			 * align with an end-of-line in 'a', so adjust endpoint
+			 */
+			int newa = csl1[c1].a;
+			if (bf.list[b].start && bf.list[b].start[0] == '\0') {
+				while (newa > a &&
+				       !ends_line(af.list[newa-1]))
+					newa--;
+				while (newa < af.elcnt && !(newa == 0 || ends_line(af.list[newa-1])))
+					newa++;
+			}
+			if (a < newa) {
 				/* some unmatched text */
 				rv.merger[i].type = Unmatched;
-				rv.merger[i].al = csl1[c1].a - a;
+				rv.merger[i].al = newa - a;
 				rv.merger[i].bl = 0;
 				rv.merger[i].cl = 0;
 				wiggle_found++;
@@ -280,15 +300,19 @@ struct ci make_merger(struct file af, struct file bf, struct file cf,
 				/* some Extraneous text */
 				/* length is min of unmatched on left
 				 * and matched on right.
-				 * However a hunk-header is not allowed
-				 * in the middle of an extraneous section,
-				 * only at the start.
+				 * However a hunk-header must be an
+				 * Extraneous section by itself, so if this
+				 * start with one, the length is 1, and if
+				 * there is one in the middle, only take the
+				 * text up to there for now.
 				 */
 				rv.merger[i].type = Extraneous;
 				rv.merger[i].al = 0;
 				newb = b +
 					min(csl1[c1].b - b,
 					    csl2[c2].len - (b-csl2[c2].a));
+				if (bf.list[b].start[0] == '\0')
+					newb = b + 1;
 				for (j = b; j < newb; j++) {
 					if (bf.list[j].start[0] == '\0') {
 						if (wiggle_found > 1)
