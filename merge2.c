@@ -181,7 +181,7 @@ static int isolate_conflicts(struct file af, struct file bf, struct file cf,
 					 * it wasn't the first one.  'firstk' allows us
 					 * to track which newline we actually use
 					 */
-					int firstk = m[j].al;
+					int firstk = m[j].al+1;
 					if (words) {
 						m[j].hi = m[j].al;
 						break;
@@ -192,7 +192,7 @@ static int isolate_conflicts(struct file af, struct file bf, struct file cf,
 					 */
 					for (k = m[j].al; k > 0; k--)
 						if (ends_line(af.list[m[j].a+k-1])) {
-							if (firstk == m[j].al)
+							if (firstk >= m[j].al)
 								firstk = k;
 							newlines++;
 							if (newlines >= 3) {
@@ -251,10 +251,10 @@ static int isolate_conflicts(struct file af, struct file bf, struct file cf,
 						 * it wasn't the first one.  'firstk' allows us
 						 * to track which newline we actually use
 						 */
-						int firstk = 0;
+						int firstk = -1;
 						for (k = 0 ; k < m[j].al ; k++)
 							if (ends_line(af.list[m[j].a+k])) {
-								if (firstk == 0)
+								if (firstk <= 0)
 									firstk = k;
 								newlines++;
 								if (newlines >= 3) {
@@ -262,6 +262,20 @@ static int isolate_conflicts(struct file af, struct file bf, struct file cf,
 									break;
 								}
 							}
+						if (firstk >= 0 &&
+						    m[j+1].type == Unmatched) {
+							/* If this Unmatched exceeds 3 lines, just stop here */
+							int p;
+							int nl = 0;
+							for (p = 0; p < m[j+1].al ; p++)
+								if (ends_line(af.list[m[j+1].a+p])) {
+									nl++;
+									if (nl > 3)
+										break;
+								}
+							if (nl > 3)
+								k = firstk;
+						}
 						if (k < m[j].al)
 							m[j].lo = k+1;
 						else

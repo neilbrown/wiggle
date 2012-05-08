@@ -1499,6 +1499,19 @@ nomem:
 	raid1_shrink_buffers(conf);
 	return -ENOMEM;
 }
+|||||||
+	if (!sector_nr)
+		if (init_resync(conf))
+			return -ENOMEM;
+	/*
+=======
+	if (sector_nr >= max_sector) {
+		close_sync(conf);
+		return 0;
+	}
+
+	/*
+>>>>>>>
 
 static void end_sync_read(struct buffer_head *bh, int uptodate)
 {
@@ -1528,23 +1541,6 @@ static void end_sync_write(struct buffer_head *bh, int uptodate)
 		raid1_free_buf(r1_bh);
 		sync_request_done(sect, mddev_to_conf(mddev));
 		md_done_sync(mddev,size>>9, uptodate);
-|||||||
-	if (!sector_nr)
-		if (init_resync(conf))
-			return -ENOMEM;
-	/*
-	 * If there is non-resync activity waiting for us then
-	 * put in a delay to throttle resync.
-=======
-	if (sector_nr >= max_sector) {
-		close_sync(conf);
-		return 0;
-	}
-
-	/*
-	 * If there is non-resync activity waiting for us then
-	 * put in a delay to throttle resync.
->>>>>>>
 	}
 }
 
