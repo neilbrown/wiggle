@@ -102,6 +102,9 @@ static int isolate_conflicts(struct file af, struct file bf, struct file cf,
 	 * or any line that has both Changed and Unmatched content.
 	 * (Unmatched content where nothing is changed is common and not
 	 *  really a 'wiggle').
+	 *
+	 * A hunk header is never considered part of a conflict.  It
+	 * thereby can serve as a separator between conflicts.
 	 */
 	int i, j, k;
 	int cnt = 0;
@@ -276,23 +279,28 @@ struct ci make_merger(struct file af, struct file bf, struct file cf,
 				assert(b < csl1[c1].b);
 				/* some Extraneous text */
 				/* length is min of unmatched on left
-				 * and matched on right
+				 * and matched on right.
+				 * However a hunk-header is not allowed
+				 * in the middle of an extraneous section,
+				 * only at the start.
 				 */
 				rv.merger[i].type = Extraneous;
 				rv.merger[i].al = 0;
-				rv.merger[i].cl =
-					rv.merger[i].bl =
+				newb = b +
 					min(csl1[c1].b - b,
 					    csl2[c2].len - (b-csl2[c2].a));
-				newb = b+rv.merger[i].bl;
 				for (j = b; j < newb; j++) {
 					if (bf.list[j].start[0] == '\0') {
 						if (wiggle_found > 1)
 							rv.wiggles++;
 						wiggle_found = 0;
+						if (j > b)
+							newb = j;
 					} else
 						wiggle_found++;
 				}
+				rv.merger[i].cl =
+					rv.merger[i].bl = newb - b;
 			}
 		} else if (match1 && !match2) {
 			/* some changed text
@@ -346,6 +354,7 @@ struct ci make_merger(struct file af, struct file bf, struct file cf,
 	}
 	rv.merger[i].type = End;
 	rv.merger[i].in_conflict = 0;
+	assert(i < l);
 	rv.conflicts = isolate_conflicts(af, bf, cf, csl1, csl2, words,
 					 rv.merger, show_wiggles);
 	if (wiggle_found)
