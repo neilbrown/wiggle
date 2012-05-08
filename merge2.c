@@ -446,6 +446,11 @@ struct ci make_merger(struct file af, struct file bf, struct file cf,
 			break;
 	}
 	rv.merger[i].type = End;
+	rv.merger[i].a = a;
+	rv.merger[i].b = b;
+	rv.merger[i].c = c;
+	rv.merger[i].c1 = c1;
+	rv.merger[i].c2 = c2;
 	rv.merger[i].in_conflict = 0;
 	assert(i < l);
 	rv.conflicts = isolate_conflicts(af, bf, cf, csl1, csl2, words,
