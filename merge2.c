@@ -79,6 +79,22 @@ static int check_alreadyapplied(struct file af, struct file cf,
 	return 1;
 }
 
+/* A 'cut-point' is a location in the merger where it is reasonable
+ * the change the mode of display - between displaying the merger
+ * and displaying the separate streams.
+ * A 'conflict' can only be displayed as separate stream so when
+ * one is found, we need to find a preceeding and trailing cut-point
+ * and enlarge the conflict to that range.
+ * A suitable location is one where all three streams are at a line-end.
+ */
+static int is_cutpoint(struct merge m,
+		       struct file af, struct file bf, struct file cf)
+{
+	return ((m.a == 0 || ends_line(af.list[m.a-1])) &&
+		(m.b == 0 || ends_line(bf.list[m.b-1])) &&
+		(m.c == 0 || ends_line(cf.list[m.c-1])));
+}
+
 static int isolate_conflicts(struct file af, struct file bf, struct file cf,
 			     struct csl *csl1, struct csl *csl2, int words,
 			     struct merge *m, int show_wiggles)
@@ -160,18 +176,15 @@ static int isolate_conflicts(struct file af, struct file bf, struct file cf,
 							break;
 					if (k > 0)
 						m[j].hi = k;
-					else if ((m[j].a == 0 || ends_line(af.list[m[j].a-1])) &&
-						 (m[j].b == 0 || ends_line(bf.list[m[j].b-1])) &&
-						 (m[j].c == 0 || ends_line(cf.list[m[j].c-1])))
+					else if (is_cutpoint(m[j], af,bf,cf))
 						m[j].hi = 0;
 					else
 						/* no start-of-line found... */
 						m[j].hi = -1;
 					if (m[j].hi > 0 && m[j].type == Changed) {
-						/* this can only work if start is also a line break */
-						if ((m[j].a == 0 || ends_line(af.list[m[j].a-1])) &&
-						    (m[j].b == 0 || ends_line(bf.list[m[j].b-1])) &&
-						    (m[j].c == 0 || ends_line(cf.list[m[j].c-1])))
+						/* this can only work if start is
+						 * also a line break */
+						if (is_cutpoint(m[j], af,bf,cf))
 							/* ok */;
 						else
 							m[j].hi = -1;
@@ -198,9 +211,7 @@ static int isolate_conflicts(struct file af, struct file bf, struct file cf,
 					 * the very beginning, or might be after the
 					 * first newline - if there is one
 					 */
-					if ((m[j].a == 0 || ends_line(af.list[m[j].a-1])) &&
-					    (m[j].b == 0 || ends_line(bf.list[m[j].b-1])) &&
-					    (m[j].c == 0 || ends_line(cf.list[m[j].c-1])))
+					if (is_cutpoint(m[j], af,bf,cf))
 						m[j].lo = 0;
 					else {
 						for (k = 0 ; k < m[j].al ; k++)
@@ -214,9 +225,7 @@ static int isolate_conflicts(struct file af, struct file bf, struct file cf,
 					}
 					if (m[j].lo <= m[j].al+1 && m[j].type == Changed) {
 						/* this can only work if the end is a line break */
-						if (ends_line(af.list[m[j].a+m[j].al-1]) &&
-						    ends_line(bf.list[m[j].b+m[j].bl-1]) &&
-						    ends_line(cf.list[m[j].c+m[j].cl-1]))
+						if (is_cutpoint(m[j+1], af,bf,cf))
 							/* ok */;
 						else
 							m[j].lo = m[j].al+1;
