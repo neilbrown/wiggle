@@ -2121,6 +2121,8 @@ static int get_next(int pos, struct plist *pl, int n, int mode,
 			if (pos >= 0)
 				pos = pl[pos].next;
 		}
+		if (pos < 0)
+			return -1;
 		if (pl[pos].calced == 0 && pl[pos].end)
 			calc_one(pl+pos, f, reverse);
 		if (pl[pos].last >= 0)
