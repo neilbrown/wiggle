@@ -311,16 +311,17 @@ static char *typenames[] = {
  * newline, so '+' lines are counted with the previous line.
  *
  */
+struct mp {
+	int m; /* merger index */
+	int s; /* stream 0,1,2 for a,b,c */
+	int o; /* offset in that stream */
+	int lineno; /* Counts newlines in stream 0
+		     * set lsb when see newline.
+		     * add one when not newline and lsb set
+		     */
+};
 struct mpos {
-	struct mp {
-		int m; /* merger index */
-		int s; /* stream 0,1,2 for a,b,c */
-		int o; /* offset in that stream */
-		int lineno; /* Counts newlines in stream 0
-			     * set lsb when see newline.
-			     * add one when not newline and lsb set
-			     */
-	}       p, /* the current point */
+	struct mp p, /* the current point (end of a line) */
 		lo, /* eol for start of the current group */
 		hi; /* eol for end of the current group */
 	int state; /*
@@ -330,12 +331,24 @@ struct mpos {
 		    */
 };
 
+struct cursor {
+	struct mp pos;	/* where in the document we are (an element)  */
+	int offset;	/* which char in that element */
+	int target;	/* display column - or -1 if we are looking for 'pos' */
+	int col;	/* where we found pos or target */
+	int width;	/* Size of char, for moving to the right */
+};
+
 /* used for checking location during search */
+static int same_mp(struct mp a, struct mp b)
+{
+	return a.m == b.m &&
+		a.s == b.s &&
+		a.o == b.o;
+}
 static int same_mpos(struct mpos a, struct mpos b)
 {
-	return a.p.m == b.p.m &&
-		a.p.s == b.p.s &&
-		a.p.o == b.p.o &&
+	return same_mp(a.p, b.p) &&
 		(a.state == b.state || a.state == 0 || b.state == 0);
 }
 
@@ -699,12 +712,14 @@ static void blank(int row, int start, int cols, unsigned int attr)
 		addch(' ');
 }
 
-/* search of a string on one display line - just report if found, not where */
+/* search of a string on one display line.  If found, update the
+ * cursor.
+ */
 
 static int mcontains(struct mpos pos,
 		     struct file fm, struct file fb, struct file fa,
 		     struct merge *m,
-		     int mode, char *search)
+		     int mode, char *search, struct cursor *curs)
 {
 	/* See if any of the files, between start of this line and here,
 	 * contain the search string
@@ -716,8 +731,11 @@ static int mcontains(struct mpos pos,
 		if (e.start) {
 			int i;
 			for (i = 0; i < e.len; i++)
-				if (strncmp(e.start+i, search, len) == 0)
+				if (strncmp(e.start+i, search, len) == 0) {
+					curs->pos = pos.p;
+					curs->offset = i;
 					return 1;
+				}
 		}
 	} while (e.start != NULL &&
 		 (!ends_mline(e)
@@ -767,7 +785,7 @@ static void draw_mside(int mode, int row, int offset, int start, int cols,
 		       struct file fm, struct file fb, struct file fa,
 		       struct merge *m,
 		       struct mpos pos,
-		       int target, int *colp)
+		       struct cursor *curs)
 {
 	struct elmnt e;
 	int col = 0;
@@ -792,8 +810,12 @@ static void draw_mside(int mode, int row, int offset, int start, int cols,
 	if (visible(mode, m[pos.p.m].type, pos.p.s) < 0) {
 		/* Not visible, just draw a blank */
 		blank(row, offset, cols, a_void);
-		if (colp)
-			*colp = 0;
+		if (curs) {
+			curs->width = -1;
+			curs->col = 0;
+			curs->pos = pos.p;
+			curs->offset = 0;
+		}
 		return;
 	}
 
@@ -816,8 +838,19 @@ static void draw_mside(int mode, int row, int offset, int start, int cols,
 		if (e.start == NULL ||
 		    (ends_mline(e)
 		     && visible(mode, m[pos.p.m].type, pos.p.s) != -1)) {
-			if (colp)
-				*colp = col;
+			/* We have reached the end of visible line, or end of file */
+			if (curs) {
+				curs->col = col;
+				if (col >= start + cols)
+					curs->width = 0;
+				else
+					curs->width = -1; /* end of line */
+				if (curs->target >= 0) {
+					curs->pos = pos.p;
+					curs->offset = 0;
+				} else if (same_mp(pos.p, curs->pos))
+					curs->target = col;
+			}
 			if (col < start)
 				col = start;
 			if (e.start && e.start[0] == 0) {
@@ -849,32 +882,51 @@ static void draw_mside(int mode, int row, int offset, int start, int cols,
 			continue;
 		(void)attrset(visible(mode, m[pos.p.m].type, pos.p.s));
 		c = (unsigned char *)e.start;
-		l = e.len;
-		while (l) {
+		for (l = 0; l < e.len; l++) {
+			int scol = col;
 			if (*c >= ' ' && *c != 0x7f) {
 				if (col >= start && col < start+cols)
 					mvaddch(row, col-start+offset, *c);
 				col++;
 			} else if (*c == '\t') {
 				do {
-					if (col >= start && col < start+cols)
+					if (col >= start && col < start+cols) {
 						mvaddch(row, col-start+offset, ' ');
-					col++;
+					} col++;
 				} while ((col&7) != 0);
 			} else {
 				if (col >= start && col < start+cols)
 					mvaddch(row, col-start+offset, '?');
 				col++;
 			}
-			c++;
-			if (colp && target <= col) {
-				if (col-start >= cols)
-					*colp = 10*col;
-				else
-					*colp = col;
-				colp = NULL;
+			if (curs) {
+				if (curs->target >= 0) {
+					if (curs->target < col) {
+						/* Found target column */
+						curs->pos = pos.p;
+						curs->offset = l;
+						curs->col = scol;
+						if (scol >= start + cols)
+							/* Didn't appear on screen */
+							curs->width = 0;
+						else
+							curs->width = col - scol;
+						curs = NULL;
+					}
+				} else if (l == curs->offset &&
+					   same_mp(pos.p, curs->pos)) {
+					/* Found the pos */
+					curs->target = scol;
+					curs->col = scol;
+					if (scol >= start + cols)
+						/* Didn't appear on screen */
+						curs->width = 0;
+					else
+						curs->width = col - scol;
+					curs = NULL;
+				}
 			}
-			l--;
+			c++;
 		}
 	}
 }
@@ -885,7 +937,7 @@ static void draw_mline(int mode, int row, int start, int cols,
 		       struct file fm, struct file fb, struct file fa,
 		       struct merge *m,
 		       struct mpos pos,
-		       int target, int *colp)
+		       struct cursor *curs)
 {
 	/*
 	 * Draw the left and right images of this line
@@ -906,13 +958,13 @@ static void draw_mline(int mode, int row, int start, int cols,
 		mvaddch(row, lcols, '|');
 
 		draw_mside(mode&~(BEFORE|AFTER), row, 0, start, lcols,
-			   fm, fb, fa, m, pos, target, colp);
+			   fm, fb, fa, m, pos, curs);
 
 		draw_mside(mode&~(ORIG|RESULT), row, lcols+1, start, rcols,
-			   fm, fb, fa, m, pos, 0, NULL);
+			   fm, fb, fa, m, pos, NULL);
 	} else
 		draw_mside(mode, row, 0, start, cols,
-			   fm, fb, fa, m, pos, target, colp);
+			   fm, fb, fa, m, pos, curs);
 }
 
 static char *merge_help[] = {
@@ -1100,7 +1152,7 @@ static void merge_window(struct plist *p, FILE *f, int reverse)
 	int row, start = 0;
 	int trow; /* screen-row while searching.  If we cannot find,
 		   * we forget this number */
-	int col = 0, target = 0;
+	struct cursor curs;
 	struct mpos pos;  /* current point */
 	struct mpos tpos, /* temp point while drawing lines above and below pos */
 		toppos,   /* pos at top of screen - for page-up */
@@ -1272,7 +1324,7 @@ static void merge_window(struct plist *p, FILE *f, int reverse)
 			mvaddstr(0, cols - strlen(lbuf) - 1, lbuf);
 		}
 		/* Always refresh the line */
-		while (start > target) {
+		while (start > curs.target) {
 			start -= 8;
 			refresh = 1;
 		}
@@ -1280,14 +1332,15 @@ static void merge_window(struct plist *p, FILE *f, int reverse)
 			start = 0;
 	retry:
 		draw_mline(mode, row, start, cols, fm, fb, fa, ci.merger,
-			   pos, target, &col);
+			   pos, &curs);
 
-		if (col > cols+start) {
+		if (curs.width == 0 && start < curs.col) {
+			/* width == 0 implies it appear after end-of-screen */
 			start += 8;
 			refresh = 1;
 			goto retry;
 		}
-		if (col < start) {
+		if (curs.col < start) {
 			start -= 8;
 			refresh = 1;
 			if (start < 0)
@@ -1302,7 +1355,7 @@ static void merge_window(struct plist *p, FILE *f, int reverse)
 				prev_mline(&tpos, fm, fb, fa, ci.merger, mode);
 				draw_mline(mode, i--, start, cols,
 					   fm, fb, fa, ci.merger,
-					   tpos, 0, NULL);
+					   tpos, NULL);
 
 			}
 			if (i) {
@@ -1317,7 +1370,7 @@ static void merge_window(struct plist *p, FILE *f, int reverse)
 			for (i = row; i <= lastrow && ci.merger[tpos.p.m].type != End; ) {
 				draw_mline(mode, i++, start, cols,
 					   fm, fb, fa, ci.merger,
-					   tpos, 0, NULL);
+					   tpos, NULL);
 				next_mline(&tpos, fm, fb, fa, ci.merger, mode);
 			}
 			botpos = tpos; botrow = i;
@@ -1347,7 +1400,7 @@ static void merge_window(struct plist *p, FILE *f, int reverse)
 			for (i = srow-1; i > splitrow; i--) {
 				prev_mline(&tpos, fm, fb, fa, ci.merger, smode);
 				draw_mline(smode, i, start, cols, fm, fb, fa, ci.merger,
-					   tpos, 0, NULL);
+					   tpos, NULL);
 			}
 			while (i > splitrow)
 				blank(i--, 0, cols, a_void);
@@ -1356,7 +1409,7 @@ static void merge_window(struct plist *p, FILE *f, int reverse)
 			     i < rows && ci.merger[tpos.p.m].type != End;
 			     i++) {
 				draw_mline(smode, i, start, cols, fm, fb, fa, ci.merger,
-					   tpos, 0, NULL);
+					   tpos, NULL);
 				next_mline(&tpos, fm, fb, fa, ci.merger, smode);
 			}
 			while (i < rows)
@@ -1383,7 +1436,8 @@ static void merge_window(struct plist *p, FILE *f, int reverse)
 			search_notfound = 0;
 		}
 		clrtoeol();
-		move(row, col-start);
+		/* '+1' to skip over the leading +/-/| char */
+		move(row, curs.col-start+1);
 		c = getch();
 		tmeta = meta; meta = 0;
 		tnum = num; num = -1;
@@ -1481,7 +1535,7 @@ static void merge_window(struct plist *p, FILE *f, int reverse)
 				anchor = a->next;
 				pos = a->pos;
 				row = a->row;
-				col = a->col;
+				curs.col = a->col;
 				search_notfound = a->notfound;
 				searchlen = a->searchlen;
 				search[searchlen] = 0;
@@ -1499,7 +1553,9 @@ static void merge_window(struct plist *p, FILE *f, int reverse)
 		search_again:
 			search_notfound = 1;
 			do {
-				if (mcontains(tpos, fm, fb, fa, ci.merger, mode, search)) {
+				if (mcontains(tpos, fm, fb, fa, ci.merger,
+					      mode, search, &curs)) {
+					curs.target = -1;
 					pos = tpos;
 					row = trow;
 					search_notfound = 0;
@@ -1596,25 +1652,47 @@ static void merge_window(struct plist *p, FILE *f, int reverse)
 		case KEY_LEFT:
 		case 'h':
 			/* left */
-			target = col - 1;
-			if (target < 0)
-				target = 0;
+			curs.target = curs.col - 1;
+			if (curs.target < 0) {
+				/* Try to go to end of previous line */
+				tpos = pos;
+				prev_mline(&tpos, fm, fb, fa, ci.merger, mode);
+				if (tpos.p.m >= 0) {
+					pos = tpos;
+					row--;
+					curs.pos = pos.p;
+					curs.target = -1;
+				} else
+					curs.target = 0;
+			}
 			break;
 		case KEY_RIGHT:
 		case 'l':
 			/* right */
-			target = col + 1;
+			if (curs.width >= 0)
+				curs.target = curs.col + curs.width;
+			else {
+				/* end of line, go to next */
+				tpos = pos;
+				next_mline(&tpos, fm, fb, fa, ci.merger, mode);
+				if (ci.merger[tpos.p.m].type != End) {
+					pos = tpos;
+					curs.pos = pos.p;
+					row++;
+					curs.target = 0;
+				}
+			}
 			break;
 
 		case '^':
 		case 'A'-64:
 			/* Start of line */
-			target = 0;
+			curs.target = 0;
 			break;
 		case '$':
 		case 'E'-64:
 			/* End of line */
-			target = 1000;
+			curs.target = 1000;
 			break;
 
 		case 'a': /* 'after' view in patch window */
@@ -1647,16 +1725,16 @@ static void merge_window(struct plist *p, FILE *f, int reverse)
 			refresh = 2;
 			break;
 
-		case 'H':
+		case 'H': /* scroll window to the right */
 			if (start > 0)
 				start--;
-			target = start + 1;
+			curs.target = start + 1;
 			refresh = 1;
 			break;
-		case 'L':
+		case 'L': /* scroll window to the left */
 			if (start < cols)
 				start++;
-			target = start + 1;
+			curs.target = start + 1;
 			refresh = 1;
 			break;
 
@@ -1685,11 +1763,11 @@ static void merge_window(struct plist *p, FILE *f, int reverse)
 			if (anchor == NULL ||
 			    !same_mpos(anchor->pos, pos) ||
 			    anchor->searchlen != searchlen ||
-			    anchor->col != col) {
+			    anchor->col != curs.col) {
 				struct search_anchor *a = xmalloc(sizeof(*a));
 				a->pos = pos;
 				a->row = row;
-				a->col = col;
+				a->col = curs.col;
 				a->searchlen = searchlen;
 				a->notfound = search_notfound;
 				a->next = anchor;
