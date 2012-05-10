@@ -745,7 +745,7 @@ static int mcontains(struct mpos pos,
 
 	do {
 		e = prev_melmnt(&pos.p, fm, fb, fa, m);
-		if (e.start) {
+		if (e.start && e.start[0]) {
 			int i;
 			int curs_i;
 			if (same_mp(pos.p, curs->pos))
