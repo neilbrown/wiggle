@@ -295,7 +295,7 @@ static int isolate_conflicts(struct file af, struct file bf, struct file cf,
 			}
 			i = j - 1;
 		}
-		if (ends_line(af.list[m[i].a+m[i].al-1])) {
+		if (m[i].al > 0 && ends_line(af.list[m[i].a+m[i].al-1])) {
 			unmatched = 0;
 			changed = 0;
 		}
