@@ -1522,6 +1522,7 @@ static void merge_window(struct plist *p, FILE *f, int reverse)
 			goto search_again;
 
 		case SEARCH('H'-64):
+		case SEARCH(KEY_BACKSPACE):
 			meta = SEARCH(0);
 			if (anchor) {
 				struct search_anchor *a;
