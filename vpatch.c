@@ -338,6 +338,7 @@ struct cursor {
 	int target;	/* display column - or -1 if we are looking for 'pos' */
 	int col;	/* where we found pos or target */
 	int width;	/* Size of char, for moving to the right */
+	int alt;	/* Cursor is in alternate window */
 };
 
 /* used for checking location during search */
@@ -1001,10 +1002,10 @@ static void draw_mline(int mode, int row, int start, int cols,
 		mvaddch(row, lcols, '|');
 
 		draw_mside(mode&~(BEFORE|AFTER), row, 0, start, lcols,
-			   fm, fb, fa, m, pos, curs);
+			   fm, fb, fa, m, pos, curs && !curs->alt ? curs : NULL);
 
 		draw_mside(mode&~(ORIG|RESULT), row, lcols+1, start, rcols,
-			   fm, fb, fa, m, pos, NULL);
+			   fm, fb, fa, m, pos, curs && curs->alt ? curs : NULL);
 	} else
 		draw_mside(mode, row, 0, start, cols,
 			   fm, fb, fa, m, pos, curs);
@@ -1128,6 +1129,7 @@ static char *merge_window_help[] = {
 	" ESC-v	              page up",
 	" N                   go to next patch chunk",
 	" P                   go to previous patch chunk",
+	" O                   move cursor to alternate pane",
 	" ^ control-A         go to start of line",
 	" $ control-E         go to end of line",
 	"",
@@ -1189,6 +1191,7 @@ static void merge_window(struct plist *p, FILE *f, int reverse)
 	int lastrow = 0; /* end of screen, or just above 'splitrow' */
 	int i, c, cswitch;
 	int mode = ORIG|RESULT;
+	int mmode = mode; /* Mode for moving - used when in 'other' pane */
 	char *modename = "merge";
 	char **modehelp = merge_help;
 
@@ -1282,6 +1285,7 @@ static void merge_window(struct plist *p, FILE *f, int reverse)
 	pos.p.lineno = 1;
 	pos.state = 0;
 	next_mline(&pos, fm, fb, fa, ci.merger, mode);
+	memset(&curs, 0, sizeof(curs));
 	vpos = pos;
 	while (1) {
 		if (refresh == 2) {
@@ -1297,6 +1301,8 @@ static void merge_window(struct plist *p, FILE *f, int reverse)
 		}
 		if (row < 1 || row >= lastrow)
 			refresh = 1;
+		if (curs.alt)
+			refresh = 1;
 
 		if (mode == (ORIG|RESULT)) {
 			int cmode = check_line(pos, fm, fb, fa, ci.merger, mode);
@@ -1305,7 +1311,7 @@ static void merge_window(struct plist *p, FILE *f, int reverse)
 				lastrow = splitrow - 1;
 				refresh = 1;
 			}
-			if (splitrow >= 0 && !(cmode & CHANGES)) {
+			if (!curs.alt && splitrow >= 0 && !(cmode & CHANGES)) {
 				splitrow = -1;
 				lastrow = rows-1;
 				refresh = 1;
@@ -1383,7 +1389,7 @@ static void merge_window(struct plist *p, FILE *f, int reverse)
 			start = 0;
 	retry:
 		draw_mline(mode, row, start, cols, fm, fb, fa, ci.merger,
-			   pos, &curs);
+			   pos, (splitrow >= 0 && curs.alt) ? NULL : &curs);
 
 		if (curs.width == 0 && start < curs.col) {
 			/* width == 0 implies it appear after end-of-screen */
@@ -1460,7 +1466,8 @@ static void merge_window(struct plist *p, FILE *f, int reverse)
 			     i < rows && ci.merger[tpos.p.m].type != End;
 			     i++) {
 				draw_mline(smode, i, start, cols, fm, fb, fa, ci.merger,
-					   tpos, NULL);
+					   tpos,
+					   (i == srow && curs.alt) ? &curs : NULL);
 				next_mline(&tpos, fm, fb, fa, ci.merger, smode);
 			}
 			while (i < rows)
@@ -1488,7 +1495,13 @@ static void merge_window(struct plist *p, FILE *f, int reverse)
 		}
 		clrtoeol();
 		/* '+1' to skip over the leading +/-/| char */
-		move(row, curs.col-start+1);
+		if (curs.alt && splitrow > 0)
+			move((rows + splitrow)/2, curs.col - start + 1);
+		else if (curs.alt && ((mode & (BEFORE|AFTER)) &&
+				      (mode & (ORIG|RESULT))))
+			move(row, curs.col-start + (cols-1)/2+2);
+		else
+			move(row, curs.col-start+1);
 		c = getch();
 		tmeta = meta; meta = 0;
 		tnum = num; num = -1;
@@ -1512,7 +1525,7 @@ static void merge_window(struct plist *p, FILE *f, int reverse)
 			tpos = pos; row++;
 			do {
 				pos = tpos; row--;
-				prev_mline(&tpos, fm, fb, fa, ci.merger, mode);
+				prev_mline(&tpos, fm, fb, fa, ci.merger, mmode);
 			} while (tpos.p.m >= 0);
 			if (row <= 0)
 				row = 0;
@@ -1524,7 +1537,7 @@ static void merge_window(struct plist *p, FILE *f, int reverse)
 			tpos = pos; row--;
 			do {
 				pos = tpos; row++;
-				next_mline(&tpos, fm, fb, fa, ci.merger, mode);
+				next_mline(&tpos, fm, fb, fa, ci.merger, mmode);
 			} while (ci.merger[tpos.p.m].type != End);
 			if (row >= lastrow)
 				row = lastrow;
@@ -1612,7 +1625,7 @@ static void merge_window(struct plist *p, FILE *f, int reverse)
 			}
 			do {
 				if (mcontains(tpos, fm, fb, fa, ci.merger,
-					      mode, search, &curs, searchdir,
+					      mmode, search, &curs, searchdir,
 					      ignore_case >= 2)) {
 					curs.target = -1;
 					pos = tpos;
@@ -1622,10 +1635,10 @@ static void merge_window(struct plist *p, FILE *f, int reverse)
 				}
 				if (searchdir < 0) {
 					trow--;
-					prev_mline(&tpos, fm, fb, fa, ci.merger, mode);
+					prev_mline(&tpos, fm, fb, fa, ci.merger, mmode);
 				} else {
 					trow++;
-					next_mline(&tpos, fm, fb, fa, ci.merger, mode);
+					next_mline(&tpos, fm, fb, fa, ci.merger, mmode);
 				}
 			} while (tpos.p.m >= 0 && ci.merger[tpos.p.m].type != End);
 			searchdir /= abs(searchdir);
@@ -1658,7 +1671,7 @@ static void merge_window(struct plist *p, FILE *f, int reverse)
 				tnum = 1;
 			for (; tnum > 0 ; tnum--) {
 				tpos = pos;
-				next_mline(&tpos, fm, fb, fa, ci.merger, mode);
+				next_mline(&tpos, fm, fb, fa, ci.merger, mmode);
 				if (ci.merger[tpos.p.m].type != End) {
 					pos = tpos;
 					row++;
@@ -1670,12 +1683,12 @@ static void merge_window(struct plist *p, FILE *f, int reverse)
 			tpos = pos; row--;
 			do {
 				pos = tpos; row++;
-				next_mline(&tpos, fm, fb, fa, ci.merger, mode);
+				next_mline(&tpos, fm, fb, fa, ci.merger, mmode);
 			} while (pos.state != 0 && ci.merger[tpos.p.m].type != End);
 			tpos = pos; row--;
 			do {
 				pos = tpos; row++;
-				next_mline(&tpos, fm, fb, fa, ci.merger, mode);
+				next_mline(&tpos, fm, fb, fa, ci.merger, mmode);
 			} while (pos.state == 0 && ci.merger[tpos.p.m].type != End);
 
 			break;
@@ -1684,12 +1697,12 @@ static void merge_window(struct plist *p, FILE *f, int reverse)
 			tpos = pos; row++;
 			do {
 				pos = tpos; row--;
-				prev_mline(&tpos, fm, fb, fa, ci.merger, mode);
+				prev_mline(&tpos, fm, fb, fa, ci.merger, mmode);
 			} while (tpos.state == 0 && tpos.p.m >= 0);
 			tpos = pos; row++;
 			do {
 				pos = tpos; row--;
-				prev_mline(&tpos, fm, fb, fa, ci.merger, mode);
+				prev_mline(&tpos, fm, fb, fa, ci.merger, mmode);
 			} while (tpos.state != 0 && tpos.p.m >= 0);
 			break;
 
@@ -1701,7 +1714,7 @@ static void merge_window(struct plist *p, FILE *f, int reverse)
 				tnum = 1;
 			for (; tnum > 0 ; tnum--) {
 				tpos = pos;
-				prev_mline(&tpos, fm, fb, fa, ci.merger, mode);
+				prev_mline(&tpos, fm, fb, fa, ci.merger, mmode);
 				if (tpos.p.m >= 0) {
 					pos = tpos;
 					row--;
@@ -1716,7 +1729,7 @@ static void merge_window(struct plist *p, FILE *f, int reverse)
 			if (curs.target < 0) {
 				/* Try to go to end of previous line */
 				tpos = pos;
-				prev_mline(&tpos, fm, fb, fa, ci.merger, mode);
+				prev_mline(&tpos, fm, fb, fa, ci.merger, mmode);
 				if (tpos.p.m >= 0) {
 					pos = tpos;
 					row--;
@@ -1734,7 +1747,7 @@ static void merge_window(struct plist *p, FILE *f, int reverse)
 			else {
 				/* end of line, go to next */
 				tpos = pos;
-				next_mline(&tpos, fm, fb, fa, ci.merger, mode);
+				next_mline(&tpos, fm, fb, fa, ci.merger, mmode);
 				if (ci.merger[tpos.p.m].type != End) {
 					pos = tpos;
 					curs.pos = pos.p;
@@ -1755,33 +1768,48 @@ static void merge_window(struct plist *p, FILE *f, int reverse)
 			curs.target = 1000;
 			break;
 
+		case 'O':
+			curs.alt = !curs.alt;
+			if (curs.alt && mode == (ORIG|RESULT))
+				mmode = (BEFORE|AFTER);
+			else
+				mmode = mode;
+			break;
+
 		case 'a': /* 'after' view in patch window */
 			mode = AFTER; modename = "after"; modehelp = after_help;
+			mmode = mode; curs.alt = 0;
 			refresh = 2;
 			break;
 		case 'b': /* 'before' view in patch window */
 			mode = BEFORE; modename = "before"; modehelp = before_help;
+			mmode = mode; curs.alt = 0;
 			refresh = 2;
 			break;
 		case 'o': /* 'original' view in the merge window */
 			mode = ORIG; modename = "original"; modehelp = orig_help;
+			mmode = mode; curs.alt = 0;
 			refresh = 2;
 			break;
 		case 'r': /* the 'result' view in the merge window */
 			mode = RESULT; modename = "result"; modehelp = result_help;
+			mmode = mode; curs.alt = 0;
 			refresh = 2;
 			break;
 		case 'd':
 			mode = BEFORE|AFTER; modename = "diff"; modehelp = diff_help;
+			mmode = mode; curs.alt = 0;
 			refresh = 2;
 			break;
 		case 'm':
 			mode = ORIG|RESULT; modename = "merge"; modehelp = merge_help;
+			mmode = mode; curs.alt = 0;
 			refresh = 2;
 			break;
 
 		case '|':
 			mode = ORIG|RESULT|BEFORE|AFTER; modename = "sidebyside"; modehelp = sidebyside_help;
+			mmode = mode; curs.alt = 0;
 			refresh = 2;
 			break;
 
