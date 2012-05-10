@@ -43,6 +43,7 @@
 #include <stdlib.h>
 #include <signal.h>
 #include <fcntl.h>
+#include <ctype.h>
 
 static void term_init(void);
 
@@ -720,7 +721,7 @@ static int mcontains(struct mpos pos,
 		     struct file fm, struct file fb, struct file fa,
 		     struct merge *m,
 		     int mode, char *search, struct cursor *curs,
-		     int dir)
+		     int dir, int ignore_case)
 {
 	/* See if any of the files, between start of this line and here,
 	 * contain the search string.
@@ -760,7 +761,8 @@ static int mcontains(struct mpos pos,
 					/* future matches not accepted */
 					goto break_while;
 				if ((!found || dir > 0) &&
-				    strncmp(e.start+i, search, len) == 0) {
+				    (ignore_case ? strncasecmp : strncmp)
+				    (e.start+i, search, len) == 0) {
 					mp = pos.p;
 					o = i;
 					found = 1;
@@ -1208,6 +1210,13 @@ static void merge_window(struct plist *p, FILE *f, int reverse)
 	unsigned int searchlen = 0;
 	int search_notfound = 0;
 	int searchdir = 0;
+	/* ignore_case:
+	 *  0 == no
+	 *  1 == no because there are upper-case chars
+	 *  2 == yes as there are no upper-case chars
+	 *  3 == yes
+	 */
+	int ignore_case = 2;
 	/* We record all the places we find so 'backspace'
 	 * can easily return to the previous one
 	 */
@@ -1592,9 +1601,19 @@ static void merge_window(struct plist *p, FILE *f, int reverse)
 			tpos = pos; trow = row;
 		search_again:
 			search_notfound = 1;
+			if (ignore_case == 1 || ignore_case == 2) {
+				unsigned int i;
+				ignore_case = 2;
+				for (i=0; i < searchlen; i++)
+					if (isupper(search[i])) {
+						ignore_case = 1;
+						break;
+					}
+			}
 			do {
 				if (mcontains(tpos, fm, fb, fa, ci.merger,
-					      mode, search, &curs, searchdir)) {
+					      mode, search, &curs, searchdir,
+					      ignore_case >= 2)) {
 					curs.target = -1;
 					pos = tpos;
 					row = trow;
