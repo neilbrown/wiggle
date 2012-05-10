@@ -1428,7 +1428,7 @@ static void merge_window(struct plist *p, FILE *f, int reverse)
 		if (meta & META(0))
 			addstr("ESC...");
 		if (meta & SEARCH(0)) {
-			if (searchdir)
+			if (searchdir < 0)
 				addstr("Backwards ");
 			addstr("Search: ");
 			addstr(search);
@@ -1493,7 +1493,7 @@ static void merge_window(struct plist *p, FILE *f, int reverse)
 			meta = SEARCH(0);
 			searchlen = 0;
 			search[searchlen] = 0;
-			searchdir = 0;
+			searchdir = 1;
 			break;
 		case '\\':
 		case 'R'-64:
@@ -1501,19 +1501,19 @@ static void merge_window(struct plist *p, FILE *f, int reverse)
 			meta = SEARCH(0);
 			searchlen = 0;
 			search[searchlen] = 0;
-			searchdir = 1;
+			searchdir = -1;
 			break;
 		case SEARCH('G'-64):
 		case SEARCH('S'-64):
 		case SEARCH('R'-64):
 			/* search again */
 			if ((c|tmeta) == SEARCH('R'-64))
-				searchdir = 1;
+				searchdir = -1;
 			if ((c|tmeta) == SEARCH('S'-64))
-				searchdir = 0;
+				searchdir = 1;
 			meta = SEARCH(0);
 			tpos = pos; trow = row;
-			if (searchdir) {
+			if (searchdir < 0) {
 				trow--;
 				prev_mline(&tpos, fm, fb, fa, ci.merger, mode);
 			} else {
@@ -1565,7 +1565,7 @@ static void merge_window(struct plist *p, FILE *f, int reverse)
 					search_notfound = 0;
 					break;
 				}
-				if (searchdir) {
+				if (searchdir < 0) {
 					trow--;
 					prev_mline(&tpos, fm, fb, fa, ci.merger, mode);
 				} else {
