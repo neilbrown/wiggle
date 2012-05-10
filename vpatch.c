@@ -1173,8 +1173,9 @@ static void merge_window(struct plist *p, FILE *f, int reverse)
 	struct search_anchor {
 		struct search_anchor *next;
 		struct mpos pos;
+		struct cursor curs;
 		int notfound;
-		int row, col;
+		int row, start;
 		unsigned int searchlen;
 	} *anchor = NULL;
 
@@ -1536,7 +1537,9 @@ static void merge_window(struct plist *p, FILE *f, int reverse)
 				anchor = a->next;
 				pos = a->pos;
 				row = a->row;
-				curs.col = a->col;
+				start = a->start;
+				curs = a->curs;
+				curs.target = -1;
 				search_notfound = a->notfound;
 				searchlen = a->searchlen;
 				search[searchlen] = 0;
@@ -1764,11 +1767,12 @@ static void merge_window(struct plist *p, FILE *f, int reverse)
 			if (anchor == NULL ||
 			    !same_mpos(anchor->pos, pos) ||
 			    anchor->searchlen != searchlen ||
-			    anchor->col != curs.col) {
+			    !same_mp(anchor->curs.pos, curs.pos)) {
 				struct search_anchor *a = xmalloc(sizeof(*a));
 				a->pos = pos;
 				a->row = row;
-				a->col = curs.col;
+				a->start = start;
+				a->curs = curs;
 				a->searchlen = searchlen;
 				a->notfound = search_notfound;
 				a->next = anchor;
