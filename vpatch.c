@@ -237,7 +237,6 @@ static void help_window(char *page1[], char *page2[])
 	}
 }
 
-/* Type names are needed for tracing only. */
 static char *typenames[] = {
 	[End] = "End",
 	[Unmatched] = "Unmatched",
@@ -1373,13 +1372,7 @@ static void merge_window(struct plist *p, FILE *f, int reverse)
 			mvaddstr(0, 50, b);
 			clrtoeol();
 		}
-		{
-			char lbuf[20];
-			(void)attrset(A_BOLD);
-			snprintf(lbuf, 19, "ln:%d", (pos.p.lineno-1)/2);
-			mvaddstr(0, cols - strlen(lbuf) - 4, "       ");
-			mvaddstr(0, cols - strlen(lbuf) - 1, lbuf);
-		}
+
 		/* Always refresh the line */
 		while (start > curs.target) {
 			start -= 8;
@@ -1390,7 +1383,6 @@ static void merge_window(struct plist *p, FILE *f, int reverse)
 	retry:
 		draw_mline(mode, row, start, cols, fm, fb, fa, ci.merger,
 			   pos, (splitrow >= 0 && curs.alt) ? NULL : &curs);
-
 		if (curs.width == 0 && start < curs.col) {
 			/* width == 0 implies it appear after end-of-screen */
 			start += 8;
@@ -1472,6 +1464,16 @@ static void merge_window(struct plist *p, FILE *f, int reverse)
 			}
 			while (i < rows)
 				blank(i++, 0, cols, a_void);
+		}
+		/* Now that curs is accurate, report the type */
+		{
+			char lbuf[30];
+			(void)attrset(A_BOLD);
+			snprintf(lbuf, 29, "%s ln:%d",
+				 typenames[ci.merger[curs.pos.m].type],
+				 (pos.p.lineno-1)/2);
+			mvaddstr(0, cols - strlen(lbuf) - 4, "       ");
+			mvaddstr(0, cols - strlen(lbuf) - 1, lbuf);
 		}
 #define META(c) ((c)|0x1000)
 #define	SEARCH(c) ((c)|0x2000)
