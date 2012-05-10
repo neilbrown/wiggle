@@ -719,28 +719,69 @@ static void blank(int row, int start, int cols, unsigned int attr)
 static int mcontains(struct mpos pos,
 		     struct file fm, struct file fb, struct file fa,
 		     struct merge *m,
-		     int mode, char *search, struct cursor *curs)
+		     int mode, char *search, struct cursor *curs,
+		     int dir)
 {
 	/* See if any of the files, between start of this line and here,
-	 * contain the search string
+	 * contain the search string.
+	 * However this is modified by dir:
+	 *  -2: find last match *before* curs
+	 *  -1: find last match at-or-before curs
+	 *   1: find first match at-or-after curs
+	 *   2: find first match *after* curs
+	 *
+	 * We only test for equality with curs, so if it is on a different
+	 * line it will not be found and everything is before/after.
+	 * As we search from end-of-line to start we find the last
+	 * match first.
+	 * For a forward search, we stop when we find curs.
+	 * For a backward search, we forget anything found when we find curs.
 	 */
 	struct elmnt e;
+	int found = 0;
+	struct mp mp;
+	int o;
 	int len = strlen(search);
+
 	do {
 		e = prev_melmnt(&pos.p, fm, fb, fa, m);
 		if (e.start) {
 			int i;
-			for (i = 0; i < e.len; i++)
-				if (strncmp(e.start+i, search, len) == 0) {
-					curs->pos = pos.p;
-					curs->offset = i;
-					return 1;
+			int curs_i;
+			if (same_mp(pos.p, curs->pos))
+				curs_i = curs->offset;
+			else
+				curs_i = -1;
+			for (i = e.len-1; i >= 0; i--) {
+				if (i == curs_i && dir == -1)
+					/* next match is the one we want */
+					found = 0;
+				if (i == curs_i && dir == 2)
+					/* future matches not accepted */
+					goto break_while;
+				if ((!found || dir > 0) &&
+				    strncmp(e.start+i, search, len) == 0) {
+					mp = pos.p;
+					o = i;
+					found = 1;
 				}
+				if (i == curs_i && dir == -2)
+					/* next match is the one we want */
+					found = 0;
+				if (i == curs_i && dir == 1)
+					/* future matches not accepted */
+					goto break_while;
+			}
 		}
 	} while (e.start != NULL &&
 		 (!ends_mline(e)
 		  || visible(mode, m[pos.p.m].type, pos.p.s) == -1));
-	return 0;
+break_while:
+	if (found) {
+		curs->pos = mp;
+		curs->offset = o;
+	}
+	return found;
 }
 
 /* Drawing the display window.
@@ -1508,18 +1549,13 @@ static void merge_window(struct plist *p, FILE *f, int reverse)
 		case SEARCH('R'-64):
 			/* search again */
 			if ((c|tmeta) == SEARCH('R'-64))
-				searchdir = -1;
-			if ((c|tmeta) == SEARCH('S'-64))
-				searchdir = 1;
+				searchdir = -2;
+			else if ((c|tmeta) == SEARCH('S'-64))
+				searchdir = 2;
+			else
+				searchdir *= 2;
 			meta = SEARCH(0);
 			tpos = pos; trow = row;
-			if (searchdir < 0) {
-				trow--;
-				prev_mline(&tpos, fm, fb, fa, ci.merger, mode);
-			} else {
-				trow++;
-				next_mline(&tpos, fm, fb, fa, ci.merger, mode);
-			}
 			goto search_again;
 
 		case SEARCH('H'-64):
@@ -1558,7 +1594,7 @@ static void merge_window(struct plist *p, FILE *f, int reverse)
 			search_notfound = 1;
 			do {
 				if (mcontains(tpos, fm, fb, fa, ci.merger,
-					      mode, search, &curs)) {
+					      mode, search, &curs, searchdir)) {
 					curs.target = -1;
 					pos = tpos;
 					row = trow;
@@ -1573,6 +1609,7 @@ static void merge_window(struct plist *p, FILE *f, int reverse)
 					next_mline(&tpos, fm, fb, fa, ci.merger, mode);
 				}
 			} while (tpos.p.m >= 0 && ci.merger[tpos.p.m].type != End);
+			searchdir /= abs(searchdir);
 
 			break;
 		case 'L'-64:
