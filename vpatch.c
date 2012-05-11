@@ -579,6 +579,8 @@ static int check_line(struct mpos pos, struct file fm, struct file fb,
 			rv |= WIGGLED;
 		else if (m[pos.p.m].type == Unmatched)
 			unmatched = 1;
+		if (m[pos.p.m].in_conflict)
+			rv |= CONFLICTED | CHANGES;
 		e = prev_melmnt(&pos.p, fm, fb, fa, m);
 	} while (e.start != NULL &&
 		 (!ends_mline(e)
@@ -845,7 +847,7 @@ static void draw_mside(int mode, int row, int offset, int start, int cols,
 		tag_attr = a_delete;
 		if ((mode & ORIG) && (mode & CONFLICTED)) {
 			tag = '|';
-			tag_attr = a_delete | A_UNDERLINE;
+			tag_attr = a_delete;
 		}
 		mode &= (ORIG|BEFORE);
 		break;
