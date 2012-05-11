@@ -575,7 +575,9 @@ static int check_line(struct mpos pos, struct file fm, struct file fb,
 		else if ((m[pos.p.m].type == AlreadyApplied ||
 			  m[pos.p.m].type == Conflict))
 			rv |= CONFLICTED | CHANGES;
-		else if (m[pos.p.m].type == Extraneous)
+		else if (m[pos.p.m].type == Extraneous &&
+			 /* hunk headers don't count as wiggles */
+			 fb.list[m[pos.p.m].b].start[0] != '\0')
 			rv |= WIGGLED;
 		else if (m[pos.p.m].type == Unmatched)
 			unmatched = 1;
@@ -1312,12 +1314,13 @@ static void merge_window(struct plist *p, FILE *f, int reverse)
 
 		if (mode == (ORIG|RESULT)) {
 			int cmode = check_line(pos, fm, fb, fa, ci.merger, mode);
-			if (splitrow < 0 && (cmode & (WIGGLED|CONFLICTED))) {
-				splitrow = (rows+1)/2;
-				lastrow = splitrow - 1;
-				refresh = 1;
-			}
-			if (!curs.alt && splitrow >= 0 && !(cmode & CHANGES)) {
+			if (cmode & (WIGGLED | CONFLICTED)) {
+				if (splitrow < 0) {
+					splitrow = (rows+1)/2;
+					lastrow = splitrow - 1;
+					refresh = 1;
+				}
+			} else if (!curs.alt && splitrow >= 0) {
 				splitrow = -1;
 				lastrow = rows-1;
 				refresh = 1;
