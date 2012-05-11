@@ -833,19 +833,25 @@ static void draw_mside(int mode, int row, int offset, int start, int cols,
 	struct elmnt e;
 	int col = 0;
 	char tag;
+	unsigned int tag_attr;
 
 	switch (pos.state) {
 	case 0: /* unchanged line */
 		tag = ' ';
+		tag_attr = A_NORMAL;
 		break;
 	case 1: /* 'before' text */
 		tag = '-';
-		if ((mode & ORIG) && (mode & CONFLICTED))
+		tag_attr = a_delete;
+		if ((mode & ORIG) && (mode & CONFLICTED)) {
 			tag = '|';
+			tag_attr = a_delete | A_UNDERLINE;
+		}
 		mode &= (ORIG|BEFORE);
 		break;
 	case 2: /* the 'after' part */
 		tag = '+';
+		tag_attr = a_added;
 		mode &= (AFTER|RESULT);
 		break;
 	}
@@ -862,10 +868,11 @@ static void draw_mside(int mode, int row, int offset, int start, int cols,
 		return;
 	}
 
-	(void)attrset(A_NORMAL);
+	(void)attrset(tag_attr);
 	mvaddch(row, offset, tag);
 	offset++;
 	cols--;
+	(void)attrset(A_NORMAL);
 
 	/* find previous visible newline, or start of file */
 	do
@@ -1058,17 +1065,15 @@ static char *before_help[] = {
 	"This view shows the 'before' section of a patch.",
 	"It allows the expected match text to be seen uncluttered",
 	"by text that is meant to replaced it."
-	"Text with a red background is text that will be",
-	"removed by the patch",
+	"Red text is text that will be removed by the patch",
 	NULL
 };
 static char *after_help[] = {
 	"This view shows the 'after' section of a patch.",
 	"It allows the intended result to be seen uncluttered",
 	"by text that was meant to be matched and replaced."
-	"Text with a blue background is text that was added",
-	"by the patch - it was not present in the 'before'",
-	"part of the patch",
+	"Green text is text that was added by the patch - it",
+	"was not present in the 'before' part of the patch",
 	NULL
 };
 static char *sidebyside_help[] = {
@@ -1091,15 +1096,15 @@ static char *merge_window_help[] = {
 	"removed, already changed, unchanged or in conflict.",
 	"Colours and their use are:",
 	" normal              unchanged text",
-	" red background      text that was removed or changed",
-	" blue background     text that was added or the result",
+	" red                 text that was removed or changed",
+	" green               text that was added or the result",
 	"                     of a change",
 	" yellow background   used in side-by-side for a line",
 	"                     which has no match on the other",
 	"                     side",
-	" blue foreground     text in the original which did not",
+	" blue                text in the original which did not",
 	"                     match anything in the patch",
-	" cyan foreground     text in the patch which did not",
+	" cyan                text in the patch which did not",
 	"                     match anything in the original",
 	" cyan background     already changed text: the result",
 	"                     of the patch matches the original",
@@ -2592,9 +2597,9 @@ static void term_init(void)
 		a_sep = A_STANDOUT;
 		a_already = A_STANDOUT;
 	} else {
-		init_pair(1, COLOR_WHITE, COLOR_RED);
+		init_pair(1, COLOR_RED, -1);
 		a_delete = COLOR_PAIR(1);
-		init_pair(2, COLOR_WHITE, COLOR_BLUE);
+		init_pair(2, COLOR_GREEN, -1);
 		a_added = COLOR_PAIR(2);
 		a_common = A_NORMAL;
 		init_pair(3, COLOR_WHITE, COLOR_GREEN);
