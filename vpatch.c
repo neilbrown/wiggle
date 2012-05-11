@@ -1287,7 +1287,7 @@ static void merge_window(struct plist *p, FILE *f, int reverse)
 	memset(&curs, 0, sizeof(curs));
 	vpos = pos;
 	while (1) {
-		if (refresh == 2) {
+		if (refresh >= 2) {
 			char buf[100];
 			clear();
 			snprintf(buf, 100, "File: %s%s Mode: %s\n",
@@ -1781,38 +1781,38 @@ static void merge_window(struct plist *p, FILE *f, int reverse)
 		case 'a': /* 'after' view in patch window */
 			mode = AFTER; modename = "after"; modehelp = after_help;
 			mmode = mode; curs.alt = 0;
-			refresh = 2;
+			refresh = 3;
 			break;
 		case 'b': /* 'before' view in patch window */
 			mode = BEFORE; modename = "before"; modehelp = before_help;
 			mmode = mode; curs.alt = 0;
-			refresh = 2;
+			refresh = 3;
 			break;
 		case 'o': /* 'original' view in the merge window */
 			mode = ORIG; modename = "original"; modehelp = orig_help;
 			mmode = mode; curs.alt = 0;
-			refresh = 2;
+			refresh = 3;
 			break;
 		case 'r': /* the 'result' view in the merge window */
 			mode = RESULT; modename = "result"; modehelp = result_help;
 			mmode = mode; curs.alt = 0;
-			refresh = 2;
+			refresh = 3;
 			break;
 		case 'd':
 			mode = BEFORE|AFTER; modename = "diff"; modehelp = diff_help;
 			mmode = mode; curs.alt = 0;
-			refresh = 2;
+			refresh = 3;
 			break;
 		case 'm':
 			mode = ORIG|RESULT; modename = "merge"; modehelp = merge_help;
 			mmode = mode; curs.alt = 0;
-			refresh = 2;
+			refresh = 3;
 			break;
 
 		case '|':
 			mode = ORIG|RESULT|BEFORE|AFTER; modename = "sidebyside"; modehelp = sidebyside_help;
 			mmode = mode; curs.alt = 0;
-			refresh = 2;
+			refresh = 3;
 			break;
 
 		case 'H': /* scroll window to the right */
@@ -1870,6 +1870,19 @@ static void merge_window(struct plist *p, FILE *f, int reverse)
 				anchor = a->next;
 				free(a);
 			}
+		}
+		if (refresh == 3) {
+			/* move backward and forward to make sure we
+			 * are on a visible line
+			 */
+			tpos = pos;
+			prev_mline(&tpos, fm, fb, fa, ci.merger, mmode);
+			if (tpos.p.m >= 0)
+				pos = tpos;
+			tpos = pos;
+			next_mline(&tpos, fm, fb, fa, ci.merger, mmode);
+			if (ci.merger[tpos.p.m].type != End)
+				pos = tpos;
 		}
 	}
 }
