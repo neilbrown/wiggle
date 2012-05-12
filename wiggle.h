@@ -117,6 +117,8 @@ struct merge {
 		    */
 
 };
+extern struct stream load_segment(FILE *f, unsigned int start,
+				  unsigned int end);
 extern struct stream load_file(char *name);
 extern int split_patch(struct stream, struct stream*, struct stream*);
 extern int split_merge(struct stream, struct stream*, struct stream*,

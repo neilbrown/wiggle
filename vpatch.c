@@ -49,9 +49,6 @@ static void term_init(void);
 
 #define assert(x) do { if (!(x)) abort(); } while (0)
 
-static struct stream load_segment(FILE *f,
-				  unsigned int start, unsigned int end);
-
 /* global attributes */
 unsigned int a_delete, a_added, a_common, a_sep, a_void,
 	a_unmatched, a_extra, a_already;
@@ -2036,18 +2033,6 @@ static struct plist *parse_patch(FILE *f, FILE *of, int *np)
 				       strdup(name), start, end);
 	}
 	return plist;
-}
-
-static struct stream load_segment(FILE *f,
-				  unsigned int start, unsigned int end)
-{
-	struct stream s;
-	s.len = end - start;
-	s.body = xmalloc(s.len);
-	fseek(f, start, 0);
-	if (fread(s.body, 1, s.len, f) != (size_t)s.len)
-		die();
-	return s;
 }
 
 static int pl_cmp(const void *av, const void *bv)

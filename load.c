@@ -106,30 +106,56 @@ static struct stream load_other(int fd)
 	return list[0];
 }
 
+struct stream load_segment(FILE *f,
+			   unsigned int start, unsigned int end)
+{
+	struct stream s;
+	s.len = end - start;
+	s.body = xmalloc(s.len);
+	fseek(f, start, 0);
+	if (fread(s.body, 1, s.len, f) != (size_t)s.len)
+		die();
+	return s;
+}
+
 struct stream load_file(char *name)
 {
 	struct stream s;
 	struct stat stb;
 	int fd;
+	int start, end;
+	int prefix_len = 0;
 
 	s.body = NULL;
 	s.len = 0;
-	if (strcmp(name, "-") == 0)
-		fd = 0;
-	else {
-		fd = open(name, O_RDONLY);
-		if (fd < 0)
-			return s;
-	}
+	if (sscanf(name, "_wiggle_:%d:%d:%n", &start, &end,
+		   &prefix_len) >= 2 && prefix_len > 0) {
+		FILE *f = fopen(name + prefix_len, "r");
+		if (f) {
+			s = load_segment(f, start, end);
+			fclose(f);
+		} else {
+			s.body = NULL;
+			s.len = 0;
+		}
+	} else {
+		if (strcmp(name, "-") == 0)
+			fd = 0;
+		else {
+			fd = open(name, O_RDONLY);
+			if (fd < 0)
+				return s;
+		}
 
-	if (fstat(fd, &stb) == 0) {
+		if (fstat(fd, &stb) == 0) {
 
-		if (S_ISREG(stb.st_mode))
-			s = load_regular(fd);
-		else
-			s = load_other(fd);
+			if (S_ISREG(stb.st_mode))
+				s = load_regular(fd);
+			else
+				s = load_other(fd);
+		}
+		close(fd);
 	}
-	close(fd);
 	return s;
 }
 
