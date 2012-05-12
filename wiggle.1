@@ -59,10 +59,12 @@ and will ignore them.
 .I wiggle
 ensures that every change in the patch is applied to the target
 file somehow.  If a particular change cannot be made in the file, the
-file is annotated to show where the change should be made is a similar
+file is annotated to show where the change should be made in a similar
 way to the
 .BR merge (1)
-program.
+program with the
+.B \-A
+option.
 Each annotation contains 3 components: a portion of the original file
 where the change should be applied, a portion of the patch that
 couldn't be matched precisely in the file, and the text that should
