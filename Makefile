@@ -30,8 +30,8 @@ wiggle.man : wiggle.1
 	nroff -man wiggle.1 > wiggle.man
 
 clean:
-	rm -f *.o *.man wiggle .version* demo.patch version
-	find . -name core -o -name '*.tmp*' -o -name .tmp | xargs rm -f
+	rm -f *.o ccan/hash/*.o *.man wiggle .version* demo.patch version
+	find . -name core -o -name '*.tmp*' -o -name .tmp -o -name .time | xargs rm -f
 
 install : wiggle wiggle.1
 	$(INSTALL) -D $(STRIP) -m 755 wiggle $(DESTDIR)$(BINDIR)/wiggle
