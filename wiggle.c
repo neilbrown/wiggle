@@ -136,42 +136,42 @@ static int extract(int argc, char *argv[], int ispatch, int which)
 	 */
 	struct stream f, flist[3];
 
-	if (optind == argc) {
+	if (argc == 0) {
 		fprintf(stderr,
 			"%s: no file given for --extract\n", Cmd);
 		return 2;
 	}
-	if (optind < argc-1) {
+	if (argc > 1) {
 		fprintf(stderr,
 			"%s: only give one file for --extract\n", Cmd);
 		return 2;
 	}
-	f = load_file(argv[optind]);
+	f = load_file(argv[0]);
 	if (f.body == NULL) {
 		fprintf(stderr,
 			"%s: cannot load file '%s' - %s\n", Cmd,
-			argv[optind], strerror(errno));
+			argv[0], strerror(errno));
 		return 2;
 	}
 	if (ispatch) {
 		if (split_patch(f, &flist[0], &flist[1]) == 0) {
 			fprintf(stderr,
 				"%s: No chunk found in patch: %s\n", Cmd,
-				argv[optind]);
+				argv[0]);
 			return 0;
 		}
 	} else {
 		if (!split_merge(f, &flist[0], &flist[1], &flist[2])) {
 			fprintf(stderr,
 				"%s: merge file %s looks bad.\n", Cmd,
-				argv[optind]);
+				argv[0]);
 			return 2;
 		}
 	}
 	if (flist[which-'1'].body == NULL) {
 		fprintf(stderr,
 			"%s: %s has no -%c component.\n", Cmd,
-			argv[optind], which);
+			argv[0], which);
 		return 2;
 	} else {
 		if (write(1, flist[which-'1'].body,
@@ -349,16 +349,16 @@ static int do_diff(int argc, char *argv[], int obj, int ispatch,
 	struct file fl[2];
 	struct csl *csl;
 
-	switch (argc-optind) {
+	switch (argc) {
 	case 0:
 		fprintf(stderr, "%s: no file given for --diff\n", Cmd);
 		return 2;
 	case 1:
-		f = load_file(argv[optind]);
+		f = load_file(argv[0]);
 		if (f.body == NULL) {
 			fprintf(stderr,
 				"%s: cannot load file '%s' - %s\n", Cmd,
-				argv[optind], strerror(errno));
+				argv[0], strerror(errno));
 			return 2;
 		}
 		chunks1 = chunks2 =
@@ -366,25 +366,25 @@ static int do_diff(int argc, char *argv[], int obj, int ispatch,
 		if (!flist[0].body || !flist[1].body) {
 			fprintf(stderr,
 				"%s: couldn't parse patch %s\n", Cmd,
-				argv[optind]);
+				argv[0]);
 			return 2;
 		}
 		break;
 	case 2:
-		flist[0] = load_file(argv[optind]);
+		flist[0] = load_file(argv[0]);
 		if (flist[0].body == NULL) {
 			fprintf(stderr,
 				"%s: cannot load file '%s' - %s\n", Cmd,
-				argv[optind], strerror(errno));
+				argv[0], strerror(errno));
 			return 2;
 		}
 		if (ispatch) {
-			f = load_file(argv[optind+1]);
+			f = load_file(argv[1]);
 			if (f.body == NULL) {
 				fprintf(stderr,
 					"%s: cannot load patch"
 					" '%s' - %s\n", Cmd,
-					argv[optind], strerror(errno));
+					argv[1], strerror(errno));
 				return 2;
 			}
 			if (which == '2')
@@ -397,12 +397,12 @@ static int do_diff(int argc, char *argv[], int obj, int ispatch,
 						    &flist[2]);
 
 		} else
-			flist[1] = load_file(argv[optind+1]);
+			flist[1] = load_file(argv[1]);
 		if (flist[1].body == NULL) {
 			fprintf(stderr,
 				"%s: cannot load file"
 				" '%s' - %s\n", Cmd,
-				argv[optind+1], strerror(errno));
+				argv[1], strerror(errno));
 			return 2;
 		}
 		break;
@@ -460,19 +460,19 @@ static int do_merge(int argc, char *argv[], int obj,
 	struct ci ci;
 	FILE *outfile = stdout;
 
-	switch (argc-optind) {
+	switch (argc) {
 	case 0:
 		fprintf(stderr, "%s: no files given for --merge\n", Cmd);
 		return 2;
 	case 3:
 	case 2:
 	case 1:
-		for (i = 0; i < argc-optind; i++) {
-			flist[i] = load_file(argv[optind+i]);
+		for (i = 0; i < argc; i++) {
+			flist[i] = load_file(argv[i]);
 			if (flist[i].body == NULL) {
 				fprintf(stderr, "%s: cannot load file '%s' - %s\n",
 					Cmd,
-					argv[optind+i], strerror(errno));
+					argv[i], strerror(errno));
 				return 2;
 			}
 		}
@@ -482,13 +482,13 @@ static int do_merge(int argc, char *argv[], int obj,
 			Cmd);
 		return 2;
 	}
-	switch (argc-optind) {
+	switch (argc) {
 	case 1: /* a merge file */
 		f = flist[0];
 		if (!split_merge(f, &flist[0], &flist[1], &flist[2])) {
 			fprintf(stderr, "%s: merge file %s looks bad.\n",
 				Cmd,
-				argv[optind]);
+				argv[0]);
 			return 2;
 		}
 		break;
@@ -513,10 +513,10 @@ static int do_merge(int argc, char *argv[], int obj,
 	}
 	if (replace) {
 		int fd;
-		replacename = xmalloc(strlen(argv[optind]) + 20);
-		orignew = xmalloc(strlen(argv[optind]) + 20);
-		strcpy(replacename, argv[optind]);
-		strcpy(orignew, argv[optind]);
+		replacename = xmalloc(strlen(argv[0]) + 20);
+		orignew = xmalloc(strlen(argv[0]) + 20);
+		strcpy(replacename, argv[0]);
+		strcpy(orignew, argv[0]);
 		strcat(orignew, ".porig");
 		if (open(orignew, O_RDONLY) >= 0 ||
 		    errno != ENOENT) {
@@ -568,8 +568,8 @@ static int do_merge(int argc, char *argv[], int obj,
 
 	if (replace) {
 		fclose(outfile);
-		if (rename(argv[optind], orignew) == 0 &&
-		    rename(replacename, argv[optind]) == 0)
+		if (rename(argv[0], orignew) == 0 &&
+		    rename(replacename, argv[0]) == 0)
 			/* all ok */;
 		else {
 			fprintf(stderr,
@@ -744,13 +744,13 @@ int main(int argc, char *argv[])
 
 	switch (mode) {
 	case 'x':
-		exit_status = extract(argc, argv, ispatch, which);
+		exit_status = extract(argc-optind, argv+optind, ispatch, which);
 		break;
 	case 'd':
-		exit_status = do_diff(argc, argv, obj, ispatch, which, reverse);
+		exit_status = do_diff(argc-optind, argv+optind, obj, ispatch, which, reverse);
 		break;
 	case 'm':
-		exit_status = do_merge(argc, argv, obj, reverse, replace,
+		exit_status = do_merge(argc-optind, argv+optind, obj, reverse, replace,
 				       ignore, show_wiggles, quiet);
 		break;
 	}
