@@ -24,7 +24,6 @@
  */
 
 #include "wiggle.h"
-#include <stdlib.h>
 
 /*
  * Second attempt at merging....
@@ -48,11 +47,6 @@
 static inline int min(int a, int b)
 {
 	return a < b ? a : b;
-}
-static inline void assert(int a)
-{
-	if (!a)
-		abort();
 }
 
 static int check_alreadyapplied(struct file af, struct file cf,

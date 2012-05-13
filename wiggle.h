@@ -26,6 +26,13 @@
 #include	<string.h>
 #include	<memory.h>
 #include	<getopt.h>
+#include	<stdlib.h>
+
+static inline void assert(int a)
+{
+	if (!a)
+		abort();
+}
 
 struct stream {
 	char *body;
@@ -117,8 +124,31 @@ struct merge {
 		    */
 
 };
+
+/* plist stores a list of patched files in an array
+ * Each entry identifies a file, the range of the
+ * original patch which applies to this file, some
+ * statistics concerning how many conflicts etc, and
+ * some linkage information so the list can be viewed
+ * as a directory-tree.
+ */
+struct plist {
+	char *file;
+	unsigned int start, end;
+	int parent;
+	int next, prev, last;
+	int open;
+	int chunks, wiggles, conflicts;
+	int calced;
+	int is_merge;
+	char *before, *after;
+};
+
+extern struct plist *sort_patches(struct plist *pl, int *np);
+extern struct plist *parse_patch(FILE *f, FILE *of, int *np);
 extern struct stream load_segment(FILE *f, unsigned int start,
 				  unsigned int end);
+extern int set_prefix(struct plist *pl, int n, int strip);
 extern struct stream load_file(char *name);
 extern int split_patch(struct stream, struct stream*, struct stream*);
 extern int split_merge(struct stream, struct stream*, struct stream*,

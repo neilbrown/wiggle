@@ -16,9 +16,9 @@ LDLIBS = -lncurses
 
 all: wiggle wiggle.man test
 
-wiggle : wiggle.o load.o split.o extract.o diff.o bestmatch.o ReadMe.o \
+wiggle : wiggle.o load.o parse.o split.o extract.o diff.o bestmatch.o ReadMe.o \
               merge2.o vpatch.o ccan/hash/hash.o
-wiggle.o load.o split.o extract.o diff.o bestmatch.o ReadMe.o \
+wiggle.o load.o parse.o split.o extract.o diff.o bestmatch.o ReadMe.o \
                merge2.o vpatch.o :: wiggle.h
 split.o :: ccan/hash/hash.h config.h
 
