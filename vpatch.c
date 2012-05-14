@@ -50,6 +50,7 @@ static void term_init(void);
 /* global attributes */
 unsigned int a_delete, a_added, a_common, a_sep, a_void,
 	a_unmatched, a_extra, a_already;
+unsigned int a_has_conflicts, a_has_wiggles, a_no_wiggles;
 
 /******************************************************************
  * Help window
@@ -2039,6 +2040,15 @@ static void draw_one(int row, struct plist *pl, FILE *f, int reverse)
 	else
 		strcpy(hdr+9, "- ");
 
+	if (!pl->end)
+		attrset(0);
+	else if (pl->conflicts)
+		attrset(a_has_conflicts);
+	else if (pl->wiggles)
+		attrset(a_has_wiggles);
+	else
+		attrset(a_no_wiggles);
+
 	mvaddstr(row, 0, hdr);
 	mvaddstr(row, 11, pl->file);
 	clrtoeol();
@@ -2274,6 +2284,9 @@ static void term_init(void)
 		a_common = A_NORMAL;
 		a_sep = A_STANDOUT;
 		a_already = A_STANDOUT;
+		a_has_conflicts = A_UNDERLINE;
+		a_has_wiggles = A_BOLD;
+		a_no_wiggles = A_NORMAL;
 	} else {
 		init_pair(1, COLOR_RED, -1);
 		a_delete = COLOR_PAIR(1);
@@ -2291,6 +2304,10 @@ static void term_init(void)
 
 		init_pair(7, COLOR_BLACK, COLOR_CYAN);
 		a_already = COLOR_PAIR(7);
+
+		a_has_conflicts = a_delete;
+		a_has_wiggles = a_added;
+		a_no_wiggles = a_unmatched;
 	}
 	nonl(); intrflush(stdscr, FALSE); keypad(stdscr, TRUE);
 	mousemask(ALL_MOUSE_EVENTS, NULL);
