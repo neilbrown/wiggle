@@ -20,12 +20,7 @@
 .\"    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 .\"
 .\"    Author: Neil Brown
-.\"    Email: <neilb@cse.unsw.edu.au>
-.\"    Paper: Neil Brown
-.\"           School of Computer Science and Engineering
-.\"           The University of New South Wales
-.\"           Sydney, 2052
-.\"           Australia
+.\"    Email: <neilb@suse.de>
 .\"
 .TH WIGGLE 1 "" v0.8
 .SH NAME
@@ -116,20 +111,29 @@ conflicts, and to make sure the applied patch is semantically correct.
 The following options are understood by
 .IR wiggle .
 Some of these are explained in more detail in the following sections
-on MERGE, DIFF, and EXTRACT.
+on MERGE, DIFF, EXTRACT, and BROWSE.
 
 .TP
-.BR -m ", " \-\-merge
+.BR \-m ", " \-\-merge
 Select the "merge" function.  This is the default function.
 
 .TP
-.BR -d ", " \-\-diff
+.BR \-d ", " \-\-diff
 Select the "diff" function.  This displays the differences between files.
 
 .TP
-.BR -x ", " \-\-extract
+.BR \-x ", " \-\-extract
 Select the "extract" function.  This extracts one branch of a patch or
 merge file.
+
+.TP
+.BR \-B ", " \-\-browse
+Select the "browse" function.  This is similar to "merge" only with a
+different presentation.  Instead of the result simply being sent to
+standard output, it is presented using an ncurses-based GUI so that
+each hunk of the patch can be examined to understand what conflicts
+where involved and what needed to be ignored in order of the patch to
+be wiggled in to place.
 
 .TP
 .BR -w ", " \-\-words
@@ -146,20 +150,22 @@ Treat the last named file as a patch instead of a file (with \-\-diff)
 or a merge (\-\-extract).
 In
 .I merge
+or
+.B browse
 mode,
 .B -p
 requires there be exactly one file which is a patch and which can
 contain patches to multiple file.  The patches are merged into each
-file.  This usage requires the
+file.  When used in
+.I merge
+mode, this usage requires the
 .B \-\-replace
 option as writing lots of merged files to standard-out is impractical.
 
-When used in
-.I merge
-mode,
+When processing a multi-file patch,
 B -p
-can be followed by a numeric argument indicating how many patch name
-components to be stripped from files named in the patch file.  If no
+can be followed by a numeric argument indicating how many file name
+components should be stripped from files named in the patch file.  If no
 numeric argument is given,
 .I wiggle
 will deduce an appropriate number based what files are visible.
@@ -427,6 +433,22 @@ or
 .B -3
 with obvious meanings.
 
+.SS BROWSE
+
+The browse function of
+.I wiggle
+presents the result of a merge in a text-based GUI that can be
+navigated using keystrokes similar to vi(1) or emacs(1).
+
+The browser allow each of the three streams to be viewed individually
+with colours used to highlight different sorts of text - green for
+added text, red for deleted text etc.  It can also show the patch by
+itself, the full result of the merge, or the merge and the patch
+side-by-side.
+
+The browser provides a number of context-sensitive help pages which
+can be accessed by typing '?'
+
 .SH WARNING
 
 Caution should always be exercised when applying a rejected patch with
@@ -469,9 +491,22 @@ patch would apply.
 Get help about the merge function of
 .IR wiggle .
 
+.B "   wiggle --browse --patch update.patch"
+.br
+Parse the
+.B update.patch
+file for patches and present a list of patched files which can be
+browsed to examine each patch in detail.
+
 .SH QUOTE
-The name of wiggle was inspired by the following quote, even though
-wiggle does not (yet) have a graphical interface.
+The name of
+.I wiggle
+was inspired by the following quote.  However
+.I wiggle
+does not yet
+.B help
+you to wiggle a patch into place.  It either does the wiggle itself,
+or leave it for you to finish off.
 
 .nf
 The problem I find is that I often want to take
@@ -498,7 +533,8 @@ cannot read the word-based merge format that it produces for \-\-merge
 .SH AUTHOR
 
 Neil Brown at Computer Science and Engineering at
-The University of New South Wales, Sydney, Australia
+The University of New South Wales, Sydney, Australia;
+and later and SUSE, still in Sydney, Australia.
 
 .SH SEE ALSO
 .IR patch (1),
