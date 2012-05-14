@@ -144,6 +144,25 @@ Request that all operations and display be line based.
 .BR -p ", " \-\-patch
 Treat the last named file as a patch instead of a file (with \-\-diff)
 or a merge (\-\-extract).
+In
+.I merge
+mode,
+.B -p
+requires there be exactly one file which is a patch and which can
+contain patches to multiple file.  The patches are merged into each
+file.  This usage requires the
+.B \-\-replace
+option as writing lots of merged files to standard-out is impractical.
+
+When used in
+.I merge
+mode,
+B -p
+can be followed by a numeric argument indicating how many patch name
+components to be stripped from files named in the patch file.  If no
+numeric argument is given,
+.I wiggle
+will deduce an appropriate number based what files are visible.
 
 .TP
 .BR -r ", " \-\-replace
@@ -233,7 +252,9 @@ extracts the three texts that it needs from files listed on the
 command line.  Either 1, 2, or 3 files may be listed, and any one of
 them may be a lone hyphen signifying standard-input.
 
-If one file is given, it is treated as a
+If one file is given and the
+.B \-p
+option is not present, the file is treated as a
 .B merge
 file, i.e. the output of "merge \-A" or "wiggle".  Such a file
 implicitly contains three streams and these are extracted and
@@ -245,6 +266,16 @@ or "diff\ \-c", or a ".rej" file from
 .IR patch )
 and the two other texts
 are extracted from that.
+
+If one file is given together with the
+.B \-p
+option, the file is treated as a patch file containing the names of
+the files that it patches.  In this case multiple merge operations can
+happen and each takes one stream from a file named in the patch, and
+the other to from the patch itself.  The
+.B \-\-replace
+option is required and the results are written back to the
+target files.
 
 Finally if three files are listed, they are taken to contain the given
 text and the two other texts, in order.

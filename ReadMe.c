@@ -31,8 +31,7 @@
 
 char Version[] = "wiggle 0.8 2010-03-24 GPL-2+ http://neil.brown.name/wiggle/\n";
 
-char short_options1[] = "xdmwlrhiW123pVRvqB"; /* not mode B */
-char short_options2[] = "xdmwlrhiW123p::VRvqB"; /* mode B */
+char short_options[] = "xdmwlrhiW123p::VRvqB";
 
 struct option long_options[] = {
 	{"browse",	0, 0, 'B'},
@@ -142,6 +141,8 @@ char HelpMerge[] = "\n"
 "\n"
 "If --merge is given one file, it is treated as a merge (merge -A\n"
 "output) and the three needed streams are extracted from it.\n"
+"If --merge is given one file and -p, it is a patch which identifies\n"
+"the files that should be patched.\n"
 "If --merge is given two files, the second is treated as a patch\n"
 "file and the first is the original file.\n"
 "If --merge is given three files, they are each treated as whole files\n"

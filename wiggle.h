@@ -184,11 +184,7 @@ extern int vpatch(int argc, char *argv[], int patch, int strip,
 
 extern char *Cmd;
 extern char Version[];
-extern char short_options1[], short_options2[];
-static inline char *short_options(char mode)
-{
-	return mode == 'B' ? short_options2 : short_options1;
-}
+extern char short_options[];
 extern struct option long_options[];
 extern char Usage[];
 extern char Help[];

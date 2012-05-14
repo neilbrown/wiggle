@@ -81,12 +81,13 @@
  * Defaults are --merge --words
  *
  */
-
+#define _GNU_SOURCE
 #include	"wiggle.h"
 #include	<errno.h>
 #include	<fcntl.h>
 #include	<unistd.h>
 #include	<stdlib.h>
+#include	<stdio.h>
 #include	<ctype.h>
 
 char *Cmd = "wiggle";
@@ -581,6 +582,56 @@ static int do_merge(int argc, char *argv[], int obj,
 	return (ci.conflicts > 0);
 }
 
+static int multi_merge(int argc, char *argv[], int obj,
+		       int reverse, int ignore, int show_wiggles,
+		       int replace, int strip,
+		       int quiet)
+{
+	FILE *f;
+	char *filename;
+	struct plist *pl;
+	int num_patches;
+	int rv = 0;
+	int i;
+
+	if (!replace) {
+		fprintf(stderr,
+			"%s: -p in merge mode requires -r\n",
+			Cmd);
+		return 2;
+	}
+	if (argc != 1) {
+		fprintf(stderr,
+			"%s: -p in merge mode requires exactly one file\n",
+			Cmd);
+		return 2;
+	}
+	filename = argv[0];
+	f = fopen(filename, "r");
+	if (!f) {
+		fprintf(stderr, "%s: cannot open %s\n",
+			Cmd, filename);
+		return 2;
+	}
+	pl = parse_patch(f, NULL, &num_patches);
+	fclose(f);
+	if (set_prefix(pl, num_patches, strip) == 0) {
+		fprintf(stderr, "%s: aborting\n", Cmd);
+		return 2;
+	}
+	for (i = 0; i < num_patches; i++) {
+		char *name;
+		char *av[2];
+		asprintf(&name, "_wiggle_:%d:%d:%s",
+			 pl[i].start, pl[i].end, filename);
+		av[0] = pl[i].file;
+		av[1] = name;
+		rv |= do_merge(2, av, obj, reverse, 1, ignore,
+			 show_wiggles, quiet);
+	}
+	return rv;
+}
+
 int main(int argc, char *argv[])
 {
 	int opt;
@@ -604,7 +655,7 @@ int main(int argc, char *argv[])
 		do_trace = 1;
 
 	while ((opt = getopt_long(argc, argv,
-				  short_options(mode), long_options,
+				  short_options, long_options,
 				  &option_index)) != -1)
 		switch (opt) {
 		case 'h':
@@ -731,11 +782,7 @@ int main(int argc, char *argv[])
 			Cmd);
 		exit(2);
 	}
-	if (ispatch && (mode != 'x' && mode != 'd')) {
-		fprintf(stderr,
-			"%s: --patch only allowed with --extract or --diff\n", Cmd);
-		exit(2);
-	}
+
 	if (ispatch && which == '3') {
 		fprintf(stderr,
 			"%s: cannot extract -3 from a patch.\n", Cmd);
@@ -750,8 +797,16 @@ int main(int argc, char *argv[])
 		exit_status = do_diff(argc-optind, argv+optind, obj, ispatch, which, reverse);
 		break;
 	case 'm':
-		exit_status = do_merge(argc-optind, argv+optind, obj, reverse, replace,
-				       ignore, show_wiggles, quiet);
+		if (ispatch)
+			exit_status = multi_merge(argc-optind,
+						  argv+optind, obj,
+						  reverse, ignore,
+						  show_wiggles,
+						  replace, strip,
+						  quiet);
+		else
+			exit_status = do_merge(argc-optind, argv+optind, obj, reverse, replace,
+					       ignore, show_wiggles, quiet);
 		break;
 	}
 	exit(exit_status);
