@@ -577,7 +577,9 @@ static int check_line(struct mpos pos, struct file fm, struct file fb,
 			rv |= WIGGLED;
 		else if (m[pos.p.m].type == Unmatched)
 			unmatched = 1;
-		if (m[pos.p.m].in_conflict)
+		if (m[pos.p.m].in_conflict &&
+		    (pos.p.o < m[pos.p.m].lo ||
+		     pos.p.o > m[pos.p.m].hi))
 			rv |= CONFLICTED | CHANGES;
 		e = prev_melmnt(&pos.p, fm, fb, fa, m);
 	} while (e.start != NULL &&
