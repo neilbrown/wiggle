@@ -422,6 +422,20 @@ struct ci make_merger(struct file af, struct file bf, struct file cf,
 			if (ignore_already &&
 			    check_alreadyapplied(af, cf, &rv.merger[i]))
 				rv.ignored++;
+			else if (rv.merger[i].bl == 0 &&
+				 rv.merger[i].cl > 0)
+				/* As the 'before' stream is empty, this
+				 * could look like Unmatched in the
+				 * original, and an insertion in the
+				 * diff.  Reporting it like that is
+				 * probably more useful that as a full
+				 * conflict.
+				 * Leave the type for the insertion as
+				 * Conflict (not Changed) as there is some
+				 * real uncertainty here, but allow the
+				 * original to become Unmatched.
+				 */
+				rv.merger[i].al = 0;
 		}
 		a += rv.merger[i].al;
 		b += rv.merger[i].bl;
