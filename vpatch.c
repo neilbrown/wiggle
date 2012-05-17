@@ -2148,7 +2148,7 @@ static void main_window(struct plist *pl, int n, FILE *f, int reverse)
 		if (refresh) {
 			refresh = 0;
 			getmaxyx(stdscr, rows, cols);
-			cols = cols; /* Silence warning that 'cols' isn't used */
+
 			if (row >= rows + 3)
 				row = (rows+1)/2;
 			if (row >= rows)
@@ -2178,7 +2178,7 @@ static void main_window(struct plist *pl, int n, FILE *f, int reverse)
 		}
 		{char bb[20];
 			sprintf(bb, "%d", c);
-			mvaddstr(0, 70, bb);
+			mvaddstr(0, cols-strlen(bb), bb);
 			clrtoeol();
 		}
 		move(row, 9);
