@@ -195,7 +195,6 @@ int split_patch(struct stream f, struct stream *f1, struct stream *f2)
  */
 int split_merge(struct stream f, struct stream *f1, struct stream *f2, struct stream *f3)
 {
-	int lineno;
 	int state = 0;
 	char *cp, *end;
 	struct stream r1, r2, r3;
@@ -219,7 +218,6 @@ int split_merge(struct stream f, struct stream *f1, struct stream *f2, struct st
 		 *  5 in file 1/3
 		 */
 		int len = end-cp;
-		lineno++;
 		switch (state) {
 		case 0:
 			if (len >= 8 &&
