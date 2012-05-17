@@ -2,7 +2,11 @@
 /* Includes and defines for ccan files */
 
 #if !defined(LITTLE_ENDIAN) && !defined(BIG_ENDIAN)
- #include <endian.h>
+ #ifdef __APPLE__
+  #include <machine/endian.h>
+ #else
+  #include <endian.h>
+ #endif
 #endif
 #ifdef LITTLE_ENDIAN
  #define HAVE_LITTLE_ENDIAN 1
