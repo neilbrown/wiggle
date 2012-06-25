@@ -416,7 +416,7 @@ static struct elmnt next_melmnt(struct mp *pos,
 	}
 	if (pos->m == -1 || m[pos->m].type == End) {
 		struct elmnt e;
-		e.start = NULL; e.len = 0;
+		e.start = NULL; e.hash = 0; e.len = 0;
 		return e;
 	}
 	switch (pos->s) {
@@ -470,7 +470,7 @@ static struct elmnt prev_melmnt(struct mp *pos,
 	}
 	if (pos->m < 0) {
 		struct elmnt e;
-		e.start = NULL; e.len = 0;
+		e.start = NULL; e.hash = 0; e.len = 0;
 		return e;
 	}
 	switch (pos->s) {
@@ -838,6 +838,7 @@ static void draw_mside(int mode, int row, int offset, int start, int cols,
 	unsigned int tag_attr;
 
 	switch (pos.state) {
+	default: /* keep compiler happy */
 	case 0: /* unchanged line */
 		tag = ' ';
 		tag_attr = A_NORMAL;
@@ -1333,6 +1334,7 @@ static void merge_window(struct plist *p, FILE *f, int reverse)
 			char *e, e2[7];
 			int i;
 			switch (vpos.p.s) {
+			default: /* keep compiler happy */
 			case 0:
 				e = fm.list[ci.merger[vpos.p.m].a + vpos.p.o].start;
 				break;

@@ -265,7 +265,7 @@ struct plist *parse_patch(FILE *f, FILE *of, int *np)
 		char *target = "\n+++ ";
 		char *target2 = "\n--- ";
 		char *pos = target;
-		int c;
+		int c = EOF;
 		char name[1024];
 		unsigned start, end;
 
