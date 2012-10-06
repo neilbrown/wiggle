@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Redirect for non-GNU time systems
 if [ "xx$TIME_CMD" = "xx" ]
@@ -12,11 +12,11 @@ dir=$PWD
 
 while [ ! -f $dir/wiggle ]
 do
-  case $dir in
-    / )    echo >&2 Cannot find wiggle program : $WIGGLE
-       exit 1;;
-    * ) dir=${dir%/*}
-  esac
+  if [ -z "$dir" ]; then
+    echo >&2 Cannot find wiggle program : $WIGGLE
+    exit 1
+  fi
+  dir=${dir%/*}
 done
 export WIGGLE=$dir/wiggle
 

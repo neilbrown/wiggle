@@ -2,7 +2,7 @@
 /* Includes and defines for ccan files */
 
 #if !defined(LITTLE_ENDIAN) && !defined(BIG_ENDIAN)
- #ifdef __APPLE__
+ #if defined(__APPLE__) || defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__)
   #include <machine/endian.h>
  #else
   #include <endian.h>
