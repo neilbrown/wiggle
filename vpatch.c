@@ -1463,7 +1463,11 @@ static void merge_window(struct plist *p, FILE *f, int reverse)
 			snprintf(lbuf, 29, "%s ln:%d",
 				 typenames[ci.merger[curs.pos.m].type],
 				 (pos.p.lineno-1)/2);
-			mvaddstr(0, cols - strlen(lbuf) - 4, "       ");
+			/* Longest type is AlreadyApplied - need to ensure
+			 * we erase all of that.
+			 */
+			move(0, cols - strlen(lbuf) - 14);
+			clrtoeol();
 			mvaddstr(0, cols - strlen(lbuf) - 1, lbuf);
 		}
 #define META(c) ((c)|0x1000)
