@@ -2179,9 +2179,9 @@ static void main_window(struct plist *pl, int n, FILE *f, int reverse)
 			}
 		}
 		{char bb[20];
-			sprintf(bb, "%d", c);
+			sprintf(bb, "  %d", c);
+			attrset(0);
 			mvaddstr(0, cols-strlen(bb), bb);
-			clrtoeol();
 		}
 		move(row, 9);
 		c = getch();
@@ -2221,10 +2221,12 @@ static void main_window(struct plist *pl, int n, FILE *f, int reverse)
 			}
 			break;
 		case 27: /* escape */
-			mvaddstr(0, 70, "ESC..."); clrtoeol();
+			attrset(0);
+			mvaddstr(0, cols-10, "ESC..."); clrtoeol();
 			c = getch();
 			switch (c) {
 			}
+			move(0, cols-10); clrtoeol();
 			break;
 		case 'q':
 			return;
