@@ -1683,12 +1683,18 @@ static void merge_window(struct plist *p, FILE *f, int reverse)
 			do {
 				pos = tpos; row++;
 				next_mline(&tpos, fm, fb, fa, ci.merger, mmode);
-			} while (pos.state != 0 && ci.merger[tpos.p.m].type != End);
+			} while (!(pos.state == 0
+				   && (check_line(pos, fm, fb, fa, ci.merger, mmode)
+				       & (CONFLICTED|WIGGLED)) == 0)
+				 && ci.merger[tpos.p.m].type != End);
 			tpos = pos; row--;
 			do {
 				pos = tpos; row++;
 				next_mline(&tpos, fm, fb, fa, ci.merger, mmode);
-			} while (pos.state == 0 && ci.merger[tpos.p.m].type != End);
+			} while (pos.state == 0
+				 && (check_line(pos, fm, fb, fa, ci.merger, mmode)
+				     & (CONFLICTED|WIGGLED)) == 0
+				 && ci.merger[tpos.p.m].type != End);
 
 			break;
 		case 'P':
@@ -1697,12 +1703,18 @@ static void merge_window(struct plist *p, FILE *f, int reverse)
 			do {
 				pos = tpos; row--;
 				prev_mline(&tpos, fm, fb, fa, ci.merger, mmode);
-			} while (tpos.state == 0 && tpos.p.m >= 0);
+			} while (tpos.state == 0
+				 && (check_line(tpos, fm, fb, fa, ci.merger, mmode)
+				     & (CONFLICTED|WIGGLED)) == 0
+				 && tpos.p.m >= 0);
 			tpos = pos; row++;
 			do {
 				pos = tpos; row--;
 				prev_mline(&tpos, fm, fb, fa, ci.merger, mmode);
-			} while (tpos.state != 0 && tpos.p.m >= 0);
+			} while (!(tpos.state == 0
+				   && (check_line(tpos, fm, fb, fa, ci.merger, mmode)
+				       & (CONFLICTED|WIGGLED)) == 0)
+				 && tpos.p.m >= 0);
 			break;
 
 		case 'k':
