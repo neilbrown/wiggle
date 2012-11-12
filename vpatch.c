@@ -255,7 +255,8 @@ static char *typenames[] = {
 #define AFTER	2
 #define	ORIG	4
 #define	RESULT	8
-#define CHANGES 16 /* AFTER is different to BEFORE */
+#define CHANGES 16 /* A change is visible here,
+		    * so 2 streams need to be shown */
 #define WIGGLED 32 /* a conflict that was successfully resolved */
 #define CONFLICTED 64 /* a conflict that was not successfully resolved */
 
@@ -566,14 +567,17 @@ static int check_line(struct mpos pos, struct file fm, struct file fb,
 	do {
 		if (m[pos.p.m].type == Changed)
 			rv |= CHANGES;
-		else if ((m[pos.p.m].type == AlreadyApplied ||
-			  m[pos.p.m].type == Conflict))
+		else if (m[pos.p.m].type == Conflict)
 			rv |= CONFLICTED | CHANGES;
-		else if (m[pos.p.m].type == Extraneous &&
-			 /* hunk headers don't count as wiggles */
-			 fb.list[m[pos.p.m].b].start[0] != '\0')
-			rv |= WIGGLED;
-		else if (m[pos.p.m].type == Unmatched)
+		else if (m[pos.p.m].type == AlreadyApplied) {
+			rv |= CONFLICTED;
+			if (mode & (BEFORE|AFTER))
+				rv |= CHANGES;
+		} else if (m[pos.p.m].type == Extraneous) {
+			/* hunk headers don't count as wiggles */
+			if (fb.list[m[pos.p.m].b].start[0] != '\0')
+				rv |= WIGGLED;
+		} else if (m[pos.p.m].type == Unmatched)
 			unmatched = 1;
 		if (m[pos.p.m].in_conflict &&
 		    (pos.p.o < m[pos.p.m].lo ||
@@ -636,7 +640,7 @@ static void next_mline(struct mpos *pos, struct file fm, struct file fb,
 				break;
 			}
 		}
-		mask = ORIG|RESULT|BEFORE|AFTER|CHANGES;
+		mask = ORIG|RESULT|BEFORE|AFTER;
 		switch (pos->state) {
 		case 1:
 			mask &= ~(RESULT|AFTER);
@@ -692,7 +696,7 @@ static void prev_mline(struct mpos *pos, struct file fm, struct file fb,
 				break;
 			}
 		}
-		mask = ORIG|RESULT|BEFORE|AFTER|CHANGES;
+		mask = ORIG|RESULT|BEFORE|AFTER;
 		switch (pos->state) {
 		case 1:
 			mask &= ~(RESULT|AFTER);
