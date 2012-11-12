@@ -255,10 +255,9 @@ static char *typenames[] = {
 #define AFTER	2
 #define	ORIG	4
 #define	RESULT	8
-#define CHANGED 16 /* The RESULT is different to ORIG */
-#define CHANGES 32 /* AFTER is different to BEFORE */
-#define WIGGLED 64 /* a conflict that was successfully resolved */
-#define CONFLICTED 128 /* a conflict that was not successfully resolved */
+#define CHANGES 16 /* AFTER is different to BEFORE */
+#define WIGGLED 32 /* a conflict that was successfully resolved */
+#define CONFLICTED 64 /* a conflict that was not successfully resolved */
 
 /* Displaying a Merge.
  * The first step is to linearise the merge.  The merge in inherently
@@ -552,7 +551,6 @@ static int visible(int mode, enum mergetype type, int stream)
 
 /* checkline creates a summary of the sort of changes that
  * are in a line, returning an "or" of
- *  CHANGED
  *  CHANGES
  *  WIGGLED
  *  CONFLICTED
@@ -567,7 +565,7 @@ static int check_line(struct mpos pos, struct file fm, struct file fb,
 
 	do {
 		if (m[pos.p.m].type == Changed)
-			rv |= CHANGED | CHANGES;
+			rv |= CHANGES;
 		else if ((m[pos.p.m].type == AlreadyApplied ||
 			  m[pos.p.m].type == Conflict))
 			rv |= CONFLICTED | CHANGES;
@@ -638,7 +636,7 @@ static void next_mline(struct mpos *pos, struct file fm, struct file fb,
 				break;
 			}
 		}
-		mask = ORIG|RESULT|BEFORE|AFTER|CHANGES|CHANGED;
+		mask = ORIG|RESULT|BEFORE|AFTER|CHANGES;
 		switch (pos->state) {
 		case 1:
 			mask &= ~(RESULT|AFTER);
@@ -694,7 +692,7 @@ static void prev_mline(struct mpos *pos, struct file fm, struct file fb,
 				break;
 			}
 		}
-		mask = ORIG|RESULT|BEFORE|AFTER|CHANGES|CHANGED;
+		mask = ORIG|RESULT|BEFORE|AFTER|CHANGES;
 		switch (pos->state) {
 		case 1:
 			mask &= ~(RESULT|AFTER);
