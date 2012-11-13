@@ -485,8 +485,11 @@ static struct elmnt prev_melmnt(struct mp *pos,
  * visible in this mode, but also chooses which colour/highlight to use
  * to display it.
  */
-static int visible(int mode, enum mergetype type, int stream)
+static int visible(int mode, struct merge *m, struct mpos *pos)
 {
+	enum mergetype type = m[pos->p.m].type;
+	int stream = pos->p.s;
+
 	if (mode == 0)
 		return -1;
 	/* mode can be any combination of ORIG RESULT BEFORE AFTER */
@@ -590,7 +593,7 @@ static int check_line(struct mpos pos, struct file fm, struct file fb,
 		e = prev_melmnt(&pos.p, fm, fb, fa, m);
 	} while (e.start != NULL &&
 		 (!ends_mline(e)
-		  || visible(mode, m[pos.p.m].type, pos.p.s) == -1));
+		  || visible(mode, m, &pos) == -1));
 
 	if (unmatched && (rv & CHANGES))
 		rv |= WIGGLED;
@@ -619,7 +622,7 @@ static void next_mline(struct mpos *pos, struct file fm, struct file fb,
 			if (e.start == NULL)
 				break;
 			if (ends_mline(e) &&
-			    visible(mode, m[pos->p.m].type, pos->p.s) >= 0)
+			    visible(mode, m, pos) >= 0)
 				break;
 		}
 		mode2 = check_line(*pos, fm, fb, fa, m, mode);
@@ -653,7 +656,7 @@ static void next_mline(struct mpos *pos, struct file fm, struct file fb,
 			mask &= ~(ORIG|BEFORE);
 			break;
 		}
-	} while (visible(mode&mask, m[pos->p.m].type, pos->p.s) < 0);
+	} while (visible(mode&mask, m, pos) < 0);
 
 }
 
@@ -675,7 +678,7 @@ static void prev_mline(struct mpos *pos, struct file fm, struct file fb,
 			if (e.start == NULL)
 				break;
 			if (ends_mline(e) &&
-			    visible(mode, m[pos->p.m].type, pos->p.s) >= 0)
+			    visible(mode, m, pos) >= 0)
 				break;
 		}
 		mode2 = check_line(*pos, fm, fb, fa, m, mode);
@@ -709,7 +712,7 @@ static void prev_mline(struct mpos *pos, struct file fm, struct file fb,
 			mask &= ~(ORIG|BEFORE);
 			break;
 		}
-	} while (visible(mode&mask, m[pos->p.m].type, pos->p.s) < 0);
+	} while (visible(mode&mask, m, pos) < 0);
 }
 
 /* blank a whole row of display */
@@ -785,7 +788,7 @@ static int mcontains(struct mpos pos,
 		}
 	} while (e.start != NULL &&
 		 (!ends_mline(e)
-		  || visible(mode, m[pos.p.m].type, pos.p.s) == -1));
+		  || visible(mode, m, &pos) == -1));
 break_while:
 	if (found) {
 		curs->pos = mp;
@@ -866,7 +869,7 @@ static void draw_mside(int mode, int row, int offset, int start, int cols,
 		break;
 	}
 
-	if (visible(mode, m[pos.p.m].type, pos.p.s) < 0) {
+	if (visible(mode, m, &pos) < 0) {
 		/* Not visible, just draw a blank */
 		blank(row, offset, cols, a_void);
 		if (curs) {
@@ -892,7 +895,7 @@ static void draw_mside(int mode, int row, int offset, int start, int cols,
 		e = prev_melmnt(&pos.p, fm, fb, fa, m);
 	while (e.start != NULL &&
 	       (!ends_mline(e) ||
-		visible(mode, m[pos.p.m].type, pos.p.s) == -1));
+		visible(mode, m, &pos) == -1));
 
 	while (1) {
 		unsigned char *c;
@@ -902,7 +905,7 @@ static void draw_mside(int mode, int row, int offset, int start, int cols,
 		e = next_melmnt(&pos.p, fm, fb, fa, m);
 		if (e.start == NULL ||
 		    (ends_mline(e)
-		     && visible(mode, m[pos.p.m].type, pos.p.s) != -1)) {
+		     && visible(mode, m, &pos) != -1)) {
 			/* We have reached the end of visible line, or end of file */
 			if (curs) {
 				curs->col = col;
@@ -929,7 +932,7 @@ static void draw_mside(int mode, int row, int offset, int start, int cols,
 					sprintf(b, "@@ -%d,%d +%d,%d @@\n", B, C, E, F);
 					(void)attrset(a_sep);
 				} else {
-					(void)attrset(visible(mode, m[pos.p.m].type, pos.p.s));
+					(void)attrset(visible(mode, m, &pos));
 					sprintf(b, "<%.17s>", e.start+1);
 				}
 				mvaddstr(row, col-start+offset, b);
@@ -937,17 +940,17 @@ static void draw_mside(int mode, int row, int offset, int start, int cols,
 			}
 			blank(row, col-start+offset, start+cols-col,
 			      e.start
-			      ? (unsigned)visible(mode, m[pos.p.m].type, pos.p.s)
+			      ? (unsigned)visible(mode, m, &pos)
 			      : A_NORMAL);
 			return;
 		}
-		if (visible(mode, m[pos.p.m].type, pos.p.s) == -1)
+		if (visible(mode, m, &pos) == -1)
 			continue;
 		if (e.start[0] == 0)
 			continue;
 		c = (unsigned char *)e.start;
 		highlight_space = 0;
-		attr = visible(mode, m[pos.p.m].type, pos.p.s);
+		attr = visible(mode, m, &pos);
 		if ((attr == a_unmatched || attr == a_extra) &&
 		    changed &&
 		    (*c == ' ' || *c == '\t'))
@@ -1396,8 +1399,7 @@ static void merge_window(struct plist *p, FILE *f, int reverse)
 		vispos = pos; /* visible position - if cursor is in
 			       * alternate pane, pos might not be visible
 			       * in main pane. */
-		if (visible(mode, ci.merger[vispos.p.m].type,
-			    vispos.p.s) < 0)
+		if (visible(mode, ci.merger, &vispos) < 0)
 			prev_mline(&vispos, fm, fb, fa, ci.merger, mode);
 
 	retry:
@@ -1452,8 +1454,7 @@ static void merge_window(struct plist *p, FILE *f, int reverse)
 			struct mpos spos = pos;
 			int smode = BEFORE|AFTER;
 			int srow = (rows + splitrow)/2;
-			if (visible(smode, ci.merger[spos.p.m].type,
-				    spos.p.s) < 0)
+			if (visible(smode, ci.merger, &spos) < 0)
 				prev_mline(&spos, fm, fb, fa, ci.merger, smode);
 			/* Now hi/lo might be wrong, so lets fix it. */
 			tpos = spos;
