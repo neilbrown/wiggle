@@ -82,7 +82,7 @@ int set_prefix(struct plist *pl, int n, int strip)
 				Cmd, strip, pl[i].file);
 			return 0;
 		}
-		pl[i].file = p;
+		memmove(pl[i].file, p, strlen(p)+1);
 	}
 	return 1;
 }
@@ -135,7 +135,7 @@ static struct plist *patch_add_file(struct plist *pl, int *np, char *file,
 
 	while (*file == '/')
 		/* leading '/' are bad... */
-		file++;
+		memmove(file, file+1, strlen(file));
 
 	if (n == 0)
 		asize = 0;
@@ -321,4 +321,12 @@ struct plist *parse_patch(FILE *f, FILE *of, int *np)
 				       strdup(name), start, end);
 	}
 	return plist;
+}
+
+void plist_free(struct plist *pl, int num)
+{
+	int i;
+	for (i = 0; i < num ; i++)
+		free(pl[i].file);
+	free(pl);
 }

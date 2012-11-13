@@ -1264,6 +1264,7 @@ static void merge_window(struct plist *p, FILE *f, int reverse)
 				split_merge(sp, &sm, &sa, &sb);
 			else
 				split_merge(sp, &sm, &sb, &sa);
+			free(sp.body);
 		}
 		ch = 0;
 	} else {
@@ -1282,13 +1283,18 @@ static void merge_window(struct plist *p, FILE *f, int reverse)
 
 			sm = load_file(p->file);
 		}
+		free(sp.body);
 	}
 	if (!sm.body || !sb.body || !sa.body) {
+		free(sm.body);
+		free(sb.body);
+		free(sa.body);
 		term_init();
 		if (!sm.body)
 			help_window(help_missing, NULL);
 		else
 			help_window(help_corrupt, NULL);
+		endwin();
 		return;
 	}
 	/* FIXME check for errors in the stream */
@@ -1591,6 +1597,16 @@ static void merge_window(struct plist *p, FILE *f, int reverse)
 			num = tnum*10 + (c-'0');
 			break;
 		case 'q':
+			free(sm.body);
+			free(sb.body);
+			free(sa.body);
+			free(fm.list);
+			free(fb.list);
+			free(fa.list);
+			free(csl1);
+			free(csl2);
+			free(ci.merger);
+			endwin();
 			return;
 
 		case '/':
@@ -2005,6 +2021,7 @@ static void calc_one(struct plist *pl, FILE *f, int reverse)
 		ci = make_merger(ff, fp1, fp2, csl1, csl2, 0, 1, 0);
 		pl->wiggles = ci.wiggles;
 		pl->conflicts = ci.conflicts;
+		free(ci.merger);
 		free(csl1);
 		free(csl2);
 		free(ff.list);
@@ -2163,7 +2180,7 @@ static char *main_help[] = {
 	NULL
 };
 
-static void main_window(struct plist *pl, int n, FILE *f, int reverse)
+static void main_window(struct plist *pl, int *np, FILE *f, int reverse)
 {
 	/* The main window lists all files together with summary information:
 	 * number of chunks, number of wiggles, number of conflicts.
@@ -2207,7 +2224,7 @@ static void main_window(struct plist *pl, int n, FILE *f, int reverse)
 
 	freopen("/dev/null","w",stderr);
 	term_init();
-	pl = sort_patches(pl, &n);
+	pl = sort_patches(pl, np);
 
 	while (1) {
 		if (refresh == 2) {
@@ -2230,7 +2247,7 @@ static void main_window(struct plist *pl, int n, FILE *f, int reverse)
 				row = rows-1;
 			tpos = pos;
 			for (i = row; i > 1; i--) {
-				tpos = get_prev(tpos, pl, n, mode);
+				tpos = get_prev(tpos, pl, *np, mode);
 				if (tpos == -1) {
 					row = row - i + 1;
 					break;
@@ -2240,11 +2257,11 @@ static void main_window(struct plist *pl, int n, FILE *f, int reverse)
 			tpos = pos;
 			for (i = row; i >= 1; i--) {
 				draw_one(i, &pl[tpos], f, reverse);
-				tpos = get_prev(tpos, pl, n, mode);
+				tpos = get_prev(tpos, pl, *np, mode);
 			}
 			tpos = pos;
 			for (i = row+1; i < rows; i++) {
-				tpos = get_next(tpos, pl, n, mode, f, reverse);
+				tpos = get_next(tpos, pl, *np, mode, f, reverse);
 				if (tpos >= 0)
 					draw_one(i, &pl[tpos], f, reverse);
 				else
@@ -2264,7 +2281,7 @@ static void main_window(struct plist *pl, int n, FILE *f, int reverse)
 		case 'N':
 		case 'N'-64:
 		case KEY_DOWN:
-			tpos = get_next(pos, pl, n, mode, f, reverse);
+			tpos = get_next(pos, pl, *np, mode, f, reverse);
 			if (tpos >= 0) {
 				pos = tpos;
 				row++;
@@ -2275,7 +2292,7 @@ static void main_window(struct plist *pl, int n, FILE *f, int reverse)
 		case 'P':
 		case 'P'-64:
 		case KEY_UP:
-			tpos = get_prev(pos, pl, n, mode);
+			tpos = get_prev(pos, pl, *np, mode);
 			if (tpos >= 0) {
 				pos = tpos;
 				row--;
@@ -2304,6 +2321,7 @@ static void main_window(struct plist *pl, int n, FILE *f, int reverse)
 			move(0, cols-10); clrtoeol();
 			break;
 		case 'q':
+			endwin();
 			return;
 
 		case 'A':
@@ -2446,7 +2464,9 @@ int vpatch(int argc, char *argv[], int patch, int strip,
 			fprintf(stderr, "%s: aborting\n", Cmd);
 			exit(2);
 		}
-		main_window(pl, num_patches, in, reverse);
+		main_window(pl, &num_patches, in, reverse);
+		plist_free(pl, num_patches);
+		fclose(in);
 		break;
 
 	case 1: /* a patch, a .rej, or a merge file */
@@ -2461,7 +2481,8 @@ int vpatch(int argc, char *argv[], int patch, int strip,
 				fprintf(stderr, "%s: aborting\n", Cmd);
 				exit(2);
 			}
-			main_window(pl, num_patches, f, reverse);
+			main_window(pl, &num_patches, f, reverse);
+			plist_free(pl, num_patches);
 		} else if (strlen(argv[0]) > 4 &&
 			 strcmp(argv[0]+strlen(argv[0])-4, ".rej") == 0) {
 			char *origname = strdup(argv[0]);

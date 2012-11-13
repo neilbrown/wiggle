@@ -146,6 +146,7 @@ struct plist {
 };
 
 extern struct plist *sort_patches(struct plist *pl, int *np);
+extern void plist_free(struct plist *pl, int num);
 extern struct plist *parse_patch(FILE *f, FILE *of, int *np);
 extern struct stream load_segment(FILE *f, unsigned int start,
 				  unsigned int end);

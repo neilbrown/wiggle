@@ -478,6 +478,10 @@ struct csl *pdiff(struct file a, struct file b, int chunks)
 			  0, asmall.elcnt, 0, bsmall.elcnt,
 			  best, 1, chunks+1);
 	remap(best, chunks+1, asmall, bsmall, a, b);
+	if (asmall.list != a.list)
+		free(asmall.list);
+	if (bsmall.list != b.list)
+		free(bsmall.list);
 
 	csl1 = NULL;
 	for (i = 1; i <= chunks; i++)
