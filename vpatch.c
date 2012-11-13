@@ -1575,10 +1575,8 @@ static void merge_window(struct plist *p, FILE *f, int reverse)
 			/* search again */
 			if ((c|tmeta) == SEARCH('R'-64))
 				searchdir = -2;
-			else if ((c|tmeta) == SEARCH('S'-64))
-				searchdir = 2;
 			else
-				searchdir *= 2;
+				searchdir = 2;
 			meta = SEARCH(0);
 			tpos = pos; trow = row;
 			goto search_again;
