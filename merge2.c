@@ -89,7 +89,7 @@ static int is_cutpoint(struct merge m,
 		(m.c == 0 || ends_line(cf.list[m.c-1])));
 }
 
-static int isolate_conflicts(struct file af, struct file bf, struct file cf,
+int isolate_conflicts(struct file af, struct file bf, struct file cf,
 			     struct csl *csl1, struct csl *csl2, int words,
 			     struct merge *m, int show_wiggles)
 {
@@ -128,12 +128,15 @@ static int isolate_conflicts(struct file af, struct file bf, struct file cf,
 	int changed = 0;
 	int unmatched = 0;
 
+	for (i = 0; m[i].type != End; i++)
+		m[i].in_conflict = 0;
+
 	for (i = 0; m[i].type != End; i++) {
 		if (m[i].type == Changed)
 			changed = 1;
 		if (m[i].type == Unmatched)
 			unmatched = 1;
-		if (m[i].type == Conflict ||
+		if ((m[i].type == Conflict && m[i].conflict_ignored == 0) ||
 		    (show_wiggles && ((changed && unmatched)
 					|| m[i].type == Extraneous))) {
 			/* We have a conflict (or wiggle) here.
@@ -334,6 +337,7 @@ struct ci make_merger(struct file af, struct file bf, struct file cf,
 		rv.merger[i].c1 = c1;
 		rv.merger[i].c2 = c2;
 		rv.merger[i].in_conflict = 0;
+		rv.merger[i].conflict_ignored = 0;
 
 		if (!match1 && match2) {
 			/* This is either Unmatched or Extraneous - probably both.
@@ -460,6 +464,7 @@ struct ci make_merger(struct file af, struct file bf, struct file cf,
 	rv.merger[i].c1 = c1;
 	rv.merger[i].c2 = c2;
 	rv.merger[i].in_conflict = 0;
+	rv.merger[i].conflict_ignored = 0;
 	assert(i < l);
 	rv.conflicts = isolate_conflicts(af, bf, cf, csl1, csl2, words,
 					 rv.merger, show_wiggles);

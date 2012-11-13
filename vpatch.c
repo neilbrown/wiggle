@@ -528,6 +528,8 @@ static int visible(int mode, struct merge *m, struct mpos *pos)
 				return a_extra | A_UNDERLINE;
 			break;
 		case 2:
+			if ((mode & RESULT) && m[pos->p.m].conflict_ignored)
+				break;
 			if (mode & (AFTER|RESULT))
 				return a_added | A_UNDERLINE;
 			break;
@@ -570,9 +572,13 @@ static int check_line(struct mpos pos, struct file fm, struct file fb,
 	do {
 		if (m[pos.p.m].type == Changed)
 			rv |= CHANGES;
-		else if (m[pos.p.m].type == Conflict)
-			rv |= CONFLICTED | CHANGES;
-		else if (m[pos.p.m].type == AlreadyApplied) {
+		else if (m[pos.p.m].type == Conflict) {
+			if (m[pos.p.m].conflict_ignored &&
+			    (mode & RESULT))
+				;
+			else
+				rv |= CONFLICTED | CHANGES;
+		} else if (m[pos.p.m].type == AlreadyApplied) {
 			rv |= CONFLICTED;
 			if (mode & (BEFORE|AFTER))
 				rv |= CHANGES;
@@ -1875,6 +1881,15 @@ static void merge_window(struct plist *p, FILE *f, int reverse)
 			next_melmnt(&tvpos.p, fm, fb, fa, ci.merger);
 			if (ci.merger[tvpos.p.m].type != End)
 				vpos = tvpos;
+			break;
+
+		case 'x': /* Toggle rejecting of conflict */
+			if (ci.merger[curs.pos.m].type == Conflict) {
+				ci.merger[curs.pos.m].conflict_ignored =
+					! ci.merger[curs.pos.m].conflict_ignored;
+				isolate_conflicts(fm, fb, fa, csl1, csl2, 0, ci.merger, 0);
+				refresh = 1;
+			}
 			break;
 
 		case '?':

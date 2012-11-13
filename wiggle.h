@@ -117,6 +117,7 @@ struct merge {
 	int al, bl, cl; /* length of ranges */
 	int c1, c2; /* this or next common-sequence */
 	int in_conflict;
+	int conflict_ignored;
 	int lo, hi; /* region of a Changed or Unchanged that is not involved
 		    * in a conflict.
 		    * These are distances from start of the "before" section,
@@ -171,6 +172,9 @@ extern struct ci print_merge2(FILE *out,
 			      int words, int ignore_already, int show_wiggles);
 extern void printword(FILE *f, struct elmnt e);
 
+extern int isolate_conflicts(struct file af, struct file bf, struct file cf,
+			     struct csl *csl1, struct csl *csl2, int words,
+			     struct merge *m, int show_wiggles);
 extern struct ci make_merger(struct file a, struct file b, struct file c,
 			     struct csl *c1, struct csl *c2, int words,
 			     int ignore_already, int show_wiggles);
