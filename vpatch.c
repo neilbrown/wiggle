@@ -50,7 +50,7 @@ static void term_init(void);
 /* global attributes */
 unsigned int a_delete, a_added, a_common, a_sep, a_void,
 	a_unmatched, a_extra, a_already;
-unsigned int a_has_conflicts, a_has_wiggles, a_no_wiggles;
+unsigned int a_has_conflicts, a_has_wiggles, a_no_wiggles, a_saved;
 
 /******************************************************************
  * Help window
@@ -1252,10 +1252,19 @@ static void merge_window(struct plist *p, FILE *f, int reverse)
 	} *anchor = NULL;
 
 	if (f == NULL) {
-		/* three separate files */
-		sm = load_file(p->file);
-		sb = load_file(p->before);
-		sa = load_file(p->after);
+		if (!p->is_merge) {
+			/* three separate files */
+			sm = load_file(p->file);
+			sb = load_file(p->before);
+			sa = load_file(p->after);
+		} else {
+			/* One merge file */
+			sp = load_file(p->file);
+			if (reverse)
+				split_merge(sp, &sm, &sa, &sb);
+			else
+				split_merge(sp, &sm, &sb, &sa);
+		}
 		ch = 0;
 	} else {
 		sp = load_segment(f, p->start, p->end);
@@ -2108,6 +2117,8 @@ static void draw_one(int row, struct plist *pl, FILE *f, int reverse)
 
 	if (!pl->end)
 		attrset(0);
+	else if (pl->is_merge)
+		attrset(a_saved);
 	else if (pl->conflicts)
 		attrset(a_has_conflicts);
 	else if (pl->wiggles)
@@ -2277,8 +2288,10 @@ static void main_window(struct plist *pl, int n, FILE *f, int reverse)
 				pl[pos].open = !pl[pos].open;
 				refresh = 1;
 			} else {
-				/* diff_window(&pl[pos], f); */
-				merge_window(&pl[pos], f, reverse);
+				if (pl[pos].is_merge)
+					merge_window(&pl[pos], NULL, reverse);
+				else
+					merge_window(&pl[pos], f, reverse);
 				refresh = 2;
 			}
 			break;
@@ -2376,6 +2389,7 @@ static void term_init(void)
 		a_has_conflicts = a_delete;
 		a_has_wiggles = a_added;
 		a_no_wiggles = a_unmatched;
+		a_saved = a_extra;
 	}
 	nonl(); intrflush(stdscr, FALSE); keypad(stdscr, TRUE);
 	mousemask(ALL_MOUSE_EVENTS, NULL);
