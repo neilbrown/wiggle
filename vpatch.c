@@ -1213,7 +1213,7 @@ static void merge_window(struct plist *p, FILE *f, int reverse)
 	struct mpos tpos, /* temp point while drawing lines above and below pos */
 		toppos,   /* pos at top of screen - for page-up */
 		botpos;   /* pos at bottom of screen - for page-down */
-	struct mpos vpos, tvpos;
+	struct mpos vpos, tvpos, vispos;
 	int botrow = 0;
 	int meta = 0,     /* mode for multi-key commands- SEARCH or META */
 		tmeta;
@@ -1393,9 +1393,16 @@ static void merge_window(struct plist *p, FILE *f, int reverse)
 		}
 		if (start < 0)
 			start = 0;
+		vispos = pos; /* visible position - if cursor is in
+			       * alternate pane, pos might not be visible
+			       * in main pane. */
+		if (visible(mode, ci.merger[vispos.p.m].type,
+			    vispos.p.s) < 0)
+			prev_mline(&vispos, fm, fb, fa, ci.merger, mode);
+
 	retry:
 		draw_mline(mode, row, start, cols, fm, fb, fa, ci.merger,
-			   pos, (splitrow >= 0 && curs.alt) ? NULL : &curs);
+			   vispos, (splitrow >= 0 && curs.alt) ? NULL : &curs);
 		if (curs.width == 0 && start < curs.col) {
 			/* width == 0 implies it appear after end-of-screen */
 			start += 8;
@@ -1411,7 +1418,8 @@ static void merge_window(struct plist *p, FILE *f, int reverse)
 		}
 		if (refresh) {
 			refresh = 0;
-			tpos = pos;
+
+			tpos = vispos;
 
 			for (i = row-1; i >= 1 && tpos.p.m >= 0; ) {
 				prev_mline(&tpos, fm, fb, fa, ci.merger, mode);
@@ -1428,7 +1436,7 @@ static void merge_window(struct plist *p, FILE *f, int reverse)
 			toppos = tpos;
 			while (i >= 1)
 				blank(i--, 0, cols, a_void);
-			tpos = pos;
+			tpos = vispos;
 			for (i = row; i <= lastrow && ci.merger[tpos.p.m].type != End; ) {
 				draw_mline(mode, i++, start, cols,
 					   fm, fb, fa, ci.merger,
