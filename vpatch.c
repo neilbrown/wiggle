@@ -1154,8 +1154,8 @@ static char *merge_window_help[] = {
 	" ESC->  G            Go to end of file",
 	" q                   Return to list of files or exit",
 	" control-L           recenter current line",
-	" control-V           page down",
-	" ESC-v	              page up",
+	" control-V SPACE     page down",
+	" ESC-v	  BACKSPC     page up",
 	" N                   go to next patch chunk",
 	" P                   go to previous patch chunk",
 	" O                   move cursor to alternate pane",
@@ -1666,6 +1666,7 @@ static void merge_window(struct plist *p, FILE *f, int reverse)
 			row = lastrow / 2;
 			break;
 
+		case ' ':
 		case 'V'-64: /* page down */
 			pos = botpos;
 			if (botrow <= lastrow)
@@ -1674,6 +1675,7 @@ static void merge_window(struct plist *p, FILE *f, int reverse)
 				row = 2;
 			refresh = 1;
 			break;
+		case KEY_BACKSPACE:
 		case META('v'): /* page up */
 			pos = toppos;
 			row = lastrow-1;
