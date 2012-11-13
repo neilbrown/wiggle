@@ -842,6 +842,7 @@ static void draw_mside(int mode, int row, int offset, int start, int cols,
 	int col = 0;
 	char tag;
 	unsigned int tag_attr;
+	int changed = 0;
 
 	switch (pos.state) {
 	default: /* keep compiler happy */
@@ -883,6 +884,9 @@ static void draw_mside(int mode, int row, int offset, int start, int cols,
 	cols--;
 	(void)attrset(A_NORMAL);
 
+	if (check_line(pos, fm, fb, fa, m, mode))
+		changed = 1;
+
 	/* find previous visible newline, or start of file */
 	do
 		e = prev_melmnt(&pos.p, fm, fb, fa, m);
@@ -892,6 +896,8 @@ static void draw_mside(int mode, int row, int offset, int start, int cols,
 
 	while (1) {
 		unsigned char *c;
+		unsigned int attr;
+		int highlight_space;
 		int l;
 		e = next_melmnt(&pos.p, fm, fb, fa, m);
 		if (e.start == NULL ||
@@ -939,15 +945,25 @@ static void draw_mside(int mode, int row, int offset, int start, int cols,
 			continue;
 		if (e.start[0] == 0)
 			continue;
-		(void)attrset(visible(mode, m[pos.p.m].type, pos.p.s));
 		c = (unsigned char *)e.start;
+		highlight_space = 0;
+		attr = visible(mode, m[pos.p.m].type, pos.p.s);
+		if ((attr == a_unmatched || attr == a_extra) &&
+		    changed &&
+		    (*c == ' ' || *c == '\t'))
+			highlight_space = 1;
 		for (l = 0; l < e.len; l++) {
 			int scol = col;
+			(void)attrset(attr);
 			if (*c >= ' ' && *c != 0x7f) {
+				if (highlight_space)
+					(void)attrset(attr|A_REVERSE);
 				if (col >= start && col < start+cols)
 					mvaddch(row, col-start+offset, *c);
 				col++;
 			} else if (*c == '\t') {
+				if (highlight_space)
+					(void)attrset(attr|A_UNDERLINE);
 				do {
 					if (col >= start && col < start+cols) {
 						mvaddch(row, col-start+offset, ' ');
