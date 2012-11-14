@@ -2399,6 +2399,26 @@ static void main_window(struct plist *pl, int *np, FILE *f, int reverse)
 			}
 			break;
 
+		case 'R': /* Restore updated file */
+			if (pl[pos].end == 0)
+				mesg = "Cannot restore a folder.";
+			else if (!pl[pos].is_merge)
+				mesg = "File has not been saved, cannot restore.";
+			else {
+				/* rename foo.porig to foo, and clear is_merge */
+				char *file = pl[pos].file;
+				char *orignew = xmalloc(strlen(file) + 20);
+				strcpy(orignew, file);
+				strcat(orignew, ".porig");
+				if (rename(orignew, file) == 0) {
+					mesg = "File has been restored.";
+					pl[pos].is_merge = 0;
+					refresh = 1;
+				} else
+					mesg = "Could not restore file!";
+			}
+			break;
+
 		case '?':
 			help_window(main_help, NULL);
 			refresh = 2;
