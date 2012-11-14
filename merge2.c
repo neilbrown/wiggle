@@ -482,15 +482,12 @@ static void printrange(FILE *out, struct file *f, int start, int len)
 	}
 }
 
-struct ci print_merge2(FILE *out, struct file *a, struct file *b, struct file *c,
-		       struct csl *c1, struct csl *c2,
-		       int words, int ignore_already, int show_wiggles)
+void print_merge(FILE *out, struct file *a, struct file *b, struct file *c,
+		      int words, struct merge *merger)
 {
-	struct ci rv = make_merger(*a, *b, *c, c1, c2,
-				   words, ignore_already, show_wiggles);
 	struct merge *m;
 
-	for (m = rv.merger; m->type != End ; m++) {
+	for (m = merger; m->type != End ; m++) {
 		struct merge *cm;
 		if (do_trace)
 			printf("[%s: %d-%d,%d-%d,%d-%d%s(%d,%d)]\n",
@@ -655,5 +652,4 @@ struct ci print_merge2(FILE *out, struct file *a, struct file *b, struct file *c
 			assert(0);
 		}
 	}
-	return rv;
 }

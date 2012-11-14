@@ -167,10 +167,9 @@ struct ci {
 	int conflicts, wiggles, ignored;
 	struct merge *merger;
 };
-extern struct ci print_merge2(FILE *out,
-			      struct file *a, struct file *b, struct file *c,
-			      struct csl *c1, struct csl *c2,
-			      int words, int ignore_already, int show_wiggles);
+extern void print_merge(FILE *out,
+			struct file *a, struct file *b, struct file *c,
+			int words, struct merge *merger);
 extern void printword(FILE *f, struct elmnt e);
 
 extern int isolate_conflicts(struct file af, struct file bf, struct file cf,
