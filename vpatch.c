@@ -510,6 +510,7 @@ static int visible(int mode, struct merge *m, struct mpos *pos)
 {
 	enum mergetype type = m[pos->p.m].type;
 	int stream = pos->p.s;
+	unsigned int ignore;
 
 	if (mode == 0)
 		return -1;
@@ -539,20 +540,24 @@ static int visible(int mode, struct merge *m, struct mpos *pos)
 			return a_added;
 		break;
 	case Conflict:
+		if (m[pos->p.m].conflict_ignored)
+			ignore = A_REVERSE|A_UNDERLINE;
+		else
+			ignore = 0;
 		switch (stream) {
 		case 0:
 			if (mode & ORIG)
-				return a_unmatched | A_REVERSE;
+				return a_unmatched | (A_REVERSE & ~ignore);
 			break;
 		case 1:
 			if (mode & BEFORE)
-				return a_extra | A_UNDERLINE;
+				return a_extra | (A_UNDERLINE & ~ignore);
 			break;
 		case 2:
 			if ((mode & RESULT) && m[pos->p.m].conflict_ignored)
 				break;
 			if (mode & (AFTER|RESULT))
-				return a_added | A_UNDERLINE;
+				return a_added | (A_UNDERLINE & ~ignore);
 			break;
 		}
 		break;
@@ -1560,7 +1565,9 @@ static int merge_window(struct plist *p, FILE *f, int reverse)
 		{
 			char lbuf[30];
 			(void)attrset(A_BOLD);
-			snprintf(lbuf, 29, "%s ln:%d",
+			snprintf(lbuf, 29, "%s%s ln:%d",
+				 ci.merger[curs.pos.m].conflict_ignored
+				 ? "Ignored ":"",
 				 typenames[ci.merger[curs.pos.m].type],
 				 (pos.p.lineno-1)/2);
 			/* Longest type is AlreadyApplied - need to ensure
