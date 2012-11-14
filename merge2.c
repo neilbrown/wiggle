@@ -653,3 +653,34 @@ void print_merge(FILE *out, struct file *a, struct file *b, struct file *c,
 		}
 	}
 }
+
+int save_merge(struct file a, struct file b, struct file c,
+		struct merge *merger, char *file)
+{
+	char *replacename = xmalloc(strlen(file) + 20);
+	char *orignew = xmalloc(strlen(file) + 20);
+	int fd;
+	FILE *outfile;
+	int err = 0;
+	strcpy(replacename, file);
+	strcat(replacename, "XXXXXX");
+	strcpy(orignew, file);
+	strcat(orignew, ".porig");
+
+	fd = mkstemp(replacename);
+	if (fd < 0) {
+		err = 1;
+		goto out;
+	}
+	outfile = fdopen(fd, "w");
+	print_merge(outfile, &a, &b, &c, 0, merger);
+	fclose(outfile);
+	if (rename(file, orignew) != 0 ||
+	    rename(replacename, file) != 0)
+		err = -2;
+
+out:
+	free(replacename);
+	free(orignew);
+	return err;
+}

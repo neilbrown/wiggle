@@ -171,6 +171,8 @@ extern void print_merge(FILE *out,
 			struct file *a, struct file *b, struct file *c,
 			int words, struct merge *merger);
 extern void printword(FILE *f, struct elmnt e);
+extern int save_merge(struct file a, struct file b, struct file c,
+		      struct merge *merger, char *file);
 
 extern int isolate_conflicts(struct file af, struct file bf, struct file cf,
 			     struct csl *csl1, struct csl *csl2, int words,

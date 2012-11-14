@@ -2214,6 +2214,7 @@ static void main_window(struct plist *pl, int *np, FILE *f, int reverse)
 	 *
 	 */
 	char *mesg = NULL;
+	char mesg_buf[1024];
 	int last_mesg_len = 0;
 	int pos = 0; /* position in file */
 	int row = 1; /* position on screen */
@@ -2355,6 +2356,47 @@ static void main_window(struct plist *pl, int *np, FILE *f, int reverse)
 		case 'C':
 			mode = 2; refresh = 1;
 			mesg = "Showing Conflicted files";
+			break;
+
+		case 'S': /* Save updated file */
+			if (pl[pos].end == 0) {
+				/* directory */
+				mesg = "Cannot save a folder.";
+			} else if (pl[pos].is_merge) {
+				/* Already saved */
+				mesg = "File is already saved.";
+			} else {
+				struct stream sp, sa, sb, sm;
+				struct file fa, fb, fm;
+				struct csl *csl1, *csl2;
+				struct ci ci;
+				int chunks;
+				sp = load_segment(f, pl[pos].start,
+						  pl[pos].end);
+				if (reverse)
+					chunks = split_patch(sp, &sa, &sb);
+				else
+					chunks = split_patch(sp, &sb, &sa);
+				fb = split_stream(sb, ByWord);
+				fa = split_stream(sa, ByWord);
+				sm = load_file(pl[pos].file);
+				fm = split_stream(sm, ByWord);
+				csl1 = pdiff(fm, fb, chunks);
+				csl2 = diff(fb, fa);
+				ci = make_merger(fm, fb, fa, csl1, csl2, 0, 1, 0);
+				if (save_merge(fm, fb, fa, ci.merger,
+					       pl[pos].file) == 0) {
+					pl[pos].is_merge = 1;
+					snprintf(mesg_buf, cols,
+						 "Saved file %s.",
+						 pl[pos].file);
+				} else
+					snprintf(mesg_buf, cols,
+						 "Failed to save file %s.",
+						 pl[pos].file);
+				mesg = mesg_buf;
+				refresh = 1;
+			}
 			break;
 
 		case '?':
