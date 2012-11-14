@@ -2213,6 +2213,8 @@ static void main_window(struct plist *pl, int *np, FILE *f, int reverse)
 	 *         mode
 	 *
 	 */
+	char *mesg = NULL;
+	int last_mesg_len = 0;
 	int pos = 0; /* position in file */
 	int row = 1; /* position on screen */
 	int rows = 0; /* size of screen in rows */
@@ -2268,10 +2270,24 @@ static void main_window(struct plist *pl, int *np, FILE *f, int reverse)
 					draw_one(i, NULL, f, reverse);
 			}
 		}
-		{char bb[20];
-			sprintf(bb, "  %d", c);
+		attrset(0);
+		if (last_mesg_len) {
+			move(0, cols - last_mesg_len);
+			clrtoeol();
+			last_mesg_len = 0;
+		}
+		if (mesg) {
+			last_mesg_len = strlen(mesg);
+			move(0, cols - last_mesg_len);
+			addstr(mesg);
+			mesg = NULL;
+		} else {
+			/* debugging help: report last keystroke */
+			char bb[30];
+			sprintf(bb, "last-key = %d", c);
 			attrset(0);
-			mvaddstr(0, cols-strlen(bb), bb);
+			last_mesg_len = strlen(bb);
+			mvaddstr(0, cols - last_mesg_len, bb);
 		}
 		move(row, 9);
 		c = getch();
@@ -2304,6 +2320,10 @@ static void main_window(struct plist *pl, int *np, FILE *f, int reverse)
 			if (pl[pos].end == 0) {
 				pl[pos].open = !pl[pos].open;
 				refresh = 1;
+				if (pl[pos].open)
+					mesg = "Opened folder";
+				else
+					mesg = "Closed folder";
 			} else {
 				if (pl[pos].is_merge)
 					merge_window(&pl[pos], NULL, reverse);
@@ -2326,12 +2346,15 @@ static void main_window(struct plist *pl, int *np, FILE *f, int reverse)
 
 		case 'A':
 			mode = 0; refresh = 1;
+			mesg = "Showing ALL files";
 			break;
 		case 'W':
 			mode = 1; refresh = 1;
+			mesg = "Showing Wiggled files";
 			break;
 		case 'C':
 			mode = 2; refresh = 1;
+			mesg = "Showing Conflicted files";
 			break;
 
 		case '?':
