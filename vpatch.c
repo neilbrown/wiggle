@@ -1651,9 +1651,15 @@ static int merge_window(struct plist *p, FILE *f, int reverse)
 				refresh = 2;
 				if (answer < 0)
 					break;
-				if (answer)
+				if (answer) {
+					p->wiggles = 0;
+					p->conflicts = isolate_conflicts(
+						fm, fb, fa, csl1, csl2, 0,
+						ci.merger, 0);
+					p->chunks = p->conflicts;
 					save_merge(fm, fb, fa, ci.merger,
 						   p->file, !p->is_merge);
+				}
 			}
 			free(sm.body);
 			free(sb.body);
@@ -2518,6 +2524,8 @@ static void main_window(struct plist *pl, int *np, FILE *f, int reverse)
 					snprintf(mesg_buf, cols,
 						 "Saved file %s.",
 						 pl[pos].file);
+					pl[pos].chunks = pl[pos].conflicts;
+					pl[pos].wiggles = 0;
 				} else
 					snprintf(mesg_buf, cols,
 						 "Failed to save file %s.",
@@ -2542,6 +2550,7 @@ static void main_window(struct plist *pl, int *np, FILE *f, int reverse)
 					mesg = "File has been restored.";
 					pl[pos].is_merge = 0;
 					refresh = 1;
+					calc_one(&pl[pos], f, reverse);
 				} else
 					mesg = "Could not restore file!";
 			}
