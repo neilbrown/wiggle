@@ -1938,37 +1938,50 @@ static int merge_window(struct plist *p, FILE *f, int reverse)
 			break;
 
 		case 'a': /* 'after' view in patch window */
+			if (mode == AFTER)
+				goto set_merge;
 			mode = AFTER; modename = "after"; modehelp = after_help;
 			mmode = mode; curs.alt = 0;
 			refresh = 3;
 			break;
 		case 'b': /* 'before' view in patch window */
+			if (mode == BEFORE)
+				goto set_merge;
 			mode = BEFORE; modename = "before"; modehelp = before_help;
 			mmode = mode; curs.alt = 0;
 			refresh = 3;
 			break;
 		case 'o': /* 'original' view in the merge window */
+			if (mode == ORIG)
+				goto set_merge;
 			mode = ORIG; modename = "original"; modehelp = orig_help;
 			mmode = mode; curs.alt = 0;
 			refresh = 3;
 			break;
 		case 'r': /* the 'result' view in the merge window */
+			if (mode == RESULT)
+				goto set_merge;
 			mode = RESULT; modename = "result"; modehelp = result_help;
 			mmode = mode; curs.alt = 0;
 			refresh = 3;
 			break;
 		case 'd':
+			if (mode == (BEFORE|AFTER))
+				goto set_merge;
 			mode = BEFORE|AFTER; modename = "diff"; modehelp = diff_help;
 			mmode = mode; curs.alt = 0;
 			refresh = 3;
 			break;
 		case 'm':
+		set_merge:
 			mode = ORIG|RESULT; modename = "merge"; modehelp = merge_help;
 			mmode = mode; curs.alt = 0;
 			refresh = 3;
 			break;
 
 		case '|':
+			if (mode == (ORIG|RESULT|BEFORE|AFTER))
+				goto set_merge;
 			mode = ORIG|RESULT|BEFORE|AFTER; modename = "sidebyside"; modehelp = sidebyside_help;
 			mmode = mode; curs.alt = 0;
 			refresh = 3;
