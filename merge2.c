@@ -648,6 +648,10 @@ void print_merge(FILE *out, struct file *a, struct file *b, struct file *c,
 			printrange(out, c, m->c, m->cl);
 			break;
 		case Conflict:
+			if (m->conflict_ignored) {
+				printrange(out, a, m->a, m->al);
+				break;
+			}
 		case End:
 			assert(0);
 		}

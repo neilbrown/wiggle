@@ -98,7 +98,7 @@ char *help_corrupt[] = {
  * The first is specific to the current context.  The second
  * is optional and  may provide help in a more broad context.
  */
-static void help_window(char *page1[], char *page2[])
+static int help_window(char *page1[], char *page2[], int query)
 {
 	int rows, cols;
 	int top, left;
@@ -140,8 +140,16 @@ static void help_window(char *page1[], char *page2[])
 	mvaddch(top-1, left+cols,  '\\');
 	mvaddch(top+rows, left-1, '\\');
 	mvaddch(top+rows, left+cols, '/');
-	mvaddstr(top-1, left + cols/2 - 9, "HELP - 'q' to exit");
-	mvaddstr(top+rows, left+cols/2 - 17, "Press SPACE for more, '?' for help");
+	if (query) {
+		mvaddstr(top-1, left + cols/2 - 4, "Question");
+		mvaddstr(top+rows, left + cols/2 - 9,
+			 "Answer Y, N, or Q.");
+	} else {
+		mvaddstr(top-1, left + cols/2 - 9,
+			 "HELP - 'q' to exit");
+		mvaddstr(top+rows, left+cols/2 - 17,
+			 "Press SPACE for more, '?' for help");
+	}
 	(void)attrset(A_NORMAL);
 
 	while (1) {
@@ -175,25 +183,38 @@ static void help_window(char *page1[], char *page2[])
 		ch = getch();
 
 		switch (ch) {
+		case 'Q':
 		case 'q':
-			return;
+			return -1;
+			break;
+		case 'Y':
+		case 'y':
+			if (query)
+				return 1;
+			break;
+		case 'N':
+		case 'n':
+			if (query)
+				return 0;
+			break;
+
 		case '?':
 			if (page1 != help_help)
-				help_window(help_help, NULL);
+				help_window(help_help, NULL, 0);
 			break;
 		case ' ':
 		case '\r': /* page-down */
 			for (r = 0; r < rows-2; r++)
 				if (page[line])
 					line++;
-			if (!page[line]) {
+			if (!page[line] && !query) {
 				line = 0;
 				if (page == page1)
 					page = page2;
 				else
 					page = NULL;
 				if (page == NULL)
-					return;
+					return -1;
 			}
 			break;
 
@@ -1180,8 +1201,17 @@ static char *merge_window_help[] = {
 	" |                   display side-by-side view",
 	NULL
 };
+static char *save_query[] = {
+	"",
+	"You have modified the merge.",
+	"Would you like to save it?",
+	" Y = save the modified merge",
+	" N = discard modifications, don't save",
+	" Q = return to viewing modified merge",
+	NULL
+};
 
-static void merge_window(struct plist *p, FILE *f, int reverse)
+static int merge_window(struct plist *p, FILE *f, int reverse)
 {
 	/* Display the merge window in one of the selectable modes,
 	 * starting with the 'merge' mode.
@@ -1228,6 +1258,8 @@ static void merge_window(struct plist *p, FILE *f, int reverse)
 		tmeta;
 	int num = -1,     /* numeric arg being typed. */
 		tnum;
+	int changes = 0; /* If any edits have been made to the merge */
+	int answer;	/* answer to 'save changes?' question */
 	char search[80];  /* string we are searching for */
 	unsigned int searchlen = 0;
 	int search_notfound = 0;
@@ -1291,11 +1323,11 @@ static void merge_window(struct plist *p, FILE *f, int reverse)
 		free(sa.body);
 		term_init();
 		if (!sm.body)
-			help_window(help_missing, NULL);
+			help_window(help_missing, NULL, 0);
 		else
-			help_window(help_corrupt, NULL);
+			help_window(help_corrupt, NULL, 0);
 		endwin();
-		return;
+		return 0;
 	}
 	/* FIXME check for errors in the stream */
 	fm = split_stream(sm, ByWord);
@@ -1597,6 +1629,16 @@ static void merge_window(struct plist *p, FILE *f, int reverse)
 			num = tnum*10 + (c-'0');
 			break;
 		case 'q':
+			answer = 0;
+			if (changes) {
+				answer = help_window(save_query, NULL, 1);
+				refresh = 2;
+				if (answer < 0)
+					break;
+				if (answer)
+					save_merge(fm, fb, fa, ci.merger,
+						   p->file);
+			}
 			free(sm.body);
 			free(sb.body);
 			free(sa.body);
@@ -1607,7 +1649,7 @@ static void merge_window(struct plist *p, FILE *f, int reverse)
 			free(csl2);
 			free(ci.merger);
 			endwin();
-			return;
+			return answer;
 
 		case '/':
 		case 'S'-64:
@@ -1914,11 +1956,12 @@ static void merge_window(struct plist *p, FILE *f, int reverse)
 					! ci.merger[curs.pos.m].conflict_ignored;
 				isolate_conflicts(fm, fb, fa, csl1, csl2, 0, ci.merger, 0);
 				refresh = 1;
+				changes = 1;
 			}
 			break;
 
 		case '?':
-			help_window(modehelp, merge_window_help);
+			help_window(modehelp, merge_window_help, 0);
 			refresh = 2;
 			break;
 
@@ -1965,7 +2008,7 @@ static void merge_window(struct plist *p, FILE *f, int reverse)
 	}
 }
 
-static void show_merge(char *origname, FILE *patch, int reverse,
+static int show_merge(char *origname, FILE *patch, int reverse,
 		       int is_merge, char *before, char *after)
 {
 	struct plist p;
@@ -1983,7 +2026,7 @@ static void show_merge(char *origname, FILE *patch, int reverse,
 	p.after = after;
 
 	freopen("/dev/null","w",stderr);
-	merge_window(&p, patch, reverse);
+	return merge_window(&p, patch, reverse);
 }
 
 static void calc_one(struct plist *pl, FILE *f, int reverse)
@@ -2326,11 +2369,19 @@ static void main_window(struct plist *pl, int *np, FILE *f, int reverse)
 				else
 					mesg = "Closed folder";
 			} else {
+				int c;
 				if (pl[pos].is_merge)
-					merge_window(&pl[pos], NULL, reverse);
+					c = merge_window(&pl[pos], NULL, reverse);
 				else
-					merge_window(&pl[pos], f, reverse);
+					c = merge_window(&pl[pos], f, reverse);
 				refresh = 2;
+				if (c) {
+					pl[pos].is_merge = 1;
+					snprintf(mesg_buf, cols,
+						 "Saved file %s.",
+						 pl[pos].file);
+					mesg = mesg_buf;
+				}
 			}
 			break;
 		case 27: /* escape */
@@ -2420,7 +2471,7 @@ static void main_window(struct plist *pl, int *np, FILE *f, int reverse)
 			break;
 
 		case '?':
-			help_window(main_help, NULL);
+			help_window(main_help, NULL, 0);
 			refresh = 2;
 			break;
 
