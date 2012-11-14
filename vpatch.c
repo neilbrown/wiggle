@@ -1452,6 +1452,14 @@ static int merge_window(struct plist *p, FILE *f, int reverse)
 		vispos = pos; /* visible position - if cursor is in
 			       * alternate pane, pos might not be visible
 			       * in main pane. */
+		if (check_line(vispos, fm, fb, fa, ci.merger, mode)
+		    & CHANGES) {
+			if (vispos.state == 0)
+				vispos.state = 1;
+		} else {
+			vispos.state = 0;
+		}
+
 		if (visible(mode, ci.merger, &vispos) < 0)
 			prev_mline(&vispos, fm, fb, fa, ci.merger, mode);
 
@@ -1507,6 +1515,13 @@ static int merge_window(struct plist *p, FILE *f, int reverse)
 			struct mpos spos = pos;
 			int smode = BEFORE|AFTER;
 			int srow = (rows + splitrow)/2;
+			if (check_line(spos, fm, fb, fa, ci.merger, smode)
+			    & CHANGES) {
+				if (spos.state == 0)
+					spos.state = 1;
+			} else {
+				spos.state = 0;
+			}
 			if (visible(smode, ci.merger, &spos) < 0)
 				prev_mline(&spos, fm, fb, fa, ci.merger, smode);
 			/* Now hi/lo might be wrong, so lets fix it. */
