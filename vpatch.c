@@ -2191,6 +2191,30 @@ static void draw_one(int row, struct plist *pl, FILE *f, int reverse)
 	clrtoeol();
 }
 
+static int save_one(FILE *f, struct plist *pl, int reverse)
+{
+	struct stream sp, sa, sb, sm;
+	struct file fa, fb, fm;
+	struct csl *csl1, *csl2;
+	struct ci ci;
+	int chunks;
+	sp = load_segment(f, pl->start,
+			  pl->end);
+	if (reverse)
+		chunks = split_patch(sp, &sa, &sb);
+	else
+		chunks = split_patch(sp, &sb, &sa);
+	fb = split_stream(sb, ByWord);
+	fa = split_stream(sa, ByWord);
+	sm = load_file(pl->file);
+	fm = split_stream(sm, ByWord);
+	csl1 = pdiff(fm, fb, chunks);
+	csl2 = diff(fb, fa);
+	ci = make_merger(fm, fb, fa, csl1, csl2, 0, 1, 0);
+	return save_merge(fm, fb, fa, ci.merger,
+			  pl->file, 1);
+}
+
 static char *main_help[] = {
 	"   You are using the \"browse\" mode of wiggle.",
 	"This page shows a list of files in a patch together with",
@@ -2222,7 +2246,17 @@ static char *main_help[] = {
 	"  C          only list files with a conflict",
 	NULL
 };
-
+static char *saveall_msg = " %d file%s have not been saved.";
+static char saveall_buf[200];
+static char *saveall_query[] = {
+	"",
+	saveall_buf,
+	" Would you like to save them?",
+	"  Y = yes, save them all",
+	"  N = no, exit without saving anything else",
+	"  Q = Don't quit just yet",
+	NULL
+};
 static void main_window(struct plist *pl, int *np, FILE *f, int reverse)
 {
 	/* The main window lists all files together with summary information:
@@ -2267,6 +2301,7 @@ static void main_window(struct plist *pl, int *np, FILE *f, int reverse)
 	int refresh = 2;
 	int c = 0;
 	int mode = 0; /* 0=all, 1= only wiggled, 2=only conflicted */
+	int cnt; /* count of files that need saving */
 
 	freopen("/dev/null","w",stderr);
 	term_init();
@@ -2393,7 +2428,33 @@ static void main_window(struct plist *pl, int *np, FILE *f, int reverse)
 			move(0, cols-10); clrtoeol();
 			break;
 		case 'q':
+			cnt = 0;
+			for (i = 0; i < *np; i++)
+				if (pl[i].end && !pl[i].is_merge)
+					cnt++;
+			if (cnt) {
+				int ans;
+				sprintf(saveall_buf, saveall_msg,
+					cnt, cnt == 1 ? "" : "s");
+				ans = help_window(saveall_query, NULL, 1);
+				refresh = 2;
+
+				if (ans < 0)
+					break;
+				if (ans) {
+					for (i = 0; i < *np; i++) {
+						if (pl[i].end
+						    && !pl[i].is_merge)
+							save_one(f, &pl[i],
+								 reverse);
+					}
+				} else
+					cnt = 0;
+			}
 			endwin();
+			if (cnt)
+				printf("%d file%s saved\n", cnt,
+				       cnt == 1 ? "" : "s");
 			return;
 
 		case 'A':
@@ -2417,26 +2478,7 @@ static void main_window(struct plist *pl, int *np, FILE *f, int reverse)
 				/* Already saved */
 				mesg = "File is already saved.";
 			} else {
-				struct stream sp, sa, sb, sm;
-				struct file fa, fb, fm;
-				struct csl *csl1, *csl2;
-				struct ci ci;
-				int chunks;
-				sp = load_segment(f, pl[pos].start,
-						  pl[pos].end);
-				if (reverse)
-					chunks = split_patch(sp, &sa, &sb);
-				else
-					chunks = split_patch(sp, &sb, &sa);
-				fb = split_stream(sb, ByWord);
-				fa = split_stream(sa, ByWord);
-				sm = load_file(pl[pos].file);
-				fm = split_stream(sm, ByWord);
-				csl1 = pdiff(fm, fb, chunks);
-				csl2 = diff(fb, fa);
-				ci = make_merger(fm, fb, fa, csl1, csl2, 0, 1, 0);
-				if (save_merge(fm, fb, fa, ci.merger,
-					       pl[pos].file, 1) == 0) {
+				if (save_one(f, &pl[pos], reverse) == 0) {
 					pl[pos].is_merge = 1;
 					snprintf(mesg_buf, cols,
 						 "Saved file %s.",
