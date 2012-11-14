@@ -1637,7 +1637,7 @@ static int merge_window(struct plist *p, FILE *f, int reverse)
 					break;
 				if (answer)
 					save_merge(fm, fb, fa, ci.merger,
-						   p->file);
+						   p->file, !p->is_merge);
 			}
 			free(sm.body);
 			free(sb.body);
@@ -2436,7 +2436,7 @@ static void main_window(struct plist *pl, int *np, FILE *f, int reverse)
 				csl2 = diff(fb, fa);
 				ci = make_merger(fm, fb, fa, csl1, csl2, 0, 1, 0);
 				if (save_merge(fm, fb, fa, ci.merger,
-					       pl[pos].file) == 0) {
+					       pl[pos].file, 1) == 0) {
 					pl[pos].is_merge = 1;
 					snprintf(mesg_buf, cols,
 						 "Saved file %s.",

@@ -659,7 +659,7 @@ void print_merge(FILE *out, struct file *a, struct file *b, struct file *c,
 }
 
 int save_merge(struct file a, struct file b, struct file c,
-		struct merge *merger, char *file)
+	       struct merge *merger, char *file, int backup)
 {
 	char *replacename = xmalloc(strlen(file) + 20);
 	char *orignew = xmalloc(strlen(file) + 20);
@@ -679,8 +679,9 @@ int save_merge(struct file a, struct file b, struct file c,
 	outfile = fdopen(fd, "w");
 	print_merge(outfile, &a, &b, &c, 0, merger);
 	fclose(outfile);
-	if (rename(file, orignew) != 0 ||
-	    rename(replacename, file) != 0)
+	if (backup && rename(file, orignew) != 0)
+		err = -2;
+	else if (rename(replacename, file) != 0)
 		err = -2;
 
 out:
