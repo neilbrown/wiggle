@@ -885,7 +885,7 @@ static void draw_mside(int mode, int row, int offset, int start, int cols,
 		tag_attr = a_delete;
 		if ((mode & ORIG) && (mode & CONFLICTED)) {
 			tag = '|';
-			tag_attr = a_delete;
+			tag_attr = a_delete | A_REVERSE;
 		}
 		mode &= (ORIG|BEFORE);
 		break;
