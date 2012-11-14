@@ -1188,6 +1188,7 @@ static char *merge_window_help[] = {
 	" ESC-v	  BACKSPC     page up",
 	" N                   go to next patch chunk",
 	" P                   go to previous patch chunk",
+	" C                   go to next conflicted chunk",
 	" O                   move cursor to alternate pane",
 	" ^ control-A         go to start of line",
 	" $ control-E         go to end of line",
@@ -1814,6 +1815,25 @@ static int merge_window(struct plist *p, FILE *f, int reverse)
 				 && ci.merger[tpos.p.m].type != End);
 
 			break;
+		case 'C':
+			/* Next conflict */
+			tpos = pos; row--;
+			do {
+				pos = tpos; row++;
+				next_mline(&tpos, fm, fb, fa, ci.merger, mmode);
+			} while (!(check_line(pos, fm, fb, fa, ci.merger, mmode)
+				   & CONFLICTED) == 0
+				 && ci.merger[tpos.p.m].type != End);
+			tpos = pos; row--;
+			do {
+				pos = tpos; row++;
+				next_mline(&tpos, fm, fb, fa, ci.merger, mmode);
+			} while ((check_line(pos, fm, fb, fa, ci.merger, mmode)
+				  & CONFLICTED) == 0
+				 && ci.merger[tpos.p.m].type != End);
+
+			break;
+
 		case 'P':
 			/* Previous diff */
 			tpos = pos; row++;
