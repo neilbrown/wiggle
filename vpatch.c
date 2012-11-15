@@ -1212,6 +1212,11 @@ static char *merge_window_help[] = {
 	" d                   display 'diff' or 'patch' view",
 	" m                   display 'merge' view",
 	" |                   display side-by-side view",
+	"",
+	" x                   toggle ignoring of current Changed",
+	"                     or Conflict item",
+	" X                   toggle ignored of all Change and",
+	"                     Conflict items in current line",
 	NULL
 };
 static char *save_query[] = {
@@ -1273,6 +1278,8 @@ static int merge_window(struct plist *p, FILE *f, int reverse)
 		tnum;
 	int changes = 0; /* If any edits have been made to the merge */
 	int answer;	/* answer to 'save changes?' question */
+	int do_ignore;
+	struct elmnt e;
 	char search[80];  /* string we are searching for */
 	unsigned int searchlen = 0;
 	int search_notfound = 0;
@@ -2038,6 +2045,34 @@ static int merge_window(struct plist *p, FILE *f, int reverse)
 				refresh = 1;
 				changes = 1;
 			}
+			break;
+
+		case 'X': /* toggle 'ignored' for all Conflicts and Changeds
+			   * in the current line.
+			   * If any are not ignored, ignore them all, else
+			   * un-ignore them all.
+			   */
+			tpos = pos;
+			do_ignore = 0;
+			do {
+				if ((ci.merger[tpos.p.m].type == Conflict ||
+				     ci.merger[tpos.p.m].type == Changed)
+				    && ci.merger[tpos.p.m].ignored == 0)
+					do_ignore = 1;
+				e = prev_melmnt(&tpos.p, fm, fb, fa, ci.merger);
+			} while (!ends_mline(e) ||
+				 visible(mode & (RESULT|AFTER), ci.merger, &tpos) < 0);
+			tpos = pos;
+			do {
+				if (ci.merger[tpos.p.m].type == Conflict ||
+				    ci.merger[tpos.p.m].type == Changed)
+					ci.merger[tpos.p.m].ignored = do_ignore;
+				e = prev_melmnt(&tpos.p, fm, fb, fa, ci.merger);
+			} while (!ends_mline(e) ||
+				 visible(mode & (RESULT|AFTER), ci.merger, &tpos) < 0);
+			isolate_conflicts(fm, fb, fa, csl1, csl2, 0, ci.merger, 0);
+			refresh = 1;
+			changes = 1;
 			break;
 
 		case '?':
