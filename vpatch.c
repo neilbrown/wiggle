@@ -1194,7 +1194,7 @@ static char *merge_window_help[] = {
 	" N                   go to next patch chunk",
 	" P                   go to previous patch chunk",
 	" C                   go to next conflicted chunk",
-	" O                   move cursor to alternate pane",
+	" C-X-o   O           move cursor to alternate pane",
 	" ^ control-A         go to start of line",
 	" $ control-E         go to end of line",
 	"",
@@ -1579,6 +1579,7 @@ static int merge_window(struct plist *p, FILE *f, int reverse)
 		}
 #define META(c) ((c)|0x1000)
 #define	SEARCH(c) ((c)|0x2000)
+#define CTRLX(c) ((c)|0x4000)
 		move(rows, 0);
 		(void)attrset(A_NORMAL);
 		if (num >= 0) {
@@ -1588,6 +1589,8 @@ static int merge_window(struct plist *p, FILE *f, int reverse)
 		}
 		if (meta & META(0))
 			addstr("ESC...");
+		if (meta & CTRLX(0))
+			addstr("C-x ");
 		if (meta & SEARCH(0)) {
 			if (searchdir < 0)
 				addstr("Backwards ");
@@ -1624,6 +1627,12 @@ static int merge_window(struct plist *p, FILE *f, int reverse)
 		case META(27):
 			meta = META(0);
 			break;
+
+		case 'X'-64:
+		case META('X'-64):
+			meta = CTRLX(0);
+			break;
+
 		case META('<'): /* start of file */
 		start:
 			tpos = pos; row++;
@@ -1929,6 +1938,7 @@ static int merge_window(struct plist *p, FILE *f, int reverse)
 			curs.target = 1000;
 			break;
 
+		case CTRLX('o'):
 		case 'O':
 			curs.alt = !curs.alt;
 			if (curs.alt && mode == (ORIG|RESULT))
