@@ -532,6 +532,11 @@ static int visible(int mode, struct merge *m, struct mpos *pos)
 			return a_extra;
 		break;
 	case Changed: /* stream zero visible ORIG and BEFORE, stream 2 elsewhere */
+		if (m[pos->p.m].ignored) {
+			if (stream == 0)
+				return a_common | A_UNDERLINE;
+			break;
+		}
 		if (stream == 0 &&
 		    (mode & (ORIG|BEFORE)))
 			return a_delete;
@@ -540,7 +545,7 @@ static int visible(int mode, struct merge *m, struct mpos *pos)
 			return a_added;
 		break;
 	case Conflict:
-		if (m[pos->p.m].conflict_ignored)
+		if (m[pos->p.m].ignored)
 			ignore = A_REVERSE|A_UNDERLINE;
 		else
 			ignore = 0;
@@ -556,7 +561,7 @@ static int visible(int mode, struct merge *m, struct mpos *pos)
 				return a_extra | (A_UNDERLINE & ~ignore);
 			break;
 		case 2:
-			if ((mode & RESULT) && m[pos->p.m].conflict_ignored)
+			if ((mode & RESULT) && m[pos->p.m].ignored)
 				break;
 			if (mode & (AFTER|RESULT))
 				return a_added | (A_UNDERLINE & ~ignore);
@@ -598,10 +603,10 @@ static int check_line(struct mpos pos, struct file fm, struct file fb,
 	int unmatched = 0;
 
 	do {
-		if (m[pos.p.m].type == Changed)
+		if (m[pos.p.m].type == Changed && !m[pos.p.m].ignored)
 			rv |= CHANGES;
 		else if (m[pos.p.m].type == Conflict) {
-			if (m[pos.p.m].conflict_ignored &&
+			if (m[pos.p.m].ignored &&
 			    (mode & RESULT))
 				;
 			else
@@ -1568,7 +1573,7 @@ static int merge_window(struct plist *p, FILE *f, int reverse)
 			char lbuf[30];
 			(void)attrset(A_BOLD);
 			snprintf(lbuf, 29, "%s%s ln:%d",
-				 ci.merger[curs.pos.m].conflict_ignored
+				 ci.merger[curs.pos.m].ignored
 				 ? "Ignored ":"",
 				 typenames[ci.merger[curs.pos.m].type],
 				 (pos.p.lineno-1)/2);
@@ -2024,9 +2029,10 @@ static int merge_window(struct plist *p, FILE *f, int reverse)
 			break;
 
 		case 'x': /* Toggle rejecting of conflict */
-			if (ci.merger[curs.pos.m].type == Conflict) {
-				ci.merger[curs.pos.m].conflict_ignored =
-					! ci.merger[curs.pos.m].conflict_ignored;
+			if (ci.merger[curs.pos.m].type == Conflict ||
+			    ci.merger[curs.pos.m].type == Changed) {
+				ci.merger[curs.pos.m].ignored =
+					! ci.merger[curs.pos.m].ignored;
 				isolate_conflicts(fm, fb, fa, csl1, csl2, 0, ci.merger, 0);
 				refresh = 1;
 				changes = 1;

@@ -132,11 +132,11 @@ int isolate_conflicts(struct file af, struct file bf, struct file cf,
 		m[i].in_conflict = 0;
 
 	for (i = 0; m[i].type != End; i++) {
-		if (m[i].type == Changed)
+		if (m[i].type == Changed && !m[i].ignored)
 			changed = 1;
 		if (m[i].type == Unmatched)
 			unmatched = 1;
-		if ((m[i].type == Conflict && m[i].conflict_ignored == 0) ||
+		if ((m[i].type == Conflict && m[i].ignored == 0) ||
 		    (show_wiggles && ((changed && unmatched)
 					|| m[i].type == Extraneous))) {
 			/* We have a conflict (or wiggle) here.
@@ -159,7 +159,7 @@ int isolate_conflicts(struct file af, struct file bf, struct file cf,
 				if (!m[j].in_conflict) {
 					m[j].in_conflict = 1;
 					m[j].lo = 0;
-				} else if (m[j].type == Changed) {
+				} else if (m[j].type == Changed && !m[i].ignored) {
 					/* This can no longer form a border */
 					m[j].hi = -1;
 					/* We merge these conflicts and stop searching */
@@ -172,7 +172,8 @@ int isolate_conflicts(struct file af, struct file bf, struct file cf,
 							newlines++;
 				}
 
-				if (m[j].type == Unchanged || m[j].type == Changed) {
+				if (m[j].type == Unchanged ||
+				    (m[j].type == Changed && !m[i].ignored)) {
 					/* If we find enough newlines in this section,
 					 * then we only really need 1, but would rather
 					 * it wasn't the first one.  'firstk' allows us
@@ -204,7 +205,8 @@ int isolate_conflicts(struct file af, struct file bf, struct file cf,
 					else
 						/* no start-of-line found... */
 						m[j].hi = -1;
-					if (m[j].hi > 0 && m[j].type == Changed) {
+					if (m[j].hi > 0 &&
+					    (m[j].type == Changed && !m[j].ignored)) {
 						/* this can only work if start is
 						 * also a line break */
 						if (is_cutpoint(m[j], af,bf,cf))
@@ -230,7 +232,8 @@ int isolate_conflicts(struct file af, struct file bf, struct file cf,
 						if (ends_line(bf.list[m[j].b+k]))
 							newlines++;
 				}
-				if (m[j].type == Unchanged || m[j].type == Changed) {
+				if (m[j].type == Unchanged ||
+				    (m[j].type == Changed && !m[j].ignored)) {
 					m[j].hi = m[j].al;
 					if (words) {
 						m[j].lo = 0;
@@ -279,7 +282,8 @@ int isolate_conflicts(struct file af, struct file bf, struct file cf,
 							/* no start-of-line found */
 							m[j].lo = m[j].al+1;
 					}
-					if (m[j].lo <= m[j].al+1 && m[j].type == Changed) {
+					if (m[j].lo <= m[j].al+1 &&
+					    (m[j].type == Changed && !m[j].ignored)) {
 						/* this can only work if the end is a line break */
 						if (is_cutpoint(m[j+1], af,bf,cf))
 							/* ok */;
@@ -337,7 +341,7 @@ struct ci make_merger(struct file af, struct file bf, struct file cf,
 		rv.merger[i].c1 = c1;
 		rv.merger[i].c2 = c2;
 		rv.merger[i].in_conflict = 0;
-		rv.merger[i].conflict_ignored = 0;
+		rv.merger[i].ignored = 0;
 
 		if (!match1 && match2) {
 			/* This is either Unmatched or Extraneous - probably both.
@@ -464,7 +468,7 @@ struct ci make_merger(struct file af, struct file bf, struct file cf,
 	rv.merger[i].c1 = c1;
 	rv.merger[i].c2 = c2;
 	rv.merger[i].in_conflict = 0;
-	rv.merger[i].conflict_ignored = 0;
+	rv.merger[i].ignored = 0;
 	assert(i < l);
 	rv.conflicts = isolate_conflicts(af, bf, cf, csl1, csl2, words,
 					 rv.merger, show_wiggles);
@@ -509,12 +513,14 @@ void print_merge(FILE *out, struct file *a, struct file *b, struct file *c,
 			 */
 			int found_conflict = 0;
 			int st = 0, st1;
-			if (m->type == Unchanged || m->type == Changed)
+			if (m->type == Unchanged ||
+			    (m->type == Changed && !m->ignored))
 				if (m->hi >= m->lo)
 					st = m->hi;
 			st1 = st;
 
-			if (m->type == Unchanged)
+			if (m->type == Unchanged ||
+			    (m->type == Changed && m->ignored))
 				printrange(out, a, m->a+m->lo, m->hi - m->lo);
 
 			if (do_trace)
@@ -562,12 +568,13 @@ void print_merge(FILE *out, struct file *a, struct file *b, struct file *c,
 			fputs(words ? "===" : "=======\n", out);
 			st1 = st;
 			for (cm = m; cm->in_conflict; cm++) {
-				if (cm->type == Unchanged &&
-				    cm != m && cm->lo < cm->hi) {
+				if ((cm->type == Unchanged ||
+				     (cm->type == Changed && cm->ignored))
+				    && cm != m && cm->lo < cm->hi) {
 					printrange(out, c, cm->c, cm->lo);
 					break;
 				}
-				if (cm->type == Changed)
+				if (cm->type == Changed && !cm->ignored)
 					st1 = 0; /* All of result of change must be printed */
 				printrange(out, c, cm->c+st1, cm->cl-st1);
 				st1 = 0;
@@ -584,7 +591,7 @@ void print_merge(FILE *out, struct file *a, struct file *b, struct file *c,
 					if ((cm->type == Unchanged || cm->type == Changed)
 					    && cm != m && cm->lo < cm->hi)
 						last = 1;
-					switch (cm->type) {
+					switch (cm->ignored ? Unchanged : cm->type) {
 					case Unchanged:
 					case AlreadyApplied:
 					case Unmatched:
@@ -608,7 +615,8 @@ void print_merge(FILE *out, struct file *a, struct file *b, struct file *c,
 			}
 			fputs(words ? "--->>>" : ">>>>>>>\n", out);
 			m = cm;
-			if (m->in_conflict && m->type == Unchanged
+			if (m->in_conflict && (m->type == Unchanged ||
+					       (m->type == Changed && m->ignored))
 			    && m->hi >= m->al) {
 				printrange(out, a, m->a+m->lo, m->hi-m->lo);
 				m++;
@@ -645,10 +653,13 @@ void print_merge(FILE *out, struct file *a, struct file *b, struct file *c,
 		case Extraneous:
 			break;
 		case Changed:
-			printrange(out, c, m->c, m->cl);
+			if (m->ignored)
+				printrange(out, a, m->a, m->al);
+			else
+				printrange(out, c, m->c, m->cl);
 			break;
 		case Conflict:
-			if (m->conflict_ignored) {
+			if (m->ignored) {
 				printrange(out, a, m->a, m->al);
 				break;
 			}
