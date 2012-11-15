@@ -1259,6 +1259,7 @@ static int merge_window(struct plist *p, FILE *f, int reverse, int replace)
 	int splitrow = -1; /* screen row for split - diff appears below */
 	int lastrow = 0; /* end of screen, or just above 'splitrow' */
 	int i, c, cswitch;
+	MEVENT mevent;
 	int mode = ORIG|RESULT;
 	int mmode = mode; /* Mode for moving - used when in 'other' pane */
 	char *modename = "merge";
@@ -1834,6 +1835,57 @@ static int merge_window(struct plist *p, FILE *f, int reverse, int replace)
 			refresh = 1;
 			break;
 
+		case KEY_MOUSE:
+			if (getmouse(&mevent) != OK)
+				break;
+			/* First see if this is on the 'other' pane */
+			if (splitrow > 0) {
+				/* merge mode, top and bottom */
+				if ((curs.alt && mevent.y < splitrow) ||
+				    (!curs.alt && mevent.y > splitrow)) {
+					goto other_pane;
+				}
+			} else if (mode == (ORIG|RESULT|BEFORE|AFTER)) {
+				/* side-by-side mode */
+				if ((curs.alt && mevent.x < cols/2) ||
+				    (!curs.alt && mevent.x > cols/2)) {
+					goto other_pane;
+				}
+			}
+			/* Now try to find the right line */
+			if (splitrow < 0 || !curs.alt)
+				trow = row;
+			else
+				trow = (rows + splitrow)/2;
+			while (trow > mevent.y) {
+				tpos = pos;
+				prev_mline(&tpos, fm, fb, fa, ci.merger, mmode);
+				if (tpos.p.m >= 0) {
+					pos = tpos;
+					trow--;
+				} else
+					break;
+			}
+			while (trow < mevent.y) {
+				tpos = pos;
+				next_mline(&tpos, fm, fb, fa, ci.merger, mmode);
+				if (ci.merger[tpos.p.m].type != End) {
+					pos = tpos;
+					trow++;
+				} else
+					break;
+			}
+			if (splitrow < 0 || !curs.alt)
+				/* it is OK to change the row */
+				row = trow;
+
+			/* Now set the target column */
+			if (mode == (ORIG|RESULT|BEFORE|AFTER) &&
+			    curs.alt)
+				curs.target = start + mevent.x - cols / 2 - 1;
+			else
+				curs.target = start + mevent.x - 1;
+			break;
 		case 'j':
 		case 'n':
 		case 'N'-64:
@@ -1846,7 +1898,8 @@ static int merge_window(struct plist *p, FILE *f, int reverse, int replace)
 				if (ci.merger[tpos.p.m].type != End) {
 					pos = tpos;
 					row++;
-				}
+				} else
+					break;
 			}
 			break;
 		case 'N':
@@ -1920,7 +1973,8 @@ static int merge_window(struct plist *p, FILE *f, int reverse, int replace)
 				if (tpos.p.m >= 0) {
 					pos = tpos;
 					row--;
-				}
+				} else
+					break;
 			}
 			break;
 
@@ -1972,6 +2026,7 @@ static int merge_window(struct plist *p, FILE *f, int reverse, int replace)
 
 		case CTRLX('o'):
 		case 'O':
+		other_pane:
 			curs.alt = !curs.alt;
 			if (curs.alt && mode == (ORIG|RESULT))
 				mmode = (BEFORE|AFTER);
