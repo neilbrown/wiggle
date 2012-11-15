@@ -2439,6 +2439,7 @@ static void main_window(struct plist *pl, int *np, FILE *f, int reverse,
 	int cnt; /* count of files that need saving */
 	int any; /* count of files that have been save*/
 	int ans;
+	MEVENT mevent;
 
 	freopen("/dev/null","w",stderr);
 	term_init();
@@ -2500,7 +2501,7 @@ static void main_window(struct plist *pl, int *np, FILE *f, int reverse,
 		} else {
 			/* debugging help: report last keystroke */
 			char bb[30];
-			sprintf(bb, "last-key = %d", c);
+			sprintf(bb, "last-key = 0%o", c);
 			attrset(0);
 			last_mesg_len = strlen(bb);
 			mvaddstr(0, cols - last_mesg_len, bb);
@@ -2531,6 +2532,24 @@ static void main_window(struct plist *pl, int *np, FILE *f, int reverse,
 			}
 			break;
 
+		case KEY_MOUSE:
+			if (getmouse(&mevent) != OK)
+				break;
+			while (row < mevent.y &&
+			       (tpos = get_next(pos, pl, *np, mode, f, reverse))
+			       >= 0) {
+				pos = tpos;
+				row++;
+			}
+			while (row > mevent.y &&
+			       (tpos = get_prev(pos, pl, *np, mode)) >= 0) {
+				pos = tpos;
+				row--;
+			}
+			if (row != mevent.y)
+				/* couldn't find the line */
+				break;
+			/* FALL THROUGH */
 		case ' ':
 		case 13:
 			if (pl[pos].end == 0) {
