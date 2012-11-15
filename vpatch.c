@@ -1475,7 +1475,8 @@ static int merge_window(struct plist *p, FILE *f, int reverse)
 
 		if (visible(mode, ci.merger, &vispos) < 0)
 			prev_mline(&vispos, fm, fb, fa, ci.merger, mode);
-
+		if (!curs.alt)
+			pos= vispos;
 	retry:
 		draw_mline(mode, row, start, cols, fm, fb, fa, ci.merger,
 			   vispos, (splitrow >= 0 && curs.alt) ? NULL : &curs);
