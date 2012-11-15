@@ -183,6 +183,7 @@ static int help_window(char *page1[], char *page2[], int query)
 		ch = getch();
 
 		switch (ch) {
+		case 'C' - 64:
 		case 'Q':
 		case 'q':
 			return -1;
@@ -1195,6 +1196,7 @@ static char *merge_window_help[] = {
 	" ESC-<  0-G          Go to start of file",
 	" ESC->  G            Go to end of file",
 	" q                   Return to list of files or exit",
+	" control-C           Disable auto-save-on-exit"
 	" control-L           recenter current line",
 	" control-V SPACE     page down",
 	" ESC-v	  BACKSPC     page up",
@@ -1261,6 +1263,7 @@ static int merge_window(struct plist *p, FILE *f, int reverse, int replace)
 	int mmode = mode; /* Mode for moving - used when in 'other' pane */
 	char *modename = "merge";
 	char **modehelp = merge_help;
+	char *mesg = NULL;
 
 	int row, start = 0;
 	int trow; /* screen-row while searching.  If we cannot find,
@@ -1597,6 +1600,12 @@ static int merge_window(struct plist *p, FILE *f, int reverse, int replace)
 #define CTRLX(c) ((c)|0x4000)
 		move(rows, 0);
 		(void)attrset(A_NORMAL);
+		if (mesg) {
+			attrset(A_REVERSE);
+			addstr(mesg);
+			mesg = NULL;
+			attrset(A_NORMAL);
+		}
 		if (num >= 0) {
 			char buf[10];
 			snprintf(buf, 10, "%d ", num);
@@ -1674,6 +1683,13 @@ static int merge_window(struct plist *p, FILE *f, int reverse, int replace)
 			if (tnum < 0)
 				tnum = 0;
 			num = tnum*10 + (c-'0');
+			break;
+		case 'C'-64:
+			if (replace)
+				mesg = "Autosave disabled";
+			else
+				mesg = "Use 'q' to quit";
+			replace = 0;
 			break;
 		case 'q':
 			refresh = 2;
@@ -2355,6 +2371,7 @@ static char *main_help[] = {
 	"             On file, visit the file",
 	"  RTN        Same as SPC",
 	"  q          Quit program",
+	"  control-C  Disable auto-save-on-exit",
 	"  n,j,DOWN   Go to next line",
 	"  p,k,UP     Go to previous line",
 	"",
@@ -2547,6 +2564,13 @@ static void main_window(struct plist *pl, int *np, FILE *f, int reverse,
 			}
 			move(0, cols-10); clrtoeol();
 			break;
+		case 'C'-64:
+			if (replace)
+				mesg = "Save-on-exit disabled. Use 'q' to quit.";
+			else
+				mesg = "Use 'q' to quit.";
+			replace = 0;
+			break;
 
 		case 'q':
 			cnt = 0;
@@ -2661,7 +2685,7 @@ static void catch(int sig)
 		signal(sig, catch);
 		return;
 	}
-	nocbreak();
+	noraw();
 	nl();
 	endwin();
 	printf("Died on signal %d\n", sig);
@@ -2683,7 +2707,7 @@ static void term_init(void)
 	signal(SIGBUS, catch);
 	signal(SIGSEGV, catch);
 
-	initscr(); cbreak(); noecho();
+	initscr(); raw(); noecho();
 	start_color();
 	use_default_colors();
 	if (!has_colors()) {
@@ -2818,7 +2842,7 @@ int vpatch(int argc, char *argv[], int patch, int strip,
 		break;
 	}
 
-	nocbreak();
+	noraw();
 	nl();
 	endwin();
 	exit(0);
