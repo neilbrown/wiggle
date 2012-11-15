@@ -1229,7 +1229,7 @@ static char *save_query[] = {
 	NULL
 };
 
-static int merge_window(struct plist *p, FILE *f, int reverse)
+static int merge_window(struct plist *p, FILE *f, int reverse, int replace)
 {
 	/* Display the merge window in one of the selectable modes,
 	 * starting with the 'merge' mode.
@@ -1676,21 +1676,22 @@ static int merge_window(struct plist *p, FILE *f, int reverse)
 			num = tnum*10 + (c-'0');
 			break;
 		case 'q':
+			refresh = 2;
 			answer = 0;
-			if (changes) {
+			if (replace)
+				answer = 1;
+			else if (changes)
 				answer = help_window(save_query, NULL, 1);
-				refresh = 2;
-				if (answer < 0)
-					break;
-				if (answer) {
-					p->wiggles = 0;
-					p->conflicts = isolate_conflicts(
-						fm, fb, fa, csl1, csl2, 0,
-						ci.merger, 0);
-					p->chunks = p->conflicts;
-					save_merge(fm, fb, fa, ci.merger,
-						   p->file, !p->is_merge);
-				}
+			if (answer < 0)
+				break;
+			if (answer) {
+				p->wiggles = 0;
+				p->conflicts = isolate_conflicts(
+					fm, fb, fa, csl1, csl2, 0,
+					ci.merger, 0);
+				p->chunks = p->conflicts;
+				save_merge(fm, fb, fa, ci.merger,
+					   p->file, !p->is_merge);
 			}
 			free(sm.body);
 			free(sb.body);
@@ -2124,7 +2125,8 @@ static int merge_window(struct plist *p, FILE *f, int reverse)
 }
 
 static int show_merge(char *origname, FILE *patch, int reverse,
-		       int is_merge, char *before, char *after)
+		      int is_merge, char *before, char *after,
+		      int replace)
 {
 	struct plist p;
 
@@ -2141,7 +2143,7 @@ static int show_merge(char *origname, FILE *patch, int reverse,
 	p.after = after;
 
 	freopen("/dev/null","w",stderr);
-	return merge_window(&p, patch, reverse);
+	return merge_window(&p, patch, reverse, replace);
 }
 
 static void calc_one(struct plist *pl, FILE *f, int reverse)
@@ -2361,7 +2363,7 @@ static char *main_help[] = {
 	"  C          only list files with a conflict",
 	NULL
 };
-static char *saveall_msg = " %d file%s have not been saved.";
+static char *saveall_msg = " %d file%s (of %d) have not been saved.";
 static char saveall_buf[200];
 static char *saveall_query[] = {
 	"",
@@ -2372,7 +2374,8 @@ static char *saveall_query[] = {
 	"  Q = Don't quit just yet",
 	NULL
 };
-static void main_window(struct plist *pl, int *np, FILE *f, int reverse)
+static void main_window(struct plist *pl, int *np, FILE *f, int reverse,
+			int replace)
 {
 	/* The main window lists all files together with summary information:
 	 * number of chunks, number of wiggles, number of conflicts.
@@ -2417,6 +2420,8 @@ static void main_window(struct plist *pl, int *np, FILE *f, int reverse)
 	int c = 0;
 	int mode = 0; /* 0=all, 1= only wiggled, 2=only conflicted */
 	int cnt; /* count of files that need saving */
+	int any; /* count of files that have been save*/
+	int ans;
 
 	freopen("/dev/null","w",stderr);
 	term_init();
@@ -2521,9 +2526,9 @@ static void main_window(struct plist *pl, int *np, FILE *f, int reverse)
 			} else {
 				int c;
 				if (pl[pos].is_merge)
-					c = merge_window(&pl[pos], NULL, reverse);
+					c = merge_window(&pl[pos], NULL, reverse, 0);
 				else
-					c = merge_window(&pl[pos], f, reverse);
+					c = merge_window(&pl[pos], f, reverse, 0);
 				refresh = 2;
 				if (c) {
 					pl[pos].is_merge = 1;
@@ -2542,30 +2547,38 @@ static void main_window(struct plist *pl, int *np, FILE *f, int reverse)
 			}
 			move(0, cols-10); clrtoeol();
 			break;
+
 		case 'q':
 			cnt = 0;
+			any = 0;
 			for (i = 0; i < *np; i++)
 				if (pl[i].end && !pl[i].is_merge)
 					cnt++;
-			if (cnt) {
-				int ans;
-				sprintf(saveall_buf, saveall_msg,
-					cnt, cnt == 1 ? "" : "s");
-				ans = help_window(saveall_query, NULL, 1);
-				refresh = 2;
-
-				if (ans < 0)
-					break;
-				if (ans) {
-					for (i = 0; i < *np; i++) {
-						if (pl[i].end
-						    && !pl[i].is_merge)
-							save_one(f, &pl[i],
-								 reverse);
-					}
-				} else
-					cnt = 0;
+				else if (pl[i].end)
+					any++;
+			if (!cnt) {
+				endwin();
+				return;
 			}
+			refresh = 2;
+			if (replace)
+				ans = 1;
+			else if (any) {
+				sprintf(saveall_buf, saveall_msg,
+					cnt, cnt == 1 ? "" : "s", cnt+any);
+				ans = help_window(saveall_query, NULL, 1);
+			}
+			if (ans < 0)
+				break;
+			if (ans) {
+				for (i = 0; i < *np; i++) {
+					if (pl[i].end
+					    && !pl[i].is_merge)
+						save_one(f, &pl[i],
+							 reverse);
+				}
+			} else
+				cnt = 0;
 			endwin();
 			if (cnt)
 				printf("%d file%s saved\n", cnt,
@@ -2760,7 +2773,7 @@ int vpatch(int argc, char *argv[], int patch, int strip,
 			fprintf(stderr, "%s: aborting\n", Cmd);
 			exit(2);
 		}
-		main_window(pl, &num_patches, in, reverse);
+		main_window(pl, &num_patches, in, reverse, replace);
 		plist_free(pl, num_patches);
 		fclose(in);
 		break;
@@ -2777,15 +2790,17 @@ int vpatch(int argc, char *argv[], int patch, int strip,
 				fprintf(stderr, "%s: aborting\n", Cmd);
 				exit(2);
 			}
-			main_window(pl, &num_patches, f, reverse);
+			main_window(pl, &num_patches, f, reverse, replace);
 			plist_free(pl, num_patches);
 		} else if (strlen(argv[0]) > 4 &&
 			 strcmp(argv[0]+strlen(argv[0])-4, ".rej") == 0) {
 			char *origname = strdup(argv[0]);
 			origname[strlen(origname) - 4] = '\0';
-			show_merge(origname, f, reverse, 0, NULL, NULL);
+			show_merge(origname, f, reverse, 0, NULL, NULL,
+				   replace);
 		} else
-			show_merge(argv[0], f, reverse, 1, NULL, NULL);
+			show_merge(argv[0], f, reverse, 1, NULL, NULL,
+				   replace);
 
 		break;
 	case 2: /* an orig and a diff/.ref */
@@ -2794,10 +2809,12 @@ int vpatch(int argc, char *argv[], int patch, int strip,
 			fprintf(stderr, "%s: cannot open %s\n", Cmd, argv[0]);
 			exit(1);
 		}
-		show_merge(argv[0], f, reverse, 0, NULL, NULL);
+		show_merge(argv[0], f, reverse, 0, NULL, NULL,
+			   replace);
 		break;
 	case 3: /* orig, before, after */
-		show_merge(argv[0], NULL, reverse, 1, argv[1], argv[2]);
+		show_merge(argv[0], NULL, reverse, 1, argv[1], argv[2],
+			   replace);
 		break;
 	}
 
