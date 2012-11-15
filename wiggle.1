@@ -107,6 +107,15 @@ wiggle \-\-replace originalfile originalfile.rej
 Finally each file must be examined to resolve any unresolved
 conflicts, and to make sure the applied patch is semantically correct.
 
+Alternately, the original patch file can be feed to the
+.B browse
+mode as
+.ti +5
+wiggle -B < patchfile
+
+This will allow the changes and conflicts to be inspected and, to some
+extent, modified; and then the results can be save.
+
 .SS OPTIONS
 The following options are understood by
 .IR wiggle .
@@ -155,7 +164,7 @@ or
 mode,
 .B -p
 requires there be exactly one file which is a patch and which can
-contain patches to multiple file.  The patches are merged into each
+contain patches to multiple files.  The patches are merged into each
 file.  When used in
 .I merge
 mode, this usage requires the
@@ -163,23 +172,35 @@ mode, this usage requires the
 option as writing lots of merged files to standard-out is impractical.
 
 When processing a multi-file patch,
-B -p
+.B \-p
 can be followed by a numeric argument indicating how many file name
 components should be stripped from files named in the patch file.  If no
 numeric argument is given,
 .I wiggle
-will deduce an appropriate number based what files are visible.
+will deduce an appropriate number based what files are present in the
+filesystem.
 
 .TP
 .BR -r ", " \-\-replace
 Normally the merged output is written to standard-output.  With
 \-\-replace, the original file is replaced with the merge output.
+In
+.B browse
+mode, this instructs
+.I wiggle
+to always save the resulting merge when exiting.
 
 .TP
 .BR -R ", " \-\-reverse
-When used with the "diff" function, swap the files before calculating
+When used with the
+.B diff
+function, swap the files before calculating
 the differences.
-When used with the "merge" function,
+When used with the
+.B merge
+or
+.B browse
+functions,
 .I wiggle
 attempts to revert changes rather than apply them.
 
@@ -218,8 +239,12 @@ Text that would result from a successful wiggle
 .TP
 .BR -h ", " \-\-help
 Print a simple help message.  If given after one of the function
-selectors (\-\-merge, \-\-diff, \-\-extract) help specific to that function
-is displayed.
+selectors
+.RB ( \-\-merge ,
+.BR \-\-diff ,
+.BR \-\-extract ,
+.BR \-\-browse )
+help specific to that function is displayed.
 
 .TP
 .BR -V ", " \-\-version
@@ -278,7 +303,7 @@ If one file is given together with the
 option, the file is treated as a patch file containing the names of
 the files that it patches.  In this case multiple merge operations can
 happen and each takes one stream from a file named in the patch, and
-the other to from the patch itself.  The
+the other two from the patch itself.  The
 .B \-\-replace
 option is required and the results are written back to the
 target files.
@@ -287,7 +312,9 @@ Finally if three files are listed, they are taken to contain the given
 text and the two other texts, in order.
 
 Normally the result of the merge is written to standard-output.
-However if the "\-r" flag is given, the output is written to a file
+However if the
+.B \-r
+flag is given, the output is written to a file
 which replaces the original given file. In this case the original file
 is renamed to have a
 .B .porig
@@ -359,7 +386,7 @@ and this appears (based on context) to align with
 .B B
 in the original, then it is assumed that this change has already been
 applied, and the change is ignored.  When this happens, a message
-reflected the number of ignored changes is printed by
+reflecting the number of ignored changes is printed by
 .IR wiggle .
 This optimisation can be suppressed with the
 .B \-i
@@ -440,7 +467,7 @@ The browse function of
 presents the result of a merge in a text-based GUI that can be
 navigated using keystrokes similar to vi(1) or emacs(1).
 
-The browser allow each of the three streams to be viewed individually
+The browser allows each of the three streams to be viewed individually
 with colours used to highlight different sorts of text - green for
 added text, red for deleted text etc.  It can also show the patch by
 itself, the full result of the merge, or the merge and the patch
@@ -448,6 +475,23 @@ side-by-side.
 
 The browser provides a number of context-sensitive help pages which
 can be accessed by typing '?'
+
+A limited amount of editing is permitted while in
+.B browse
+mode.  Currently any Conflict or Changed section can be marked as
+"ignored" by using the
+.B x
+key (lower case), or all the Conflict and Changes sections in a line
+can be ignored by using
+.B X
+(upper case).  The effect can be toggled by pressing
+.B x
+or
+.B X
+again.  If you make any changes, then wiggle will ask you if you want
+to save the changes, even if
+.B \-\-replace
+was not given.
 
 .SH WARNING
 
