@@ -546,6 +546,8 @@ static int visible(int mode, struct merge *m, struct mpos *pos)
 			ignore = 0;
 		switch (stream) {
 		case 0:
+			if (ignore && (mode & RESULT))
+				return a_unmatched;
 			if (mode & ORIG)
 				return a_unmatched | (A_REVERSE & ~ignore);
 			break;
