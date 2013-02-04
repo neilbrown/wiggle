@@ -1,0 +1,33 @@
+
+This directory previously contained a copy of
+   An O (ND) Difference Algorithm and Its Variations
+by EUGENE W. MYERS
+
+However it isn't clear that I have the right to redistrubute this so
+I've removed it.  It can easily be found by searching the internet.
+
+The code in wiggle differs from the algorithm presented in that paper
+in one fairly minor way.
+
+The paper describes how to find an optimal path or "snake" through the
+edit graph, but only stores the end-point and cost of the snake, not
+the full path (as that would require order-n^2 space).
+
+It then suggests that you run the same algorithm concurrently but in
+reverse from the end of the graph towards the start.  When you find
+that the longest snakes in both directions cross, you have a midpoint
+on the path.
+
+This is more useful than an end-point as you can recurse on either
+side and build up the full path using linear space and only doubling
+your work.
+
+Wiggle takes a different approach.  Finding where the snakes cross
+seemed awkward to me, and having two blocks of similiar but not
+identical code (one to search forward, one to search backwards) didn't
+appeal at all.
+
+So wiggle only searches forward, but it remembers where the half-way
+line was crossed.  i.e. it remembers the 'x' value when x+y
+changed from below to above (max_x + max_y)/2.
+This uses much the same amount of storage, but significantly less code.
