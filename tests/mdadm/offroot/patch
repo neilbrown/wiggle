@@ -1,0 +1,35 @@
+diff --git a/mdadm.c b/mdadm.c
+index 11016e7..63962d1 100644
+--- a/mdadm.c
++++ b/mdadm.c
+@@ -116,6 +116,13 @@ int main(int argc, char *argv[])
+ 	ident.container = NULL;
+ 	ident.member = NULL;
+ 
++	/*
++	 * set first char of argv[0] to @. This is used by
++	 * systemd to signal that the task was launched from 
++	 * initrd/initramfs and should be preserved during shutdown
++	 */
++	argv[0][0] = '@';
++
+ 	while ((option_index = -1) ,
+ 	       (opt=getopt_long(argc, argv,
+ 				shortopt, long_options,
+@@ -159,16 +166,6 @@ int main(int argc, char *argv[])
+ 				c.homehost = optarg;
+ 			continue;
+ 
+-		/*
+-		 * --offroot sets first char of argv[0] to @. This is used
+-		 * by systemd to signal that the task was launched from
+-		 * initrd/initramfs and should be preserved during shutdown
+-		 */
+-		case OffRootOpt:
+-			argv[0][0] = '@';
+-			__offroot = 1;
+-			continue;
+-
+ 		case Prefer:
+ 			if (c.prefer)
+ 				free(c.prefer);

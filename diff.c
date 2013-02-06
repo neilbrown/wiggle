@@ -577,6 +577,60 @@ struct csl *diff_partial(struct file a, struct file b,
 	return csl;
 }
 
+struct csl *csl_join(struct csl *c1, struct csl *c2)
+{
+	int cnt1, cnt2;
+	if (c1 == NULL)
+		return c2;
+	if (c2 == NULL)
+		return c1;
+
+	for (cnt1 = 0; c1[cnt1].len; cnt1++)
+		;
+	for (cnt2 = 0; c2[cnt2].len; cnt2++)
+		;
+	c1 = realloc(c1, (cnt1+cnt2+1)*sizeof(*c1));
+	while (cnt2 >= 0) {
+		c1[cnt1+cnt2] = c2[cnt2];
+		cnt2--;
+	}
+	free(c2);
+	return c1;
+}
+
+/* When rediffing a patch, we *must* make sure the hunk headers
+ * line up.  So don't do a full diff, but rather find the hunk
+ * headers and diff the bits between them.
+ */
+struct csl *diff_patch(struct file a, struct file b)
+{
+	int ap, bp;
+	struct csl *csl = NULL;
+	if (a.list[0].start[0] != '\0' ||
+	    b.list[0].start[0] != '\0')
+		/* this is not a patch */
+		return diff(a, b);
+
+	ap = 0; bp = 0;
+	while (ap < a.elcnt && bp < b.elcnt) {
+		int alo = ap;
+		int blo = bp;
+		struct csl *cs;
+
+		do
+			ap++;
+		while (ap < a.elcnt &&
+		       a.list[ap].start[0] != '\0');
+		do
+			bp++;
+		while (bp < b.elcnt &&
+		       b.list[bp].start[0] != '\0');
+		cs = diff_partial(a, b, alo, ap, blo, bp);
+		csl = csl_join(csl, cs);
+	}
+	return csl;
+}
+
 #ifdef MAIN
 
 main(int argc, char *argv[])

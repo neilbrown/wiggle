@@ -1300,29 +1300,16 @@ static void raid1d (void *data)
 #undef IO_ERROR
 #undef REDIRECT_SECTOR
 
-
-static int init_resync (conf_t *conf)
+<<<<<<<
+static void raid1syncd (void *data)
 {
-*** 1144,16 **** 8
-<<<<<<<
 	raid1_conf_t *conf = data;
-	mddev_t *mddev = conf->mddev;
 |||||||
+static void raid1syncd(void *data)
+{
 	conf_t *conf = data;
-	mddev_t *mddev = conf->mddev;
 =======
-	sector_t max_sector, nr_sectors;
-	int disk, partial;
 >>>>>>>
-
-	if (sector_nr == 0)
-		if (init_resync(conf))
-			return -ENOMEM;
-
-<<<<<<<
-	close_sync(conf);
-
-}
 
 /*
  * perform a "sync" on one "block"
@@ -1481,19 +1468,7 @@ static int raid1_sync_request (mddev_t *mddev, unsigned long sector_nr)
 	md_sync_acct(bh->b_dev, bh->b_size/512);
 
 	return (bsize >> 9);
-|||||||
-	close_sync(conf);
 
-}
-
-static int init_resync(conf_t *conf)
-{
-*** 1170,9 **** 8
-	sector_t max_sector, nr_sectors;
-	int disk, partial;
-=======
-	max_sector = mddev->sb->size << 1;
->>>>>>>
 nomem:
 <<<<<<<
 	raid1_shrink_buffers(conf);
@@ -1505,6 +1480,11 @@ nomem:
 			return -ENOMEM;
 	/*
 =======
+	if (sector_nr == 0)
+		if (init_resync(conf))
+			return -ENOMEM;
+
+	max_sector = mddev->sb->size << 1;
 	if (sector_nr >= max_sector) {
 		close_sync(conf);
 		return 0;

@@ -422,7 +422,7 @@ static int do_diff(int argc, char *argv[], int obj, int ispatch,
 	if (chunks2 && !chunks1)
 		csl = pdiff(fl[0], fl[1], chunks2);
 	else
-		csl = diff(fl[0], fl[1]);
+		csl = diff_patch(fl[0], fl[1]);
 	if (obj == 'l') {
 		if (!chunks1)
 			printf("@@ -1,%d +1,%d @@\n",
@@ -551,7 +551,7 @@ static int do_merge(int argc, char *argv[], int obj,
 		csl1 = pdiff(fl[0], fl[1], chunks2);
 	else
 		csl1 = diff(fl[0], fl[1]);
-	csl2 = diff(fl[1], fl[2]);
+	csl2 = diff_patch(fl[1], fl[2]);
 
 	ci = make_merger(fl[0], fl[1], fl[2], csl1, csl2,
 			 obj == 'w', ignore, show_wiggles);
