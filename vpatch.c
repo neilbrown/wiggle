@@ -2433,6 +2433,12 @@ static char *main_help[] = {
 	"  A          list All files",
 	"  W          only list files with a wiggle or a conflict",
 	"  C          only list files with a conflict",
+	"",
+	"  S          Save this file with changes applied.  If",
+	"             some but not all files are saved, wiggle will",
+	"             prompt on exit to save the rest.",
+	"  R          Revert the current saved file to its original",
+	"             content",
 	NULL
 };
 static char *saveall_msg = " %d file%s (of %d) have not been saved.";
