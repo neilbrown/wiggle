@@ -2780,7 +2780,12 @@ static void catch(int sig)
 	nl();
 	endwin();
 	printf("Died on signal %d\n", sig);
-	exit(2);
+	fflush(stdout);
+	if (sig != SIGBUS && sig != SIGSEGV)
+		exit(2);
+	else
+		/* Otherwise return and die */
+		signal(sig, NULL);
 }
 
 static void term_init(void)
