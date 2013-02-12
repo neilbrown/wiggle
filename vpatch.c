@@ -408,7 +408,7 @@ static struct elmnt next_melmnt(struct mp *pos,
 				struct merge *m)
 {
 	pos->o++;
-	while (1) {
+	while (pos->m < 0 || m[pos->m].type != End) {
 		int l = 0; /* Length remaining in current merge section */
 		if (pos->m >= 0)
 			switch (pos->s) {
@@ -460,7 +460,8 @@ static struct elmnt prev_melmnt(struct mp *pos,
 				struct merge *m)
 {
 	if (pos->s == 0) {
-		if (ends_mline(fm.list[m[pos->m].a + pos->o]))
+		if (m[pos->m].a + pos->o < fm.elcnt &&
+		    ends_mline(fm.list[m[pos->m].a + pos->o]))
 			pos->lineno--;
 		if (pos->lineno & 1)
 			pos->lineno--;
@@ -509,12 +510,16 @@ static struct elmnt prev_melmnt(struct mp *pos,
  */
 static int visible(int mode, struct merge *m, struct mpos *pos)
 {
-	enum mergetype type = m[pos->p.m].type;
+	enum mergetype type;
 	int stream = pos->p.s;
 	unsigned int ignore;
 
 	if (mode == 0)
 		return -1;
+	if (pos->p.m < 0)
+		type = End;
+	else
+		type = m[pos->p.m].type;
 	/* mode can be any combination of ORIG RESULT BEFORE AFTER */
 	switch (type) {
 	case End: /* The END is always visible */
@@ -603,6 +608,8 @@ static int check_line(struct mpos pos, struct file fm, struct file fb,
 	struct elmnt e;
 	int unmatched = 0;
 
+	if (pos.p.m < 0)
+		return 0;
 	do {
 		if (m[pos.p.m].type == Changed && !m[pos.p.m].ignored)
 			rv |= CHANGES;
@@ -626,7 +633,10 @@ static int check_line(struct mpos pos, struct file fm, struct file fb,
 				rv |= WIGGLED;
 		} else if (m[pos.p.m].type == Unmatched)
 			unmatched = 1;
+
 		if (m[pos.p.m].in_conflict &&
+		    ((m[pos.p.m].type == Changed && !m[pos.p.m].ignored) ||
+		     m[pos.p.m].type == Unchanged) &&
 		    (pos.p.o < m[pos.p.m].lo ||
 		     pos.p.o > m[pos.p.m].hi))
 			rv |= CONFLICTED | CHANGES;
@@ -2671,7 +2681,8 @@ static void main_window(struct plist *pl, int *np, FILE *f, int reverse,
 				sprintf(saveall_buf, saveall_msg,
 					cnt, cnt == 1 ? "" : "s", cnt+any);
 				ans = help_window(saveall_query, NULL, 1);
-			}
+			} else
+				ans = 0;
 			if (ans < 0)
 				break;
 			if (ans) {

@@ -111,10 +111,12 @@ struct stream load_segment(FILE *f,
 {
 	struct stream s;
 	s.len = end - start;
-	s.body = xmalloc(s.len);
+	s.body = xmalloc(s.len+1);
 	fseek(f, start, 0);
 	if (fread(s.body, 1, s.len, f) != (size_t)s.len)
 		die();
+	/* ensure string is 'nul' terminated - for sscanf */
+	s.body[s.len] = 0;
 	return s;
 }
 
