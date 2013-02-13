@@ -190,7 +190,7 @@ int isolate_conflicts(struct file af, struct file bf, struct file cf,
 					 */
 					for (k = m[j].al; k > 0; k--)
 						if (ends_line(af.list[m[j].a+k-1])) {
-							if (firstk >= m[j].al)
+							if (firstk > m[j].al)
 								firstk = k;
 							newlines++;
 							if (newlines >= 3) {
@@ -200,6 +200,8 @@ int isolate_conflicts(struct file af, struct file bf, struct file cf,
 						}
 					if (k > 0)
 						m[j].hi = k;
+					else if (j == 0)
+						m[j].hi = firstk;
 					else if (is_cutpoint(m[j], af,bf,cf))
 						m[j].hi = 0;
 					else

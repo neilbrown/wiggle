@@ -710,14 +710,12 @@ static int make_request(mddev_t *mddev, struct bio * bio)
 	struct bio *read_bio;
 	int i, targets = 0, disks;
 	struct bitmap *bitmap;
+	unsigned long flags;
 <<<<<<<
-	unsigned long flags;
 |||||||
-	unsigned long flags;
 	struct bio_list bl;
 	struct page **behind_pages = NULL;
 =======
-	unsigned long flags;
 	struct bio_list bl;
 	int bl_count;
 	struct page **behind_pages = NULL;
@@ -1951,8 +1949,8 @@ static conf_t *setup_conf(mddev_t *mddev)
 	spin_lock_init(&conf->resync_lock);
 	init_waitqueue_head(&conf->wait_barrier);
 
-<<<<<<<
 	bio_list_init(&conf->pending_bio_list);
+<<<<<<<
 
 	conf->last_used = -1;
 	for (i = 0; i < conf->raid_disks; i++) {
@@ -2320,12 +2318,10 @@ MODULE_ALIAS("md-level-1");
 
 module_param(max_queued, int, S_IRUGO|S_IWUSR);
 |||||||
-	bio_list_init(&conf->pending_bio_list);
 	bio_list_init(&conf->flushing_bio_list);
 
 
 =======
-	bio_list_init(&conf->pending_bio_list);
 	conf->pending_count = 0;
 	bio_list_init(&conf->flushing_bio_list);
 
