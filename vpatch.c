@@ -491,7 +491,7 @@ static struct elmnt prev_melmnt(struct mp *pos,
 			}
 		}
 	}
-	if (pos->m < 0) {
+	if (pos->m < 0 || m[pos->m].type == End) {
 		struct elmnt e;
 		e.start = NULL; e.hash = 0; e.len = 0;
 		return e;
@@ -1561,6 +1561,12 @@ static int merge_window(struct plist *p, FILE *f, int reverse, int replace)
 				prev_mline(&spos, fm, fb, fa, ci.merger, smode);
 			/* Now hi/lo might be wrong, so lets fix it. */
 			tpos = spos;
+			if (spos.state)
+				/* 'hi' might be wrong so we mustn't depend
+				 * on it while walking back.  So set state
+				 * to 1 to avoid ever testing it.
+				 */
+				spos.state = 1;
 			while (spos.p.m >= 0 && spos.state != 0)
 				prev_mline(&spos, fm, fb, fa, ci.merger, smode);
 			while (!same_mpos(spos, tpos))
