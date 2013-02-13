@@ -256,7 +256,7 @@ int isolate_conflicts(struct file af, struct file bf, struct file cf,
 						int firstk = -1;
 						for (k = 0 ; k < m[j].al ; k++)
 							if (ends_line(af.list[m[j].a+k])) {
-								if (firstk <= 0)
+								if (firstk < 0)
 									firstk = k;
 								newlines++;
 								if (newlines >= 3) {
@@ -264,6 +264,11 @@ int isolate_conflicts(struct file af, struct file bf, struct file cf,
 									break;
 								}
 							}
+						if (newlines < 3 &&
+						    m[j+1].type  == End)
+							/* Hit end of file, pretend we found 3 newlines. */
+							k = firstk;
+
 						if (firstk >= 0 &&
 						    m[j+1].type == Unmatched) {
 							/* If this Unmatched exceeds 3 lines, just stop here */
