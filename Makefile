@@ -29,6 +29,9 @@ test: wiggle dotest
 valgrind: wiggle dotest
 	./dotest valgrind
 
+vtest: wiggle dovtest
+	./dovtest
+
 wiggle.man : wiggle.1
 	nroff -man wiggle.1 > wiggle.man
 

@@ -45,7 +45,9 @@
 #include <fcntl.h>
 #include <ctype.h>
 
-static void term_init(void);
+static void term_init(int raw);
+
+static int intr_kills = 0;
 
 /* global attributes */
 unsigned int a_delete, a_added, a_common, a_sep, a_void,
@@ -1241,7 +1243,8 @@ static char *save_query[] = {
 	NULL
 };
 
-static int merge_window(struct plist *p, FILE *f, int reverse, int replace)
+static int merge_window(struct plist *p, FILE *f, int reverse, int replace,
+			int selftest)
 {
 	/* Display the merge window in one of the selectable modes,
 	 * starting with the 'merge' mode.
@@ -1317,6 +1320,11 @@ static int merge_window(struct plist *p, FILE *f, int reverse, int replace)
 		unsigned int searchlen;
 	} *anchor = NULL;
 
+	if (selftest) {
+		intr_kills = 1;
+		selftest = 1;
+	}
+
 	if (f == NULL) {
 		if (!p->is_merge) {
 			/* three separate files */
@@ -1355,7 +1363,7 @@ static int merge_window(struct plist *p, FILE *f, int reverse, int replace)
 		free(sm.body);
 		free(sb.body);
 		free(sa.body);
-		term_init();
+		term_init(1);
 		if (!sm.body)
 			help_window(help_missing, NULL, 0);
 		else
@@ -1376,7 +1384,7 @@ static int merge_window(struct plist *p, FILE *f, int reverse, int replace)
 
 	ci = make_merger(fm, fb, fa, csl1, csl2, 0, 1, 0);
 
-	term_init();
+	term_init(!selftest);
 
 	row = 1;
 	pos.p.m = 0; /* merge node */
@@ -1650,7 +1658,14 @@ static int merge_window(struct plist *p, FILE *f, int reverse, int replace)
 			move(row, curs.col-start + (cols-1)/2+2);
 		else
 			move(row, curs.col-start+1);
-		c = getch();
+		switch (selftest) {
+		case 0:
+			c = getch(); break;
+		case 1:
+			c = 'n'; break;
+		case 2:
+			c = 'q'; break;
+		}
 		tmeta = meta; meta = 0;
 		tnum = num; num = -1;
 		tvpos = vpos; vpos = pos;
@@ -1838,9 +1853,11 @@ static int merge_window(struct plist *p, FILE *f, int reverse, int replace)
 		case ' ':
 		case 'V'-64: /* page down */
 			pos = botpos;
-			if (botrow <= lastrow)
+			if (botrow <= lastrow) {
 				row = botrow;
-			else
+				if (selftest == 1)
+					selftest = 2;
+			} else
 				row = 2;
 			refresh = 1;
 			break;
@@ -1914,8 +1931,11 @@ static int merge_window(struct plist *p, FILE *f, int reverse, int replace)
 				if (ci.merger[tpos.p.m].type != End) {
 					pos = tpos;
 					row++;
-				} else
+				} else {
+					if (selftest == 1)
+						selftest = 2;
 					break;
+				}
 			}
 			break;
 		case 'N':
@@ -2213,7 +2233,7 @@ static int merge_window(struct plist *p, FILE *f, int reverse, int replace)
 
 static int show_merge(char *origname, FILE *patch, int reverse,
 		      int is_merge, char *before, char *after,
-		      int replace)
+		      int replace, int selftest)
 {
 	struct plist p;
 
@@ -2230,7 +2250,7 @@ static int show_merge(char *origname, FILE *patch, int reverse,
 	p.after = after;
 
 	freopen("/dev/null","w",stderr);
-	return merge_window(&p, patch, reverse, replace);
+	return merge_window(&p, patch, reverse, replace, selftest);
 }
 
 static void calc_one(struct plist *pl, FILE *f, int reverse)
@@ -2519,7 +2539,7 @@ static void main_window(struct plist *pl, int *np, FILE *f, int reverse,
 	MEVENT mevent;
 
 	freopen("/dev/null","w",stderr);
-	term_init();
+	term_init(1);
 	pl = sort_patches(pl, np);
 
 	while (1) {
@@ -2639,9 +2659,9 @@ static void main_window(struct plist *pl, int *np, FILE *f, int reverse,
 			} else {
 				int c;
 				if (pl[pos].is_merge)
-					c = merge_window(&pl[pos], NULL, reverse, 0);
+					c = merge_window(&pl[pos], NULL, reverse, 0, 0);
 				else
-					c = merge_window(&pl[pos], f, reverse, 0);
+					c = merge_window(&pl[pos], f, reverse, 0, 0);
 				refresh = 2;
 				if (c) {
 					pl[pos].is_merge = 1;
@@ -2778,7 +2798,7 @@ static void main_window(struct plist *pl, int *np, FILE *f, int reverse,
 
 static void catch(int sig)
 {
-	if (sig == SIGINT) {
+	if (sig == SIGINT && !intr_kills) {
 		signal(sig, catch);
 		return;
 	}
@@ -2794,7 +2814,7 @@ static void catch(int sig)
 		signal(sig, NULL);
 }
 
-static void term_init(void)
+static void term_init(int doraw)
 {
 
 	static int init_done = 0;
@@ -2809,7 +2829,12 @@ static void term_init(void)
 	signal(SIGBUS, catch);
 	signal(SIGSEGV, catch);
 
-	initscr(); raw(); noecho();
+	initscr();
+	if (doraw)
+		raw();
+	else
+		cbreak();
+	noecho();
 	start_color();
 	use_default_colors();
 	if (!has_colors()) {
@@ -2849,7 +2874,7 @@ static void term_init(void)
 }
 
 int vpatch(int argc, char *argv[], int patch, int strip,
-	   int reverse, int replace)
+	   int reverse, int replace, int selftest)
 {
 	/* NOTE argv[0] is first arg...
 	 * Behaviour depends on number of args:
@@ -2923,10 +2948,10 @@ int vpatch(int argc, char *argv[], int patch, int strip,
 			char *origname = strdup(argv[0]);
 			origname[strlen(origname) - 4] = '\0';
 			show_merge(origname, f, reverse, 0, NULL, NULL,
-				   replace);
+				   replace, selftest);
 		} else
 			show_merge(argv[0], f, reverse, 1, NULL, NULL,
-				   replace);
+				   replace, selftest);
 
 		break;
 	case 2: /* an orig and a diff/.ref */
@@ -2936,11 +2961,11 @@ int vpatch(int argc, char *argv[], int patch, int strip,
 			exit(1);
 		}
 		show_merge(argv[0], f, reverse, 0, NULL, NULL,
-			   replace);
+			   replace, selftest);
 		break;
 	case 3: /* orig, before, after */
 		show_merge(argv[0], NULL, reverse, 1, argv[1], argv[2],
-			   replace);
+			   replace, selftest);
 		break;
 	}
 

@@ -187,12 +187,15 @@ extern void *xmalloc(int len);
 extern int do_trace;
 
 extern int vpatch(int argc, char *argv[], int patch, int strip,
-		  int reverse, int replace);
+		  int reverse, int replace, int selftest);
 
 extern char *Cmd;
 extern char Version[];
 extern char short_options[];
 extern struct option long_options[];
+enum other_options {
+	SELF_TEST = 300,
+};
 extern char Usage[];
 extern char Help[];
 extern char HelpExtract[];

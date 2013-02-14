@@ -50,6 +50,7 @@ struct option long_options[] = {
 	{"strip",	1, 0, 'p'},
 	{"no-ignore",	0, 0, 'i'},
 	{"show-wiggle",	0, 0, 'W'},
+	{"self-test",   0, 0, SELF_TEST},
 	{0, 0, 0, 0}
 };
 

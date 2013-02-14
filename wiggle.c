@@ -650,6 +650,7 @@ int main(int argc, char *argv[])
 	int show_wiggles = 0;
 	char *helpmsg;
 	char *trace;
+	int selftest = 0;
 
 	trace = getenv("WIGGLE_TRACE");
 	if (trace && *trace)
@@ -748,13 +749,17 @@ int main(int argc, char *argv[])
 		case 'q':
 			quiet = 1;
 			continue;
+
+		case SELF_TEST:
+			selftest = 1;
+			continue;
 		}
 	if (!mode)
 		mode = 'm';
 
 	if (mode == 'B') {
 		vpatch(argc-optind, argv+optind, ispatch,
-		       strip, reverse, replace);
+		       strip, reverse, replace, selftest);
 		/* should not return */
 		exit(1);
 	}
