@@ -26,6 +26,9 @@ split.o :: ccan/hash/hash.h config.h
 test: wiggle dotest
 	./dotest
 
+valgrind: wiggle dotest
+	./dotest valgrind
+
 wiggle.man : wiggle.1
 	nroff -man wiggle.1 > wiggle.man
 

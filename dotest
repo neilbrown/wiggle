@@ -29,7 +29,11 @@ if $TIME true > /dev/null 2>&1
 then :
 else TIME=
 fi
-#TIME=valgrind
+vallog=/tmp/valg.log-$$
+> $vallog
+if [ " $1" = " valgrind" ]; then
+  TIME="valgrind --log-file=$vallog"
+fi
 status=0
 ok=0
 fail=0
@@ -94,6 +98,9 @@ do
 		 ;;
    esac
    if [ $xit = 0 ]; then msg=SUCCEEDED; else msg=FAILED; fi
+   if grep 'ERROR SUMMARY: [1-9]' $vallog > /dev/null 2>&1
+   then msg="$msg WITH VALGRIND ERRORS"; xit=1
+   fi
    echo $path $msg `grep -v 'Command exited' .time 2> /dev/null`
    rm -f .time
    exit $xit
