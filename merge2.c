@@ -477,6 +477,21 @@ struct ci make_merger(struct file af, struct file bf, struct file cf,
 	rv.merger[i].in_conflict = 0;
 	rv.merger[i].ignored = 0;
 	assert(i < l);
+
+	/* Now revert any AlreadyApplied that aren't bounded by
+	 * Unchanged or Changed.
+	 */
+	for (i = 0; rv.merger[i].type != End; i++) {
+		if (rv.merger[i].type != AlreadyApplied)
+			continue;
+		if (i > 0 && rv.merger[i-1].type != Unchanged &&
+		    rv.merger[i-1].type != Changed)
+			rv.merger[i].type = Conflict;
+		if (rv.merger[i+1].type != Unchanged &&
+		    rv.merger[i+1].type != Changed &&
+		    rv.merger[i+1].type != End)
+			rv.merger[i].type = Conflict;
+	}
 	rv.conflicts = isolate_conflicts(af, bf, cf, csl1, csl2, words,
 					 rv.merger, show_wiggles);
 	if (wiggle_found)
