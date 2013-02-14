@@ -1474,11 +1474,15 @@ nomem:
 	raid1_shrink_buffers(conf);
 	return -ENOMEM;
 }
+
+static void end_sync_read(struct buffer_head *bh, int uptodate)
 |||||||
 	if (!sector_nr)
 		if (init_resync(conf))
 			return -ENOMEM;
 	/*
+	 * If there is non-resync activity waiting for us then
+	 * put in a delay to throttle resync.
 =======
 	if (sector_nr == 0)
 		if (init_resync(conf))
@@ -1491,9 +1495,9 @@ nomem:
 	}
 
 	/*
+	 * If there is non-resync activity waiting for us then
+	 * put in a delay to throttle resync.
 >>>>>>>
-
-static void end_sync_read(struct buffer_head *bh, int uptodate)
 {
 	struct raid1_bh * r1_bh = (struct raid1_bh *)(bh->b_private);
 
@@ -1516,11 +1520,25 @@ static void end_sync_write(struct buffer_head *bh, int uptodate)
  		md_error (r1_bh->mddev, bh->b_dev);
 	if (atomic_dec_and_test(&r1_bh->remaining)) {
 		mddev_t *mddev = r1_bh->mddev;
+<<<<<<<
  		unsigned long sect = bh->b_blocknr;
 		int size = bh->b_size;
 		raid1_free_buf(r1_bh);
 		sync_request_done(sect, mddev_to_conf(mddev));
 		md_done_sync(mddev,size>>9, uptodate);
+|||||||
+	r1_bio->sector = sector_nr;
+	r1_bio->cmd = SPECIAL;
+
+	max_sector = mddev->sb->size << 1;
+	if (sector_nr >= max_sector)
+		BUG();
+
+=======
+	r1_bio->sector = sector_nr;
+	r1_bio->cmd = SPECIAL;
+
+>>>>>>>
 	}
 }
 

@@ -936,12 +936,14 @@ static int make_request(mddev_t *mddev, struct bio * bio)
 		bio_list_add(&conf->pending_bio_list, mbio);
 		spin_unlock_irqrestore(&conf->device_lock, flags);
 	}
+	r1_bio_write_done(r1_bio);
 |||||||
 				test_bit(R1BIO_BehindIO, &r1_bio->state));
 	spin_lock_irqsave(&conf->device_lock, flags);
 	bio_list_merge(&conf->pending_bio_list, &bl);
 	bio_list_init(&bl);
 
+	blk_plug_device(mddev->queue);
 =======
 				test_bit(R1BIO_BehindIO, &r1_bio->state));
 	spin_lock_irqsave(&conf->device_lock, flags);
@@ -949,8 +951,8 @@ static int make_request(mddev_t *mddev, struct bio * bio)
 	conf->pending_count += bl_count;
 	bio_list_init(&bl);
 
+	blk_plug_device(mddev->queue);
 >>>>>>>
-	r1_bio_write_done(r1_bio);
 
 	/* In case raid1d snuck in to freeze_array */
 	wake_up(&conf->wait_barrier);
@@ -1954,6 +1956,16 @@ static conf_t *setup_conf(mddev_t *mddev)
 
 	conf->last_used = -1;
 	for (i = 0; i < conf->raid_disks; i++) {
+|||||||
+	bio_list_init(&conf->flushing_bio_list);
+
+
+=======
+	conf->pending_count = 0;
+	bio_list_init(&conf->flushing_bio_list);
+
+
+>>>>>>>
 
 		disk = conf->mirrors + i;
 
@@ -2317,13 +2329,3 @@ MODULE_ALIAS("md-raid1");
 MODULE_ALIAS("md-level-1");
 
 module_param(max_queued, int, S_IRUGO|S_IWUSR);
-|||||||
-	bio_list_init(&conf->flushing_bio_list);
-
-
-=======
-	conf->pending_count = 0;
-	bio_list_init(&conf->flushing_bio_list);
-
-
->>>>>>>

@@ -468,6 +468,7 @@ struct csl *pdiff(struct file a, struct file b, int chunks)
 	struct best *best = xmalloc(sizeof(struct best)*(chunks+1));
 	int i;
 	struct file asmall, bsmall;
+	int xmin;
 
 	asmall = reduce(a);
 	bsmall = reduce(b);
@@ -484,12 +485,70 @@ struct csl *pdiff(struct file a, struct file b, int chunks)
 		free(bsmall.list);
 
 	csl1 = NULL;
+	xmin = 0;
 	for (i = 1; i <= chunks; i++)
 		if (best[i].val > 0) {
+			/* If we there are any newlines in the hunk before
+			 * ylo, then extend xlo back that many newlines if
+			 * possible and diff_partial the extended regions.
+			 */
+			int lines = 0;
+			int ylo = best[i].ylo;
+			int yhi;
+			while (ylo > 0 && b.list[ylo-1].start[0]) {
+				ylo--;
+				lines += !!ends_line(b.list[ylo]);
+			}
+			if (lines) {
+				int xlo = best[i].xlo;
+				while (lines && xlo > xmin) {
+					xlo--;
+					lines -= !!ends_line(a.list[xlo]);
+				}
+				while (xlo > xmin && !ends_line(a.list[xlo-1]))
+					xlo--;
+				csl2 = diff_partial(a, b,
+						    xlo, best[i].xlo,
+						    ylo, best[i].ylo);
+				csl1 = csl_join(csl1, csl2);
+			}
+
+			/* Now diff_partial the good bit of the hunk with the
+			 * good match
+			 */
 			csl2 = diff_partial(a, b,
 					    best[i].xlo, best[i].xhi,
 					    best[i].ylo, best[i].yhi);
 			csl1 = csl_join(csl1, csl2);
+
+			/* Now if there are newlines at the end of the
+			 * hunk that weren't matched, find as many in
+			 * original and diff_partial those bits
+			 */
+			lines = 0;
+			yhi = best[i].yhi;
+			while (yhi < b.elcnt && b.list[yhi].start[0]) {
+				lines += !!ends_line(b.list[yhi]);
+				yhi++;
+			}
+			xmin = best[i].xhi;
+			if (lines) {
+				int xhi = best[i].xhi;
+				int xmax = a.elcnt;
+				if (i < chunks)
+					xmax = best[i+1].xlo;
+				while (lines && xhi < xmax) {
+					lines -= !!ends_line(a.list[xhi]);
+					xhi++;
+				}
+				csl2 = diff_partial(a, b,
+						    best[i].xhi, xhi,
+						    best[i].yhi, yhi);
+				csl1 = csl_join(csl1, csl2);
+				xmin = xhi;
+			}
+		} else {
+			/* FIXME we just lost a hunk!! */;
 		}
 	if (csl1) {
 		for (csl2 = csl1; csl2->len; csl2++)
