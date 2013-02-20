@@ -2964,7 +2964,7 @@ int vpatch(int argc, char *argv[], int patch, int strip,
 			   replace, selftest);
 		break;
 	case 3: /* orig, before, after */
-		show_merge(argv[0], NULL, reverse, 1, argv[1], argv[2],
+		show_merge(argv[0], NULL, reverse, 0, argv[1], argv[2],
 			   replace, selftest);
 		break;
 	}
