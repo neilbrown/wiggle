@@ -957,45 +957,8 @@ static void draw_mside(int mode, int row, int offset, int start, int cols,
 		e = next_melmnt(&pos.p, fm, fb, fa, m);
 		if (e.start == NULL ||
 		    (ends_mline(e)
-		     && visible(mode, m, &pos) != -1)) {
-			/* We have reached the end of visible line, or end of file */
-			if (curs) {
-				curs->col = col;
-				if (col >= start + cols)
-					curs->width = 0;
-				else
-					curs->width = -1; /* end of line */
-				if (curs->target >= 0) {
-					curs->pos = pos.p;
-					curs->offset = 0;
-				} else if (same_mp(pos.p, curs->pos))
-					curs->target = col;
-			}
-			if (col < start)
-				col = start;
-			if (e.start && e.start[0] == 0) {
-				char b[40];
-				struct elmnt e1;
-				if (pos.p.s == 2 && m[pos.p.m].type == Extraneous) {
-					int A, B, C, D, E, F;
-					e1 = fb.list[m[pos.p.m].b + pos.p.o];
-					sscanf(e1.start+1, "%d %d %d", &A, &B, &C);
-					sscanf(e.start+1, "%d %d %d", &D, &E, &F);
-					sprintf(b, "@@ -%d,%d +%d,%d @@\n", B, C, E, F);
-					(void)attrset(a_sep);
-				} else {
-					(void)attrset(visible(mode, m, &pos));
-					sprintf(b, "<%.17s>", e.start+1);
-				}
-				mvaddstr(row, col-start+offset, b);
-				col += strlen(b);
-			}
-			blank(row, col-start+offset, start+cols-col,
-			      e.start
-			      ? (unsigned)visible(mode, m, &pos)
-			      : A_NORMAL);
-			return;
-		}
+		     && visible(mode, m, &pos) != -1))
+			break;
 		if (visible(mode, m, &pos) == -1)
 			continue;
 		if (e.start[0] == 0)
@@ -1059,6 +1022,43 @@ static void draw_mside(int mode, int row, int offset, int start, int cols,
 			c++;
 		}
 	}
+
+	/* We have reached the end of visible line, or end of file */
+	if (curs) {
+		curs->col = col;
+		if (col >= start + cols)
+			curs->width = 0;
+		else
+			curs->width = -1; /* end of line */
+		if (curs->target >= 0) {
+			curs->pos = pos.p;
+			curs->offset = 0;
+		} else if (same_mp(pos.p, curs->pos))
+			curs->target = col;
+	}
+	if (col < start)
+		col = start;
+	if (e.start && e.start[0] == 0) {
+		char b[40];
+		struct elmnt e1;
+		if (pos.p.s == 2 && m[pos.p.m].type == Extraneous) {
+			int A, B, C, D, E, F;
+			e1 = fb.list[m[pos.p.m].b + pos.p.o];
+			sscanf(e1.start+1, "%d %d %d", &A, &B, &C);
+			sscanf(e.start+1, "%d %d %d", &D, &E, &F);
+			sprintf(b, "@@ -%d,%d +%d,%d @@\n", B, C, E, F);
+			(void)attrset(a_sep);
+		} else {
+			(void)attrset(visible(mode, m, &pos));
+			sprintf(b, "<%.17s>", e.start+1);
+		}
+		mvaddstr(row, col-start+offset, b);
+		col += strlen(b);
+	}
+	blank(row, col-start+offset, start+cols-col,
+	      e.start
+	      ? (unsigned)visible(mode, m, &pos)
+	      : A_NORMAL);
 }
 
 /* Draw either 1 or 2 sides depending on the mode. */
