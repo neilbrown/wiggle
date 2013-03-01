@@ -448,7 +448,7 @@ static struct elmnt next_melmnt(struct mp *pos,
 	case 0:
 		if (pos->lineno & 1)
 			pos->lineno++;
-		if (ends_mline(fm.list[m[pos->m].a + pos->o]))
+		if (ends_line(fm.list[m[pos->m].a + pos->o]))
 			pos->lineno++;
 		return fm.list[m[pos->m].a + pos->o];
 	case 1: return fb.list[m[pos->m].b + pos->o];
@@ -463,7 +463,7 @@ static struct elmnt prev_melmnt(struct mp *pos,
 {
 	if (pos->s == 0) {
 		if (m[pos->m].a + pos->o < fm.elcnt &&
-		    ends_mline(fm.list[m[pos->m].a + pos->o]))
+		    ends_line(fm.list[m[pos->m].a + pos->o]))
 			pos->lineno--;
 		if (pos->lineno & 1)
 			pos->lineno--;
@@ -644,7 +644,7 @@ static int check_line(struct mpos pos, struct file fm, struct file fb,
 			rv |= CONFLICTED | CHANGES;
 		e = prev_melmnt(&pos.p, fm, fb, fa, m);
 	} while (e.start != NULL &&
-		 (!ends_mline(e)
+		 (!ends_line(e)
 		  || visible(mode, m, &pos) == -1));
 
 	if (unmatched && (rv & CHANGES))
@@ -673,7 +673,7 @@ static void next_mline(struct mpos *pos, struct file fm, struct file fb,
 			struct elmnt e = next_melmnt(&pos->p, fm, fb, fa, m);
 			if (e.start == NULL)
 				break;
-			if (ends_mline(e) &&
+			if (ends_line(e) &&
 			    visible(mode, m, pos) >= 0)
 				break;
 		}
@@ -729,7 +729,7 @@ static void prev_mline(struct mpos *pos, struct file fm, struct file fb,
 			struct elmnt e = prev_melmnt(&pos->p, fm, fb, fa, m);
 			if (e.start == NULL)
 				break;
-			if (ends_mline(e) &&
+			if (ends_line(e) &&
 			    visible(mode, m, pos) >= 0)
 				break;
 		}
@@ -839,7 +839,7 @@ static int mcontains(struct mpos pos,
 			}
 		}
 	} while (e.start != NULL &&
-		 (!ends_mline(e)
+		 (!ends_line(e)
 		  || visible(mode, m, &pos) == -1));
 break_while:
 	if (found) {
@@ -946,7 +946,7 @@ static void draw_mside(int mode, int row, int offset, int start, int cols,
 	do
 		e = prev_melmnt(&pos.p, fm, fb, fa, m);
 	while (e.start != NULL &&
-	       (!ends_mline(e) ||
+	       (!ends_line(e) ||
 		visible(mode, m, &pos) == -1));
 
 	while (1) {
@@ -956,7 +956,7 @@ static void draw_mside(int mode, int row, int offset, int start, int cols,
 		int l;
 		e = next_melmnt(&pos.p, fm, fb, fa, m);
 		if (e.start == NULL ||
-		    (ends_mline(e)
+		    (ends_line(e)
 		     && visible(mode, m, &pos) != -1))
 			break;
 		if (visible(mode, m, &pos) == -1)
@@ -2168,7 +2168,7 @@ static int merge_window(struct plist *p, FILE *f, int reverse, int replace,
 				    && ci.merger[tpos.p.m].ignored == 0)
 					do_ignore = 1;
 				e = prev_melmnt(&tpos.p, fm, fb, fa, ci.merger);
-			} while (!ends_mline(e) ||
+			} while (!ends_line(e) ||
 				 visible(mode & (RESULT|AFTER), ci.merger, &tpos) < 0);
 			tpos = pos;
 			do {
@@ -2176,7 +2176,7 @@ static int merge_window(struct plist *p, FILE *f, int reverse, int replace,
 				    ci.merger[tpos.p.m].type == Changed)
 					ci.merger[tpos.p.m].ignored = do_ignore;
 				e = prev_melmnt(&tpos.p, fm, fb, fa, ci.merger);
-			} while (!ends_mline(e) ||
+			} while (!ends_line(e) ||
 				 visible(mode & (RESULT|AFTER), ci.merger, &tpos) < 0);
 			isolate_conflicts(fm, fb, fa, csl1, csl2, 0, ci.merger, 0);
 			refresh = 1;

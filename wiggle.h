@@ -74,11 +74,6 @@ static inline int ends_line(struct elmnt e)
 	return e.len &&  e.start[e.len-1] == '\n';
 }
 
-static inline int ends_mline(struct elmnt e)
-{
-	return e.len &&  (e.start[0] == '\n' || e.start[0] == 0);
-}
-
 struct csl {
 	int a, b;
 	int len;
