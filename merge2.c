@@ -108,10 +108,8 @@ int isolate_conflicts(struct file af, struct file bf, struct file cf,
 	 * a newline.
 	 *
 	 * If 'show_wiggles' is set we treat wiggles like conflicts.
-	 * A 'wiggle' is implied by any Extraneous text being ignored,
-	 * or any line that has both Changed and Unmatched content.
-	 * (Unmatched content where nothing is changed is common and not
-	 *  really a 'wiggle').
+	 * A 'wiggle' is implied by any Extraneous text or Unmatched
+	 * text which is close (+/- 3 lines) to a Changed text.
 	 *
 	 * A hunk header is never considered part of a conflict.  It
 	 * thereby can serve as a separator between conflicts.
@@ -127,18 +125,23 @@ int isolate_conflicts(struct file af, struct file bf, struct file cf,
 	int cnt = 0;
 	int changed = 0;
 	int unmatched = 0;
+	int extraneous = 0;
 
 	for (i = 0; m[i].type != End; i++)
 		m[i].in_conflict = 0;
 
 	for (i = 0; m[i].type != End; i++) {
 		if (m[i].type == Changed && !m[i].ignored)
-			changed = 1;
+			changed = 3;
 		if (m[i].type == Unmatched)
-			unmatched = 1;
+			unmatched = 3;
+		if (m[i].type == Extraneous && bf.list[m[i].b].start[0])
+			/* hunk headers don't imply wiggles, other
+			 * extraneous text does.
+			 */
+			extraneous = 3;
 		if ((m[i].type == Conflict && m[i].ignored == 0) ||
-		    (show_wiggles && ((changed && unmatched)
-					|| m[i].type == Extraneous))) {
+		    (show_wiggles && changed && (unmatched || extraneous))) {
 			/* We have a conflict (or wiggle) here.
 			 * First search backwards for an Unchanged marking
 			 * things as in_conflict.  Then find the
@@ -302,10 +305,29 @@ int isolate_conflicts(struct file af, struct file bf, struct file cf,
 				}
 			}
 			i = j - 1;
+
+			while (--j >= 0 && m[j].in_conflict) {
+				if ((m[j].type == Changed || m[j].type == Unchanged)
+				    && m[j].hi >= m[j].lo) {
+					m[j].hi = m[j].al;
+					j++;
+					break;
+				}
+				if (m[j].type == Changed || m[j].type == Conflict)
+					goto out;
+			}
+			/* False alarm, no real conflict/wiggle here */
+			while (j <= i)
+				m[j++].in_conflict = 0;
+		out:;
 		}
 		if (m[i].al > 0 && ends_line(af.list[m[i].a+m[i].al-1])) {
-			unmatched = 0;
-			changed = 0;
+			if (unmatched)
+				unmatched--;
+			if (changed)
+				changed--;
+			if (extraneous)
+				extraneous--;
 		}
 	}
 	return cnt;
