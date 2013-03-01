@@ -271,35 +271,6 @@ static void find_best(struct file *a, struct file *b,
 	free(valloc);
 }
 
-/* Join two csl lists together.
- * Simply allocate new space and copy everything in.
- */
-static struct csl *csl_join(struct csl *c1, struct csl *c2)
-{
-	struct csl *c, *cd,  *rv;
-	int cnt;
-
-	if (c1 == NULL)
-		return c2;
-	if (c2 == NULL)
-		return c1;
-
-	cnt = 1; /* the sentinal */
-	for (c = c1; c->len; c++)
-		cnt++;
-	for (c = c2; c->len; c++)
-		cnt++;
-	cd = rv = xmalloc(sizeof(*rv)*cnt);
-	for (c = c1; c->len; c++)
-		*cd++ = *c;
-	for (c = c2; c->len; c++)
-		*cd++ = *c;
-	cd->len = 0;
-	free(c1);
-	free(c2);
-	return rv;
-}
-
 /*
  * Reduce a file by discarding less interesting words
  * Words that end with a newline are interesting (so all words

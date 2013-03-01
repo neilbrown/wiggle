@@ -163,6 +163,7 @@ extern struct csl *diff_partial(struct file a, struct file b,
 				int alo, int ahi, int blo, int bhi);
 extern struct csl *worddiff(struct stream f1, struct stream f2,
 			    struct file *fl1p, struct file *fl2p);
+extern struct csl *csl_join(struct csl *c1, struct csl *c2);
 
 struct ci {
 	int conflicts, wiggles, ignored;
