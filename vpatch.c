@@ -955,10 +955,9 @@ static void draw_mside(int mode, int row, int offset, int start, int cols,
 		int highlight_space;
 		int l;
 		e = next_melmnt(&pos.p, fm, fb, fa, m);
-		if (e.start == NULL ||
-		    (ends_line(e)
-		     && visible(mode, m, &pos) != -1))
+		if (!e.start)
 			break;
+
 		if (visible(mode, m, &pos) == -1)
 			continue;
 		if (e.start[0] == 0)
@@ -972,6 +971,8 @@ static void draw_mside(int mode, int row, int offset, int start, int cols,
 			highlight_space = 1;
 		for (l = 0; l < e.plen + e.prefix; l++) {
 			int scol = col;
+			if (*c == '\n')
+				break;
 			(void)attrset(attr);
 			if (*c >= ' ' && *c != 0x7f) {
 				if (highlight_space)
@@ -1021,6 +1022,9 @@ static void draw_mside(int mode, int row, int offset, int start, int cols,
 			}
 			c++;
 		}
+		if ((ends_line(e)
+		     && visible(mode, m, &pos) != -1))
+			break;
 	}
 
 	/* We have reached the end of visible line, or end of file */
