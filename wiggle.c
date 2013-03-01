@@ -114,7 +114,8 @@ void *xmalloc(int size)
 void printword(FILE *f, struct elmnt e)
 {
 	if (e.start[0])
-		fprintf(f, "%.*s", e.len, e.start);
+		fprintf(f, "%.*s", e.plen + e.prefix,
+			e.start - e.prefix);
 	else {
 		int a, b, c;
 		sscanf(e.start+1, "%d %d %d", &a, &b, &c);

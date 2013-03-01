@@ -88,6 +88,8 @@ static int split_internal(char *start, char *end, int type,
 		if (list) {
 			list->start = start;
 			list->len = cp-start;
+			list->plen = list->len;
+			list->prefix = 0;
 			if (*start)
 				list->hash = hash(start, list->len, 0);
 			else

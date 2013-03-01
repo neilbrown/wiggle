@@ -963,14 +963,14 @@ static void draw_mside(int mode, int row, int offset, int start, int cols,
 			continue;
 		if (e.start[0] == 0)
 			continue;
-		c = (unsigned char *)e.start;
+		c = (unsigned char *)e.start - e.prefix;
 		highlight_space = 0;
 		attr = visible(mode, m, &pos);
 		if ((attr == a_unmatched || attr == a_extra) &&
 		    changed &&
 		    (*c == ' ' || *c == '\t'))
 			highlight_space = 1;
-		for (l = 0; l < e.len; l++) {
+		for (l = 0; l < e.plen + e.prefix; l++) {
 			int scol = col;
 			(void)attrset(attr);
 			if (*c >= ' ' && *c != 0x7f) {
