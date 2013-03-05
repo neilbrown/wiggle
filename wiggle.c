@@ -418,13 +418,13 @@ static int do_diff(int argc, char *argv[], int obj, int ispatch,
 		flist[1] = flist[2];
 		flist[2] = f;
 	}
-	fl[0] = split_stream(flist[0], obj == 'l' ? ByLine : ByWord);
-	fl[1] = split_stream(flist[1], obj == 'l' ? ByLine : ByWord);
+	fl[0] = split_stream(flist[0], obj);
+	fl[1] = split_stream(flist[1], obj);
 	if (chunks2 && !chunks1)
 		csl = pdiff(fl[0], fl[1], chunks2);
 	else
 		csl = diff_patch(fl[0], fl[1]);
-	if (obj == 'l') {
+	if ((obj & ByMask) == ByLine) {
 		if (!chunks1)
 			printf("@@ -1,%d +1,%d @@\n",
 			       fl[0].elcnt, fl[1].elcnt);
@@ -447,7 +447,7 @@ static int do_diff(int argc, char *argv[], int obj, int ispatch,
 	return exit_status;
 }
 
-static int do_merge(int argc, char *argv[], int obj,
+static int do_merge(int argc, char *argv[], int obj, int blanks,
 		    int reverse, int replace, int ignore, int show_wiggles,
 		    int quiet)
 {
@@ -539,15 +539,14 @@ static int do_merge(int argc, char *argv[], int obj,
 		outfile = fdopen(fd, "w");
 	}
 
-	if (obj == 'l') {
-		fl[0] = split_stream(flist[0], ByLine);
-		fl[1] = split_stream(flist[1], ByLine);
-		fl[2] = split_stream(flist[2], ByLine);
-	} else {
-		fl[0] = split_stream(flist[0], ByWord);
-		fl[1] = split_stream(flist[1], ByWord);
-		fl[2] = split_stream(flist[2], ByWord);
-	}
+	if (obj == 'l')
+		blanks |= ByLine;
+	else
+		blanks |= ByWord;
+	fl[0] = split_stream(flist[0], blanks);
+	fl[1] = split_stream(flist[1], blanks);
+	fl[2] = split_stream(flist[2], blanks);
+
 	if (chunks2 && !chunks1)
 		csl1 = pdiff(fl[0], fl[1], chunks2);
 	else
@@ -584,7 +583,7 @@ static int do_merge(int argc, char *argv[], int obj,
 	return (ci.conflicts > 0);
 }
 
-static int multi_merge(int argc, char *argv[], int obj,
+static int multi_merge(int argc, char *argv[], int obj, int blanks,
 		       int reverse, int ignore, int show_wiggles,
 		       int replace, int strip,
 		       int quiet)
@@ -628,7 +627,7 @@ static int multi_merge(int argc, char *argv[], int obj,
 			 pl[i].start, pl[i].end, filename);
 		av[0] = pl[i].file;
 		av[1] = name;
-		rv |= do_merge(2, av, obj, reverse, 1, ignore,
+		rv |= do_merge(2, av, obj, blanks, reverse, 1, ignore,
 			 show_wiggles, quiet);
 	}
 	return rv;
@@ -652,6 +651,7 @@ int main(int argc, char *argv[])
 	char *helpmsg;
 	char *trace;
 	int selftest = 0;
+	int ignore_blanks = 0;
 
 	trace = getenv("WIGGLE_TRACE");
 	if (trace && *trace)
@@ -719,6 +719,10 @@ int main(int argc, char *argv[])
 			reverse = 1;
 			continue;
 
+		case 'b':
+			ignore_blanks = IgnoreBlanks;
+			continue;
+
 		case 'i':
 			ignore = 0;
 			continue;
@@ -760,7 +764,8 @@ int main(int argc, char *argv[])
 
 	if (mode == 'B') {
 		vpatch(argc-optind, argv+optind, ispatch,
-		       strip, reverse, replace, selftest);
+		       strip, reverse, replace, selftest,
+		       ignore_blanks);
 		/* should not return */
 		exit(1);
 	}
@@ -801,19 +806,25 @@ int main(int argc, char *argv[])
 		exit_status = extract(argc-optind, argv+optind, ispatch, which);
 		break;
 	case 'd':
-		exit_status = do_diff(argc-optind, argv+optind, obj, ispatch, which, reverse);
+		exit_status = do_diff(argc-optind, argv+optind,
+				      (obj == 'l' ? ByLine : ByWord)
+				      | ignore_blanks,
+				      ispatch, which, reverse);
 		break;
 	case 'm':
 		if (ispatch)
 			exit_status = multi_merge(argc-optind,
 						  argv+optind, obj,
+						  ignore_blanks,
 						  reverse, ignore,
 						  show_wiggles,
 						  replace, strip,
 						  quiet);
 		else
-			exit_status = do_merge(argc-optind, argv+optind, obj, reverse, replace,
-					       ignore, show_wiggles, quiet);
+			exit_status = do_merge(
+				argc-optind, argv+optind,
+				obj, ignore_blanks, reverse, replace,
+				ignore, show_wiggles, quiet);
 		break;
 	}
 	exit(exit_status);

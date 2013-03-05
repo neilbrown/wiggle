@@ -145,13 +145,39 @@ where involved and what needed to be ignored in order of the patch to
 be wiggled in to place.
 
 .TP
-.BR -w ", " \-\-words
+.BR \-w ", " \-\-words
 Request that all operations and display be word based.  This is the
 default for the "diff" function.
 
 .TP
-.BR -l ", " \-\-lines
+.BR \-l ", " \-\-lines
 Request that all operations and display be line based.
+
+.TP
+.BR \-b ", " \-\-ignore\-blanks
+De-emphasise white space (space, tab, and newline) is determining
+differences and changes.
+
+Normally white space is treated like a word which can be matched or
+changed by a patch.  When this flag is in force, white space serves
+only as a separator between other words and is not matched itself.
+The effect of this is that changes in the amount of white space are
+not treated as significant.
+
+To be precise, any white space is combined with the preceeding word
+or, in the case of leading space on a line, with the following word.
+However it is not involved in any comparisons of that word.  If a patch
+deletes a word, the attached white space is deleted as well.  If a
+patch adds a word, the attached white space is added as well.
+
+An empty line, or one that contains only blanks, will be treated as a
+single word that will match any other blank line, no matter how many
+spaces it has.
+
+.B \-b
+has no effect in
+.B \-\-line
+mode.
 
 .TP
 .BR -p ", " \-\-patch

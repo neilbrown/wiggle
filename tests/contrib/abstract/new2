@@ -1,0 +1,27 @@
+\begin {abstract}
+    % Start with a two-sentence (at most) description of the big-picture
+    % problem and why we care, and a sentence at the end that emphasizes how
+    % your work is part of the solution.
+
+    Heterogeneous systems with central CPUs and accelerators such as
+    GPUs, FPGAs or the upcoming Intel MIC are becoming mainstream.
+    In these systems, peak performance includes the performance of not
+    just the CPUs but also all available accelerators.  In spite of
+    this fact, the majority of programming models for heterogeneous
+    computing focus on only one of these.  With the development of
+    Accelerated OpenMP for GPUs, both from PGI and Cray, we have a
+    clear path to extend traditional OpenMP applications incrementally
+    to use GPUs.  The extensions are geared toward switching from CPU
+    parallelism to GPU parallelism. However they do not preserve the
+    former while adding the latter. Thus computational potential is
+    wasted since either the CPU cores or the GPU cores are left idle.
+    Our goal is to create a runtime system that can intelligently
+    divide an accelerated OpenMP region across all available resources
+    automatically. This paper presents our proof-of-concept runtime
+    system for dynamic task scheduling across CPUs and GPUs.  Further,
+    we motivate the addition of this system into the proposed
+    \emph{OpenMP for Accelerators} standard. Finally, we show that
+    this option can produce as much as a two-fold performance
+    improvement over using either the CPU or GPU alone.
+
+\end{abstract}

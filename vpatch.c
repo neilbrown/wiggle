@@ -1248,7 +1248,7 @@ static char *save_query[] = {
 };
 
 static int merge_window(struct plist *p, FILE *f, int reverse, int replace,
-			int selftest)
+			int selftest, int ignore_blanks)
 {
 	/* Display the merge window in one of the selectable modes,
 	 * starting with the 'merge' mode.
@@ -1376,9 +1376,9 @@ static int merge_window(struct plist *p, FILE *f, int reverse, int replace,
 		return 0;
 	}
 	/* FIXME check for errors in the stream */
-	fm = split_stream(sm, ByWord);
-	fb = split_stream(sb, ByWord);
-	fa = split_stream(sa, ByWord);
+	fm = split_stream(sm, ByWord | ignore_blanks);
+	fb = split_stream(sb, ByWord | ignore_blanks);
+	fa = split_stream(sa, ByWord | ignore_blanks);
 
 	if (ch)
 		csl1 = pdiff(fm, fb, ch);
@@ -2237,7 +2237,7 @@ static int merge_window(struct plist *p, FILE *f, int reverse, int replace,
 
 static int show_merge(char *origname, FILE *patch, int reverse,
 		      int is_merge, char *before, char *after,
-		      int replace, int selftest)
+		      int replace, int selftest, int ignore_blanks)
 {
 	struct plist p;
 
@@ -2254,10 +2254,12 @@ static int show_merge(char *origname, FILE *patch, int reverse,
 	p.after = after;
 
 	freopen("/dev/null","w",stderr);
-	return merge_window(&p, patch, reverse, replace, selftest);
+	return merge_window(&p, patch, reverse, replace, selftest,
+			    ignore_blanks);
 }
 
-static void calc_one(struct plist *pl, FILE *f, int reverse)
+static void calc_one(struct plist *pl, FILE *f, int reverse,
+		     int ignore_blanks)
 {
 	struct stream s1, s2;
 	struct stream s = load_segment(f, pl->start, pl->end);
@@ -2281,9 +2283,9 @@ static void calc_one(struct plist *pl, FILE *f, int reverse)
 		struct file ff, fp1, fp2;
 		struct csl *csl1, *csl2;
 		struct ci ci;
-		ff = split_stream(sf, ByWord);
-		fp1 = split_stream(s1, ByWord);
-		fp2 = split_stream(s2, ByWord);
+		ff = split_stream(sf, ByWord | ignore_blanks);
+		fp1 = split_stream(s1, ByWord | ignore_blanks);
+		fp2 = split_stream(s2, ByWord | ignore_blanks);
 		if (pl->chunks)
 			csl1 = pdiff(ff, fp1, pl->chunks);
 		else
@@ -2333,7 +2335,7 @@ static int get_prev(int pos, struct plist *pl, int n, int mode)
 }
 
 static int get_next(int pos, struct plist *pl, int n, int mode,
-	     FILE *f, int reverse)
+		    FILE *f, int reverse, int ignore_blanks)
 {
 	int found = 0;
 	if (pos == -1)
@@ -2353,7 +2355,7 @@ static int get_next(int pos, struct plist *pl, int n, int mode,
 		if (pos < 0)
 			return -1;
 		if (pl[pos].calced == 0 && pl[pos].end)
-			calc_one(pl+pos, f, reverse);
+			calc_one(pl+pos, f, reverse, ignore_blanks);
 		if (pl[pos].last >= 0)
 			/* always see directories */
 			found = 1;
@@ -2367,7 +2369,8 @@ static int get_next(int pos, struct plist *pl, int n, int mode,
 	return pos;
 }
 
-static void draw_one(int row, struct plist *pl, FILE *f, int reverse)
+static void draw_one(int row, struct plist *pl, FILE *f, int reverse,
+		     int ignore_blanks)
 {
 	char hdr[12];
 	hdr[0] = 0;
@@ -2379,7 +2382,7 @@ static void draw_one(int row, struct plist *pl, FILE *f, int reverse)
 	}
 	if (pl->calced == 0 && pl->end)
 		/* better load the patch and count the chunks */
-		calc_one(pl, f, reverse);
+		calc_one(pl, f, reverse, ignore_blanks);
 	if (pl->end == 0) {
 		strcpy(hdr, "         ");
 	} else {
@@ -2419,7 +2422,8 @@ static void draw_one(int row, struct plist *pl, FILE *f, int reverse)
 	clrtoeol();
 }
 
-static int save_one(FILE *f, struct plist *pl, int reverse)
+static int save_one(FILE *f, struct plist *pl, int reverse,
+		    int ignore_blanks)
 {
 	struct stream sp, sa, sb, sm;
 	struct file fa, fb, fm;
@@ -2432,10 +2436,10 @@ static int save_one(FILE *f, struct plist *pl, int reverse)
 		chunks = split_patch(sp, &sa, &sb);
 	else
 		chunks = split_patch(sp, &sb, &sa);
-	fb = split_stream(sb, ByWord);
-	fa = split_stream(sa, ByWord);
+	fb = split_stream(sb, ByWord | ignore_blanks);
+	fa = split_stream(sa, ByWord | ignore_blanks);
 	sm = load_file(pl->file);
-	fm = split_stream(sm, ByWord);
+	fm = split_stream(sm, ByWord | ignore_blanks);
 	csl1 = pdiff(fm, fb, chunks);
 	csl2 = diff_patch(fb, fa);
 	ci = make_merger(fm, fb, fa, csl1, csl2, 0, 1, 0);
@@ -2493,7 +2497,7 @@ static char *saveall_query[] = {
 	NULL
 };
 static void main_window(struct plist *pl, int *np, FILE *f, int reverse,
-			int replace)
+			int replace, int ignore_blanks)
 {
 	/* The main window lists all files together with summary information:
 	 * number of chunks, number of wiggles, number of conflicts.
@@ -2576,16 +2580,16 @@ static void main_window(struct plist *pl, int *np, FILE *f, int reverse,
 			/* Ok, row and pos could be trustworthy now */
 			tpos = pos;
 			for (i = row; i >= 1; i--) {
-				draw_one(i, &pl[tpos], f, reverse);
+				draw_one(i, &pl[tpos], f, reverse, ignore_blanks);
 				tpos = get_prev(tpos, pl, *np, mode);
 			}
 			tpos = pos;
 			for (i = row+1; i < rows; i++) {
-				tpos = get_next(tpos, pl, *np, mode, f, reverse);
+				tpos = get_next(tpos, pl, *np, mode, f, reverse,ignore_blanks);
 				if (tpos >= 0)
-					draw_one(i, &pl[tpos], f, reverse);
+					draw_one(i, &pl[tpos], f, reverse, ignore_blanks);
 				else
-					draw_one(i, NULL, f, reverse);
+					draw_one(i, NULL, f, reverse, ignore_blanks);
 			}
 		}
 		attrset(0);
@@ -2615,7 +2619,7 @@ static void main_window(struct plist *pl, int *np, FILE *f, int reverse,
 		case 'N':
 		case 'N'-64:
 		case KEY_DOWN:
-			tpos = get_next(pos, pl, *np, mode, f, reverse);
+			tpos = get_next(pos, pl, *np, mode, f, reverse, ignore_blanks);
 			if (tpos >= 0) {
 				pos = tpos;
 				row++;
@@ -2637,7 +2641,7 @@ static void main_window(struct plist *pl, int *np, FILE *f, int reverse,
 			if (getmouse(&mevent) != OK)
 				break;
 			while (row < mevent.y &&
-			       (tpos = get_next(pos, pl, *np, mode, f, reverse))
+			       (tpos = get_next(pos, pl, *np, mode, f, reverse, ignore_blanks))
 			       >= 0) {
 				pos = tpos;
 				row++;
@@ -2663,9 +2667,9 @@ static void main_window(struct plist *pl, int *np, FILE *f, int reverse,
 			} else {
 				int c;
 				if (pl[pos].is_merge)
-					c = merge_window(&pl[pos], NULL, reverse, 0, 0);
+					c = merge_window(&pl[pos], NULL, reverse, 0, 0, ignore_blanks);
 				else
-					c = merge_window(&pl[pos], f, reverse, 0, 0);
+					c = merge_window(&pl[pos], f, reverse, 0, 0, ignore_blanks);
 				refresh = 2;
 				if (c) {
 					pl[pos].is_merge = 1;
@@ -2720,7 +2724,8 @@ static void main_window(struct plist *pl, int *np, FILE *f, int reverse,
 					if (pl[i].end
 					    && !pl[i].is_merge)
 						save_one(f, &pl[i],
-							 reverse);
+							 reverse,
+							ignore_blanks);
 				}
 			} else
 				cnt = 0;
@@ -2751,7 +2756,7 @@ static void main_window(struct plist *pl, int *np, FILE *f, int reverse,
 				/* Already saved */
 				mesg = "File is already saved.";
 			} else {
-				if (save_one(f, &pl[pos], reverse) == 0) {
+				if (save_one(f, &pl[pos], reverse, ignore_blanks) == 0) {
 					pl[pos].is_merge = 1;
 					snprintf(mesg_buf, cols,
 						 "Saved file %s.",
@@ -2782,7 +2787,7 @@ static void main_window(struct plist *pl, int *np, FILE *f, int reverse,
 					mesg = "File has been restored.";
 					pl[pos].is_merge = 0;
 					refresh = 1;
-					calc_one(&pl[pos], f, reverse);
+					calc_one(&pl[pos], f, reverse, ignore_blanks);
 				} else
 					mesg = "Could not restore file!";
 			}
@@ -2878,7 +2883,7 @@ static void term_init(int doraw)
 }
 
 int vpatch(int argc, char *argv[], int patch, int strip,
-	   int reverse, int replace, int selftest)
+	   int reverse, int replace, int selftest, int ignore_blanks)
 {
 	/* NOTE argv[0] is first arg...
 	 * Behaviour depends on number of args:
@@ -2928,7 +2933,7 @@ int vpatch(int argc, char *argv[], int patch, int strip,
 			fprintf(stderr, "%s: aborting\n", Cmd);
 			exit(2);
 		}
-		main_window(pl, &num_patches, in, reverse, replace);
+		main_window(pl, &num_patches, in, reverse, replace, ignore_blanks);
 		plist_free(pl, num_patches);
 		fclose(in);
 		break;
@@ -2945,17 +2950,17 @@ int vpatch(int argc, char *argv[], int patch, int strip,
 				fprintf(stderr, "%s: aborting\n", Cmd);
 				exit(2);
 			}
-			main_window(pl, &num_patches, f, reverse, replace);
+			main_window(pl, &num_patches, f, reverse, replace,ignore_blanks);
 			plist_free(pl, num_patches);
 		} else if (strlen(argv[0]) > 4 &&
 			 strcmp(argv[0]+strlen(argv[0])-4, ".rej") == 0) {
 			char *origname = strdup(argv[0]);
 			origname[strlen(origname) - 4] = '\0';
 			show_merge(origname, f, reverse, 0, NULL, NULL,
-				   replace, selftest);
+				   replace, selftest, ignore_blanks);
 		} else
 			show_merge(argv[0], f, reverse, 1, NULL, NULL,
-				   replace, selftest);
+				   replace, selftest, ignore_blanks);
 
 		break;
 	case 2: /* an orig and a diff/.ref */
@@ -2965,11 +2970,11 @@ int vpatch(int argc, char *argv[], int patch, int strip,
 			exit(1);
 		}
 		show_merge(argv[0], f, reverse, 0, NULL, NULL,
-			   replace, selftest);
+			   replace, selftest, ignore_blanks);
 		break;
 	case 3: /* orig, before, after */
 		show_merge(argv[0], NULL, reverse, 0, argv[1], argv[2],
-			   replace, selftest);
+			   replace, selftest, ignore_blanks);
 		break;
 	}
 

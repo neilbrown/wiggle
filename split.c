@@ -56,12 +56,22 @@ static int split_internal(char *start, char *end, int type,
 
 	while (start < end) {
 		char *cp = start;
+		char *cp2;
+		int prefix = 0;
+
+		if (type == (ByWord | IgnoreBlanks))
+			while (cp < end &&
+			       (*cp == ' ' || *cp == '\t')) {
+				prefix++;
+				cp++;
+			}
+		start = cp;
 
 		if (*cp == '\0' && cp+19 < end && cp[18] == '\n') {
 			/* special word */
 			cp += 20;
 		} else
-			switch (type) {
+			switch (type & ByMask) {
 			case ByLine:
 				while (cp < end && *cp != '\n')
 					cp++;
@@ -85,11 +95,20 @@ static int split_internal(char *start, char *end, int type,
 					cp++;
 				break;
 			}
+		cp2 = cp;
+		if (type == (ByWord | IgnoreBlanks) &&
+		    *start && *start != '\n')
+			while (cp2 < end &&
+			       (*cp2 == ' ' || *cp2 == '\t' || *cp2 == '\n')) {
+				cp2++;
+				if (cp2[-1] == '\n')
+					break;
+			}
 		if (list) {
 			list->start = start;
 			list->len = cp-start;
-			list->plen = list->len;
-			list->prefix = 0;
+			list->plen = cp2-start;
+			list->prefix = prefix;
 			if (*start)
 				list->hash = hash(start, list->len, 0);
 			else
@@ -97,7 +116,7 @@ static int split_internal(char *start, char *end, int type,
 			list++;
 		}
 		cnt++;
-		start = cp;
+		start = cp2;
 	}
 	return cnt;
 }

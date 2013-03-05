@@ -183,7 +183,8 @@ extern void *xmalloc(int len);
 extern int do_trace;
 
 extern int vpatch(int argc, char *argv[], int patch, int strip,
-		  int reverse, int replace, int selftest);
+		  int reverse, int replace, int selftest,
+		  int ignore_blanks);
 
 extern char *Cmd;
 extern char Version[];
@@ -202,6 +203,8 @@ extern char HelpBrowse[];
 extern void cleanlist(struct file a, struct file b, struct csl *list);
 
 enum {
-	ByLine,
-	ByWord,
+	ByLine = 0,
+	ByWord = 1,
+	ByMask = 3,
+	IgnoreBlanks = 8, /* 'or'ed in */
 };
