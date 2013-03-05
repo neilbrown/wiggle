@@ -961,7 +961,7 @@ static void draw_mside(int mode, int row, int offset, int start, int cols,
 		if (visible(mode, m, &pos) == -1)
 			continue;
 		if (e.start[0] == 0)
-			continue;
+			break;
 		c = (unsigned char *)e.start - e.prefix;
 		highlight_space = 0;
 		attr = visible(mode, m, &pos);
