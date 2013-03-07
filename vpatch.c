@@ -1740,7 +1740,7 @@ static int merge_window(struct plist *p, FILE *f, int reverse, int replace,
 				p->wiggles = 0;
 				p->conflicts = isolate_conflicts(
 					fm, fb, fa, csl1, csl2, 0,
-					ci.merger, 0);
+					ci.merger, 0, &p->wiggles);
 				p->chunks = p->conflicts;
 				save_merge(fm, fb, fa, ci.merger,
 					   p->file, !p->is_merge);
@@ -2153,7 +2153,9 @@ static int merge_window(struct plist *p, FILE *f, int reverse, int replace,
 			    ci.merger[curs.pos.m].type == Changed) {
 				ci.merger[curs.pos.m].ignored =
 					! ci.merger[curs.pos.m].ignored;
-				isolate_conflicts(fm, fb, fa, csl1, csl2, 0, ci.merger, 0);
+				p->conflicts = isolate_conflicts(
+					fm, fb, fa, csl1, csl2, 0,
+					ci.merger, 0, &p->wiggles);
 				refresh = 1;
 				changes = 1;
 			}
@@ -2182,7 +2184,9 @@ static int merge_window(struct plist *p, FILE *f, int reverse, int replace,
 				e = prev_melmnt(&tpos.p, fm, fb, fa, ci.merger);
 			} while (!ends_line(e) ||
 				 visible(mode & (RESULT|AFTER), ci.merger, &tpos) < 0);
-			isolate_conflicts(fm, fb, fa, csl1, csl2, 0, ci.merger, 0);
+			p->conflicts = isolate_conflicts(
+				fm, fb, fa, csl1, csl2, 0,
+				ci.merger, 0, &p->wiggles);
 			refresh = 1;
 			changes = 1;
 			break;

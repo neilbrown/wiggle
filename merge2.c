@@ -90,8 +90,9 @@ static int is_cutpoint(struct merge m,
 }
 
 int isolate_conflicts(struct file af, struct file bf, struct file cf,
-			     struct csl *csl1, struct csl *csl2, int words,
-			     struct merge *m, int show_wiggles)
+		      struct csl *csl1, struct csl *csl2, int words,
+		      struct merge *m, int show_wiggles,
+		      int *wigglesp)
 {
 	/* A Conflict indicates that something is definitely wrong
 	 * and so we need to be a bit suspicious of nearby apparent matches.
@@ -134,9 +135,14 @@ int isolate_conflicts(struct file af, struct file bf, struct file cf,
 	 * as including a hunk header.
 	 * If there are 3, and they are all in 'Unchanged' sections, then
 	 * that much context is not really needed - reduce it a bit.
+	 *
+	 * If a wiggle is adjacent to a conflict then:
+	 * - if show_wiggles is set, we just merge them
+	 * - if it is not set, we still want to count the wiggle.
 	 */
 	int i, j, k;
-	int cnt = 0;
+	int cnt = 0, wiggles = 0;
+	int in_wiggle = 0;
 	int changed = 0;
 	int unmatched = 0;
 	int extraneous = 0;
@@ -154,6 +160,14 @@ int isolate_conflicts(struct file af, struct file bf, struct file cf,
 			 * extraneous text does.
 			 */
 			extraneous = 3;
+
+		if (m[i].type != Unchanged && changed && (unmatched || extraneous)) {
+			if (!in_wiggle)
+				wiggles++;
+			in_wiggle = 1;
+		} else
+			in_wiggle = 0;
+
 		if ((m[i].type == Conflict && m[i].ignored == 0) ||
 		    (show_wiggles && m[i].type != Unchanged && changed && (unmatched || extraneous))) {
 			/* We have a conflict (or wiggle) here.
@@ -166,8 +180,6 @@ int isolate_conflicts(struct file af, struct file bf, struct file cf,
 			 */
 			int newlines = 0;
 			m[i].in_conflict = m[i].type == Conflict ? 2 : 3;
-			if (m[i].in_conflict == 2)
-				cnt++;
 			j = i;
 			while (--j >= 0) {
 				int firstk;
@@ -194,7 +206,10 @@ int isolate_conflicts(struct file af, struct file bf, struct file cf,
 
 				if (m[j].type != Unchanged &&
 				    m[j].type != Changed) {
-					m[j].in_conflict = m[i].in_conflict;
+					if (m[j].type == Conflict)
+						m[j].in_conflict = 2;
+					else
+						m[j].in_conflict = m[i].in_conflict;
 					continue;
 				}
 				/* If we find enough newlines in this section,
@@ -259,7 +274,10 @@ int isolate_conflicts(struct file af, struct file bf, struct file cf,
 				}
 				if (m[j].type != Unchanged &&
 				    m[j].type != Changed) {
-					m[j].in_conflict = m[i].in_conflict;
+					if (m[j].type == Conflict)
+						m[j].in_conflict = 2;
+					else
+						m[j].in_conflict = m[i].in_conflict;
 					continue;
 				}
 				m[j].hi = m[j].al;
@@ -351,6 +369,33 @@ int isolate_conflicts(struct file af, struct file bf, struct file cf,
 					extraneous--;
 			}
 	}
+	if (!show_wiggles)
+		*wigglesp = wiggles;
+	/* Now count the conflicts and wiggles */
+	for (i = 0; m[i].type != End; i++) {
+		int true_conflict = 0;
+		if (!m[i].in_conflict)
+			continue;
+
+		for (j = i; m[j].type != End && m[j].in_conflict; j++) {
+			if (m[j].in_conflict == 2)
+				true_conflict = 1;
+			if (j > i &&
+			    m[j].in_conflict == 1) {
+				/* end of region */
+				if (!m[j+1].in_conflict)
+					j++;
+				break;
+			}
+		}
+		if (true_conflict)
+			cnt++;
+		else
+			wiggles++;
+		i = j-1;
+	}
+	if (show_wiggles)
+		*wigglesp = wiggles;
 	return cnt;
 }
 
@@ -363,7 +408,6 @@ struct ci make_merger(struct file af, struct file bf, struct file cf,
 	struct ci rv;
 	int i, l;
 	int a, b, c, c1, c2;
-	int wiggle_found = 0;
 
 	rv.conflicts = rv.wiggles = rv.ignored = 0;
 
@@ -413,7 +457,6 @@ struct ci make_merger(struct file af, struct file bf, struct file cf,
 				rv.merger[i].al = newa - a;
 				rv.merger[i].bl = 0;
 				rv.merger[i].cl = 0;
-				wiggle_found++;
 			} else {
 				int newb;
 				int j;
@@ -436,13 +479,9 @@ struct ci make_merger(struct file af, struct file bf, struct file cf,
 					newb = b + 1;
 				for (j = b; j < newb; j++) {
 					if (bf.list[j].start[0] == '\0') {
-						if (wiggle_found > 1)
-							rv.wiggles++;
-						wiggle_found = 0;
 						if (j > b)
 							newb = j;
-					} else
-						wiggle_found++;
+					}
 				}
 				rv.merger[i].cl =
 					rv.merger[i].bl = newb - b;
@@ -536,9 +575,7 @@ struct ci make_merger(struct file af, struct file bf, struct file cf,
 			rv.merger[i].type = Conflict;
 	}
 	rv.conflicts = isolate_conflicts(af, bf, cf, csl1, csl2, words,
-					 rv.merger, show_wiggles);
-	if (wiggle_found)
-		rv.wiggles++;
+					 rv.merger, show_wiggles, &rv.wiggles);
 	return rv;
 }
 

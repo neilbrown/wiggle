@@ -173,7 +173,7 @@ extern int save_merge(struct file a, struct file b, struct file c,
 
 extern int isolate_conflicts(struct file af, struct file bf, struct file cf,
 			     struct csl *csl1, struct csl *csl2, int words,
-			     struct merge *m, int show_wiggles);
+			     struct merge *m, int show_wiggles, int *wigglesp);
 extern struct ci make_merger(struct file a, struct file b, struct file c,
 			     struct csl *c1, struct csl *c2, int words,
 			     int ignore_already, int show_wiggles);
