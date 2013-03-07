@@ -636,9 +636,9 @@ static int check_line(struct mpos pos, struct file fm, struct file fb,
 		} else if (m[pos.p.m].type == Unmatched)
 			unmatched = 1;
 
-		if (m[pos.p.m].in_conflict &&
-		    ((m[pos.p.m].type == Changed && !m[pos.p.m].ignored) ||
-		     m[pos.p.m].type == Unchanged) &&
+		if (m[pos.p.m].in_conflict > 1)
+			rv |= CONFLICTED | CHANGES;
+		if (m[pos.p.m].in_conflict == 1 &&
 		    (pos.p.o < m[pos.p.m].lo ||
 		     pos.p.o > m[pos.p.m].hi))
 			rv |= CONFLICTED | CHANGES;

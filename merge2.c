@@ -93,9 +93,9 @@ int isolate_conflicts(struct file af, struct file bf, struct file cf,
 			     struct csl *csl1, struct csl *csl2, int words,
 			     struct merge *m, int show_wiggles)
 {
-	/* A conflict indicates that something is definitely wrong
+	/* A Conflict indicates that something is definitely wrong
 	 * and so we need to be a bit suspicious of nearby apparent matches.
-	 * To display a conflict effectively we expands it's effect to
+	 * To display a conflict effectively we expands its effect to
 	 * include any Extraneous, Unmatched, Changed or AlreadyApplied text.
 	 * Also, unless 'words', we need to include any partial lines
 	 * in the Unchanged text that forms the border of a conflict.
@@ -107,12 +107,26 @@ int isolate_conflicts(struct file af, struct file bf, struct file cf,
 	 * conflict as does any part of the original before
 	 * a newline.
 	 *
-	 * If 'show_wiggles' is set we treat wiggles like conflicts.
-	 * A 'wiggle' is implied by any Extraneous text or Unmatched
-	 * text which is close (+/- 3 lines) to a Changed text.
+	 * A hunk header (Extraneous) is never considered part of a
+	 * conflict.  It thereby can serve as a separator between
+	 * conflicts.
 	 *
-	 * A hunk header is never considered part of a conflict.  It
-	 * thereby can serve as a separator between conflicts.
+	 * Extended conflicts are marked by setting ->in_conflict in
+	 * the "struct merge".  This is '1' for an Unchanged, Changed,
+	 * or (Extraneous) hunk header which borders the conflict,
+	 * '2' for a merger which is truly in conflict, and '3' for
+	 * a merger which is causing a 'wiggle'.
+	 * When in_conflict == 1, the 'lo' and 'hi' fields indicate
+	 * how much of the 'a' file is included in the conflict, the rest
+	 * being part of the clean result.
+	 * Elements in af from m->a to m->a+m->lo are in the preceeding
+	 * conflict, from m->a+m->lo to m->a+m->hi are clean, and
+	 * m->a+m->hi to m->a+m->al are in the following conflict.
+	 *
+	 * We initially mark all conflicts and wiggles so we can count
+	 * them and return those counts.  If show_wiggles is clear, we
+	 * then clear the in_conflict flag for any extended conflict
+	 * which doesn't set in_conflict to '1'.
 	 *
 	 * We need to ensure there is adequate context for the conflict.
 	 * So ensure there are at least 3 newlines in Extraneous or
@@ -141,7 +155,7 @@ int isolate_conflicts(struct file af, struct file bf, struct file cf,
 			 */
 			extraneous = 3;
 		if ((m[i].type == Conflict && m[i].ignored == 0) ||
-		    (show_wiggles && changed && (unmatched || extraneous))) {
+		    (show_wiggles && m[i].type != Unchanged && changed && (unmatched || extraneous))) {
 			/* We have a conflict (or wiggle) here.
 			 * First search backwards for an Unchanged marking
 			 * things as in_conflict.  Then find the
@@ -151,77 +165,83 @@ int isolate_conflicts(struct file af, struct file bf, struct file cf,
 			 * Then search forward doing the same thing.
 			 */
 			int newlines = 0;
-			cnt++;
-			m[i].in_conflict = 1;
+			m[i].in_conflict = m[i].type == Conflict ? 2 : 3;
+			if (m[i].in_conflict == 2)
+				cnt++;
 			j = i;
 			while (--j >= 0) {
+				int firstk;
+
 				if (m[j].type == Extraneous &&
 				    bf.list[m[j].b].start[0] == '\0')
 					/* hunk header - not conflict any more */
 					break;
+				if (m[j].in_conflict > 1)
+					/* Merge the conflicts */
+					break;
 				if (!m[j].in_conflict) {
 					m[j].in_conflict = 1;
 					m[j].lo = 0;
-				} else if (m[j].type == Changed && !m[i].ignored) {
-					/* This can no longer form a border */
-					m[j].hi = -1;
-					/* We merge these conflicts and stop searching */
-					cnt--;
-					break;
 				}
+				/* Following must set m[j].hi, or set
+				 * in_conflict > 1
+				 */
 				if (m[j].type == Extraneous) {
 					for (k = m[j].bl; k > 0; k--)
 						if (ends_line(bf.list[m[j].b+k-1]))
 							newlines++;
 				}
 
-				if (m[j].type == Unchanged ||
-				    (m[j].type == Changed && !m[i].ignored)) {
-					/* If we find enough newlines in this section,
-					 * then we only really need 1, but would rather
-					 * it wasn't the first one.  'firstk' allows us
-					 * to track which newline we actually use
-					 */
-					int firstk = m[j].al+1;
-					if (words) {
-						m[j].hi = m[j].al;
-						break;
-					}
-					/* need to find the last line-break, which
-					 * might be after the last newline, if there
-					 * is one, or might be at the start
-					 */
-					for (k = m[j].al; k > 0; k--)
-						if (ends_line(af.list[m[j].a+k-1])) {
-							if (firstk > m[j].al)
-								firstk = k;
-							newlines++;
-							if (newlines >= 3) {
-								k = firstk;
-								break;
-							}
-						}
-					if (k > 0)
-						m[j].hi = k;
-					else if (j == 0)
-						m[j].hi = firstk;
-					else if (is_cutpoint(m[j], af,bf,cf))
-						m[j].hi = 0;
-					else
-						/* no start-of-line found... */
-						m[j].hi = -1;
-					if (m[j].hi > 0 &&
-					    (m[j].type == Changed && !m[j].ignored)) {
-						/* this can only work if start is
-						 * also a line break */
-						if (is_cutpoint(m[j], af,bf,cf))
-							/* ok */;
-						else
-							m[j].hi = -1;
-					}
-					if (m[j].hi >= 0)
-						break;
+				if (m[j].type != Unchanged &&
+				    m[j].type != Changed) {
+					m[j].in_conflict = m[i].in_conflict;
+					continue;
 				}
+				/* If we find enough newlines in this section,
+				 * then we only really need 1, but would rather
+				 * it wasn't the first one.  'firstk' allows us
+				 * to track which newline we actually use
+				 */
+				firstk = m[j].al+1;
+				if (words) {
+					m[j].hi = m[j].al;
+					break;
+				}
+				/* need to find the last line-break, which
+				 * might be after the last newline, if there
+				 * is one, or might be at the start
+				 */
+				for (k = m[j].al; k > 0; k--)
+					if (ends_line(af.list[m[j].a+k-1])) {
+						if (firstk > m[j].al)
+							firstk = k;
+						newlines++;
+						if (newlines >= 3) {
+							k = firstk;
+							break;
+						}
+					}
+				if (k > 0)
+					m[j].hi = k;
+				else if (j == 0)
+					m[j].hi = firstk;
+				else if (is_cutpoint(m[j], af,bf,cf))
+					m[j].hi = 0;
+				else
+					/* no start-of-line found... */
+					m[j].hi = -1;
+				if (m[j].hi > 0 &&
+				    (m[j].type == Changed && !m[j].ignored)) {
+					/* this can only work if start is
+					 * also a line break */
+					if (is_cutpoint(m[j], af,bf,cf))
+						/* ok */;
+					else
+						m[j].hi = -1;
+				}
+				if (m[j].hi >= 0)
+					break;
+				m[j].in_conflict = m[i].in_conflict;
 			}
 
 			/* now the forward search */
@@ -237,98 +257,99 @@ int isolate_conflicts(struct file af, struct file bf, struct file cf,
 						if (ends_line(bf.list[m[j].b+k]))
 							newlines++;
 				}
-				if (m[j].type == Unchanged ||
-				    (m[j].type == Changed && !m[j].ignored)) {
-					m[j].hi = m[j].al;
-					if (words) {
-						m[j].lo = 0;
-						break;
-					}
-					/* need to find a line-break, which might be at
-					 * the very beginning, or might be after the
-					 * first newline - if there is one
-					 */
-					if (is_cutpoint(m[j], af,bf,cf))
-						m[j].lo = 0;
-					else {
-						/* If we find enough newlines in this section,
-						 * then we only really need 1, but would rather
-						 * it wasn't the first one.  'firstk' allows us
-						 * to track which newline we actually use
-						 */
-						int firstk = -1;
-						for (k = 0 ; k < m[j].al ; k++)
-							if (ends_line(af.list[m[j].a+k])) {
-								if (firstk < 0)
-									firstk = k;
-								newlines++;
-								if (newlines >= 3) {
-									k = firstk;
-									break;
-								}
-							}
-						if (newlines < 3 &&
-						    m[j+1].type  == End)
-							/* Hit end of file, pretend we found 3 newlines. */
-							k = firstk;
-
-						if (firstk >= 0 &&
-						    m[j+1].type == Unmatched) {
-							/* If this Unmatched exceeds 3 lines, just stop here */
-							int p;
-							int nl = 0;
-							for (p = 0; p < m[j+1].al ; p++)
-								if (ends_line(af.list[m[j+1].a+p])) {
-									nl++;
-									if (nl > 3)
-										break;
-								}
-							if (nl > 3)
-								k = firstk;
-						}
-						if (k < m[j].al)
-							m[j].lo = k+1;
-						else
-							/* no start-of-line found */
-							m[j].lo = m[j].al+1;
-					}
-					if (m[j].lo <= m[j].al+1 &&
-					    (m[j].type == Changed && !m[j].ignored)) {
-						/* this can only work if the end is a line break */
-						if (is_cutpoint(m[j+1], af,bf,cf))
-							/* ok */;
-						else
-							m[j].lo = m[j].al+1;
-					}
-					if (m[j].lo < m[j].al+1)
-						break;
+				if (m[j].type != Unchanged &&
+				    m[j].type != Changed) {
+					m[j].in_conflict = m[i].in_conflict;
+					continue;
 				}
+				m[j].hi = m[j].al;
+				if (words) {
+					m[j].lo = 0;
+					break;
+				}
+				/* need to find a line-break, which might be at
+				 * the very beginning, or might be after the
+				 * first newline - if there is one
+				 */
+				if (is_cutpoint(m[j], af,bf,cf))
+					m[j].lo = 0;
+				else {
+					/* If we find enough newlines in this section,
+					 * then we only really need 1, but would rather
+					 * it wasn't the first one.  'firstk' allows us
+					 * to track which newline we actually use
+					 */
+					int firstk = -1;
+					for (k = 0 ; k < m[j].al ; k++)
+						if (ends_line(af.list[m[j].a+k])) {
+							if (firstk < 0)
+								firstk = k;
+							newlines++;
+							if (newlines >= 3) {
+								k = firstk;
+								break;
+							}
+						}
+					if (newlines < 3 &&
+					    m[j+1].type  == End)
+						/* Hit end of file, pretend we found 3 newlines. */
+						k = firstk;
+
+					if (firstk >= 0 &&
+					    m[j+1].type == Unmatched) {
+						/* If this Unmatched exceeds 3 lines, just stop here */
+						int p;
+						int nl = 0;
+						for (p = 0; p < m[j+1].al ; p++)
+							if (ends_line(af.list[m[j+1].a+p])) {
+								nl++;
+								if (nl > 3)
+									break;
+							}
+						if (nl > 3)
+							k = firstk;
+					}
+					if (k < m[j].al)
+						m[j].lo = k+1;
+					else
+						/* no start-of-line found */
+						m[j].lo = m[j].al+1;
+				}
+				if (m[j].lo <= m[j].al+1 &&
+				    (m[j].type == Changed && !m[j].ignored)) {
+					/* this can only work if the end is a line break */
+					if (is_cutpoint(m[j+1], af,bf,cf))
+						/* ok */;
+					else
+						m[j].lo = m[j].al+1;
+				}
+				if (m[j].lo < m[j].al+1)
+					break;
+				m[j].in_conflict = m[i].in_conflict;
 			}
 			i = j - 1;
 
-			while (--j >= 0 && m[j].in_conflict) {
-				if ((m[j].type == Changed || m[j].type == Unchanged)
-				    && m[j].hi >= m[j].lo) {
-					m[j].hi = m[j].al;
-					j++;
-					break;
-				}
+			while (--j >= 0 && (m[j].in_conflict > 1 ||
+					    (m[j].in_conflict == 1 && j < i))) {
 				if (m[j].type == Changed || m[j].type == Conflict)
 					goto out;
 			}
 			/* False alarm, no real conflict/wiggle here */
+			if (m[j].in_conflict == 1)
+				m[j].hi = m[j].al;
 			while (j <= i)
 				m[j++].in_conflict = 0;
 		out:;
 		}
-		if (m[i].al > 0 && ends_line(af.list[m[i].a+m[i].al-1])) {
-			if (unmatched)
-				unmatched--;
-			if (changed)
-				changed--;
-			if (extraneous)
-				extraneous--;
-		}
+		for (k = 1; k < m[i].al; k++)
+			if (words || ends_line(af.list[m[i].a+k])) {
+				if (unmatched)
+					unmatched--;
+				if (changed)
+					changed--;
+				if (extraneous)
+					extraneous--;
+			}
 	}
 	return cnt;
 }
@@ -557,14 +578,11 @@ void print_merge(FILE *out, struct file *a, struct file *b, struct file *c,
 			 */
 			int found_conflict = 0;
 			int st = 0, st1;
-			if (m->type == Unchanged ||
-			    (m->type == Changed && !m->ignored))
-				if (m->hi >= m->lo)
-					st = m->hi;
+			if (m->in_conflict == 1)
+				st = m->hi;
 			st1 = st;
 
-			if (m->type == Unchanged ||
-			    (m->type == Changed && m->ignored))
+			if (m->in_conflict == 1 && m->type == Unchanged)
 				printrange(out, a, m->a+m->lo, m->hi - m->lo);
 
 			if (do_trace)
@@ -581,8 +599,7 @@ void print_merge(FILE *out, struct file *a, struct file *b, struct file *c,
 					       cm->c, cm->c+cm->cl-1,
 					       cm->in_conflict ? " in_conflict" : "",
 					       cm->lo, cm->hi);
-					if ((cm->type == Unchanged || cm->type == Changed)
-					    && cm != m && cm->lo < cm->hi)
+					if (cm->in_conflict == 1 && cm != m)
 						break;
 				}
 
@@ -590,8 +607,7 @@ void print_merge(FILE *out, struct file *a, struct file *b, struct file *c,
 			for (cm = m; cm->in_conflict; cm++) {
 				if (cm->type == Conflict)
 					found_conflict = 1;
-				if ((cm->type == Unchanged || cm->type == Changed)
-				    && cm != m && cm->lo < cm->hi) {
+				if (cm->in_conflict == 1 && cm != m) {
 					printrange(out, a, cm->a, cm->lo);
 					break;
 				}
@@ -601,9 +617,8 @@ void print_merge(FILE *out, struct file *a, struct file *b, struct file *c,
 			fputs(words ? "|||" : "|||||||\n", out);
 			st1 = st;
 			for (cm = m; cm->in_conflict; cm++) {
-				if ((cm->type == Unchanged || cm->type == Changed)
-				    && cm != m && cm->lo < cm->hi) {
-					printrange(out, b, cm->b, cm->lo);
+				if (cm->in_conflict == 1 && cm != m) {
+					printrange(out, a, cm->a, cm->lo);
 					break;
 				}
 				printrange(out, b, cm->b+st1, cm->bl-st1);
@@ -612,10 +627,11 @@ void print_merge(FILE *out, struct file *a, struct file *b, struct file *c,
 			fputs(words ? "===" : "=======\n", out);
 			st1 = st;
 			for (cm = m; cm->in_conflict; cm++) {
-				if ((cm->type == Unchanged ||
-				     (cm->type == Changed && cm->ignored))
-				    && cm != m && cm->lo < cm->hi) {
-					printrange(out, c, cm->c, cm->lo);
+				if (cm->in_conflict == 1 && cm != m) {
+					if (cm->type == Unchanged)
+						printrange(out, a, cm->a, cm->lo);
+					else
+						printrange(out, c, cm->c, cm->cl);
 					break;
 				}
 				if (cm->type == Changed && !cm->ignored)
@@ -632,8 +648,7 @@ void print_merge(FILE *out, struct file *a, struct file *b, struct file *c,
 				st1 = st;
 				for (cm = m; cm->in_conflict; cm++) {
 					int last = 0;
-					if ((cm->type == Unchanged || cm->type == Changed)
-					    && cm != m && cm->lo < cm->hi)
+					if (cm->in_conflict == 1 && cm != m)
 						last = 1;
 					switch (cm->ignored ? Unchanged : cm->type) {
 					case Unchanged:
@@ -645,8 +660,8 @@ void print_merge(FILE *out, struct file *a, struct file *b, struct file *c,
 					case Extraneous:
 						break;
 					case Changed:
-						printrange(out, c, cm->c+st1,
-							   last ? cm->lo : cm->cl-st1);
+						printrange(out, c, cm->c,
+							   last ? cm->lo : cm->cl);
 						break;
 					case Conflict:
 					case End:
@@ -659,10 +674,10 @@ void print_merge(FILE *out, struct file *a, struct file *b, struct file *c,
 			}
 			fputs(words ? "--->>>" : ">>>>>>>\n", out);
 			m = cm;
-			if (m->in_conflict && (m->type == Unchanged ||
-					       (m->type == Changed && m->ignored))
-			    && m->hi >= m->al) {
-				printrange(out, a, m->a+m->lo, m->hi-m->lo);
+			if (m->in_conflict == 1 && m[1].in_conflict == 0) {
+				/* End of a conflict, no conflict follows */
+				if (m->type == Unchanged)
+					printrange(out, a, m->a+m->lo, m->hi-m->lo);
 				m++;
 			}
 		}
