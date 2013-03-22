@@ -408,6 +408,8 @@ struct ci make_merger(struct file af, struct file bf, struct file cf,
 	struct ci rv;
 	int i, l;
 	int a, b, c, c1, c2;
+	int header_checked = -1;
+	int header_found = 0;
 
 	rv.conflicts = rv.wiggles = rv.ignored = 0;
 
@@ -429,6 +431,17 @@ struct ci make_merger(struct file af, struct file bf, struct file cf,
 		match1 = (a >= csl1[c1].a && b >= csl1[c1].b); /* c1 doesn't match */
 		match2 = (b >= csl2[c2].a && c >= csl2[c2].b);
 
+		if (header_checked != c2) {
+			/* Check if there is a hunk header in this range */
+			int j;
+			header_found = -1;
+			for (j = b; j < csl2[c2].a + csl2[c2].len; j++)
+				if (bf.list[j].start[0] == '\0') {
+					header_found = j;
+					break;
+				}
+			header_checked = c2;
+		}
 		rv.merger[i].a = a;
 		rv.merger[i].b = b;
 		rv.merger[i].c = c;
@@ -439,18 +452,17 @@ struct ci make_merger(struct file af, struct file bf, struct file cf,
 
 		if (!match1 && match2) {
 			/* This is either Unmatched or Extraneous - probably both.
-			 * If the match2 is a hunk-header Extraneous, it must
+			 * If the match2 has a hunk-header Extraneous, it must
 			 * align with an end-of-line in 'a', so adjust endpoint
 			 */
 			int newa = csl1[c1].a;
-			if (b < bf.elcnt && bf.list[b].start
-			    && bf.list[b].start[0] == '\0') {
+			if (header_found >= 0) {
 				while (newa > a &&
 				       !ends_line(af.list[newa-1]))
 					newa--;
-				while (newa < af.elcnt && !(newa == 0 || ends_line(af.list[newa-1])))
-					newa++;
 			}
+			if (a == newa && b == csl1[c1].b)
+				newa = csl1[c1].a;
 			if (a < newa) {
 				/* some unmatched text */
 				rv.merger[i].type = Unmatched;
@@ -459,7 +471,6 @@ struct ci make_merger(struct file af, struct file bf, struct file cf,
 				rv.merger[i].cl = 0;
 			} else {
 				int newb;
-				int j;
 				assert(b < csl1[c1].b);
 				/* some Extraneous text */
 				/* length is min of unmatched on left
@@ -475,14 +486,14 @@ struct ci make_merger(struct file af, struct file bf, struct file cf,
 				newb = b +
 					min(csl1[c1].b - b,
 					    csl2[c2].len - (b-csl2[c2].a));
-				if (bf.list[b].start[0] == '\0')
+				if (header_found == b) {
 					newb = b + 1;
-				for (j = b; j < newb; j++) {
-					if (bf.list[j].start[0] == '\0') {
-						if (j > b)
-							newb = j;
-					}
+					header_checked = -1;
+				} else if (header_found > b && header_found < newb) {
+					newb = header_found;
+					header_checked = -1;
 				}
+				assert(newb > b);
 				rv.merger[i].cl =
 					rv.merger[i].bl = newb - b;
 			}

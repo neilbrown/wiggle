@@ -918,7 +918,6 @@ static int make_request(mddev_t *mddev, struct bio * bio)
 <<<<<<<
 		}
 
-		atomic_inc(&r1_bio->remaining);
 |||||||
 		bio_list_add(&bl, mbio);
 	}
@@ -931,6 +930,7 @@ static int make_request(mddev_t *mddev, struct bio * bio)
 	kfree(behind_pages); /* the behind pages are attached to the bios now */
 
 >>>>>>>
+		atomic_inc(&r1_bio->remaining);
 <<<<<<<
 		spin_lock_irqsave(&conf->device_lock, flags);
 		bio_list_add(&conf->pending_bio_list, mbio);
@@ -938,14 +938,12 @@ static int make_request(mddev_t *mddev, struct bio * bio)
 	}
 	r1_bio_write_done(r1_bio);
 |||||||
-				test_bit(R1BIO_BehindIO, &r1_bio->state));
 	spin_lock_irqsave(&conf->device_lock, flags);
 	bio_list_merge(&conf->pending_bio_list, &bl);
 	bio_list_init(&bl);
 
 	blk_plug_device(mddev->queue);
 =======
-				test_bit(R1BIO_BehindIO, &r1_bio->state));
 	spin_lock_irqsave(&conf->device_lock, flags);
 	bio_list_merge(&conf->pending_bio_list, &bl);
 	conf->pending_count += bl_count;
