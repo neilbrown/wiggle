@@ -580,6 +580,7 @@ struct csl *diff_partial(struct file a, struct file b,
 struct csl *csl_join(struct csl *c1, struct csl *c2)
 {
 	int cnt1, cnt2;
+	int offset = 0;
 	if (c1 == NULL)
 		return c2;
 	if (c2 == NULL)
@@ -589,9 +590,17 @@ struct csl *csl_join(struct csl *c1, struct csl *c2)
 		;
 	for (cnt2 = 0; c2[cnt2].len; cnt2++)
 		;
+	if (cnt1 && cnt2 &&
+	    c1[cnt1-1].a + c1[cnt1-1].len == c2[0].a &&
+	    c1[cnt1-1].b + c1[cnt1-1].len == c2[0].b) {
+		/* Merge these two */
+		c1[cnt1-1].len += c2[0].len;
+		offset = 1;
+		cnt2--;
+	}
 	c1 = realloc(c1, (cnt1+cnt2+1)*sizeof(*c1));
 	while (cnt2 >= 0) {
-		c1[cnt1+cnt2] = c2[cnt2];
+		c1[cnt1+cnt2] = c2[cnt2 + offset];
 		cnt2--;
 	}
 	free(c2);
