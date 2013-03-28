@@ -18,10 +18,15 @@ all: wiggle wiggle.man test
 
 wiggle : wiggle.o load.o parse.o split.o extract.o diff.o bestmatch.o ReadMe.o \
               merge2.o vpatch.o ccan/hash/hash.o
-wiggle.o load.o parse.o split.o extract.o diff.o bestmatch.o ReadMe.o \
+wiggle.o load.o parse.o split.o extract.o diff.o bestmatch.o \
                merge2.o vpatch.o :: wiggle.h
 split.o :: ccan/hash/hash.h config.h
 
+VERSION = $(shell [ -d .git ] && git describe HEAD)
+VERS_DATE = $(shell [ -d .git ] && git log -n1 --format=format:%cd --date=short)
+DVERS = $(if $(VERSION),-DVERSION=\"$(VERSION)\",)
+DDATE = $(if $(VERS_DATE),-DVERS_DATE=\"$(VERS_DATE)\",)
+CFLAGS += $(DVERS) $(DDATE)
 
 test: wiggle dotest
 	./dotest
@@ -45,7 +50,7 @@ install : wiggle wiggle.1
 
 version : ReadMe.c wiggle.1
 	@rm -f version
-	@sed -n -e 's/.*wiggle \([0-9.]*\) .*/\1/p' ReadMe.c > .version-readme
+	@sed -n -e 's/.*VERSION "\([0-9.]*\)".*/\1/p' ReadMe.c > .version-readme
 	@sed -n -e 's/.*WIGGLE 1 "" v\([0-9.]*\)$$/\1/p' wiggle.1 > .version-man
 	@cmp -s .version-readme .version-man && cat .version-man > version || { echo Inconsistant versions.; exit 1;}
 

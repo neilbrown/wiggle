@@ -29,7 +29,14 @@
 
 #include "wiggle.h"
 
-char Version[] = "wiggle 0.9 2012-05-14 GPL-2+ http://neil.brown.name/wiggle/\n";
+#ifndef VERSION
+#define VERSION "0.9"
+#endif
+#ifndef VERS_DATE
+#define VERS_DATE "2012-05-14"
+#endif
+
+char Version[] = "wiggle " VERSION " " VERS_DATE " GPL-2+ http://neil.brown.name/wiggle/\n";
 
 char short_options[] = "xdmwlrhiW123p::VRvqBb";
 
