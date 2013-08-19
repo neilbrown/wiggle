@@ -384,8 +384,7 @@ static int do_diff(int argc, char *argv[], int obj, int ispatch,
 			f = load_file(argv[1]);
 			if (f.body == NULL) {
 				fprintf(stderr,
-					"%s: cannot load patch"
-					" '%s' - %s\n", Cmd,
+					"%s: cannot load patch '%s' - %s\n", Cmd,
 					argv[1], strerror(errno));
 				return 2;
 			}
@@ -402,8 +401,7 @@ static int do_diff(int argc, char *argv[], int obj, int ispatch,
 			flist[1] = load_file(argv[1]);
 		if (flist[1].body == NULL) {
 			fprintf(stderr,
-				"%s: cannot load file"
-				" '%s' - %s\n", Cmd,
+				"%s: cannot load file '%s' - %s\n", Cmd,
 				argv[1], strerror(errno));
 			return 2;
 		}
