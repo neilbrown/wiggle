@@ -376,7 +376,9 @@ int isolate_conflicts(struct file af, struct file bf, struct file cf,
 			}
 			while (j <= i)
 				m[j++].in_conflict = 0;
-		out:;
+		out:
+			if (m[i].type == End)
+				break;
 		}
 		for (k = 1; k < m[i].al; k++)
 			if (words || ends_line(af.list[m[i].a+k])) {
