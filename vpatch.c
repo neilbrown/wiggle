@@ -966,9 +966,11 @@ static void draw_mside(int mode, int row, int offset, int start, int cols,
 		highlight_space = 0;
 		attr = visible(mode, m, &pos);
 		if ((attr == a_unmatched || attr == a_extra) &&
-		    changed &&
-		    (*c == ' ' || *c == '\t'))
-			highlight_space = 1;
+		    changed)
+			/* Only highlight spaces if there is a tab nearby */
+			for (l = 0; l < e.plen + e.prefix; l++)
+				if (c[l] == '\t')
+					highlight_space = 1;
 		for (l = 0; l < e.plen + e.prefix; l++) {
 			int scol = col;
 			if (*c == '\n')
