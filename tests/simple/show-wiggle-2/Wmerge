@@ -1,13 +1,13 @@
 Openning line
 
-<<<<<<<
+<<<<<<< found
 content line with content
-|||||||
+||||||| expected
 content line content
 =======
 middle line content
-&&&&&&&
+&&&&&&& resolution
 middle line with content
->>>>>>>
+>>>>>>> replacement
 
 closing line

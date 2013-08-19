@@ -161,7 +161,7 @@ static int grow_buffers(struct stripe_head *sh, int num)
 	for (i=0; i<num; i++) {
 		struct page *page;
 
-<<<<<<<
+<<<<<<< found
 		if (!bh)
 			return 1;
 		memset(bh, 0, sizeof (struct buffer_head));
@@ -169,7 +169,7 @@ static int grow_buffers(struct stripe_head *sh, int num)
 		if ((page = alloc_page(priority)))
 			bh->b_data = page_address(page);
 		else {
-|||||||
+||||||| expected
 		if (!bh)
 			return 1;
 		memset(bh, 0, sizeof (struct buffer_head));
@@ -178,7 +178,7 @@ static int grow_buffers(struct stripe_head *sh, int num)
 		else {
 =======
 		if (!(page = alloc_page(GFP_KERNEL))) {
->>>>>>>
+>>>>>>> replacement
 			return 1;
 		}
 		sh->dev[i].page = page;
@@ -218,13 +218,13 @@ static inline void init_stripe(struct stripe_head *sh, unsigned long sector, int
 			       test_bit(R5_LOCKED, &dev->flags));
 			BUG();
 		}
-<<<<<<<
+<<<<<<< found
 		clear_bit(BH_Uptodate, &sh->bh_cache[i]->b_state);
-|||||||
+||||||| expected
 		clear_buffer_uptodate(sh->bh_cache[i]);
 =======
 		dev->flags = 0;
->>>>>>>
+>>>>>>> replacement
 		raid5_build_block(sh, i);
 	}
 	insert_hash(conf, sh);
@@ -393,11 +393,11 @@ static void raid5_end_read_request (struct bio * bi)
 #else
 		set_bit(R5_UPTODATE, &sh->dev[i].flags);
 #endif		
-<<<<<<<
+<<<<<<< found
 	} else {
 		md_error(conf->mddev, bh->b_dev);
 		clear_bit(BH_Uptodate, &bh->b_state);
-|||||||
+||||||| expected
 	} else {
 		md_error(conf->mddev, bh->b_bdev);
 		clear_buffer_uptodate(bh);
@@ -405,7 +405,7 @@ static void raid5_end_read_request (struct bio * bi)
 	} else {
 		md_error(conf->mddev, bi->bi_bdev);
 		clear_bit(R5_UPTODATE, &sh->dev[i].flags);
->>>>>>>
+>>>>>>> replacement
 	}
 #if 0
 	/* must restore b_page before unlocking buffer... */
@@ -415,13 +415,13 @@ static void raid5_end_read_request (struct bio * bi)
 		clear_bit(BH_Uptodate, &bh->b_state);
 	}
 #endif
-<<<<<<<
+<<<<<<< found
 	clear_bit(BH_Lock, &bh->b_state);
-|||||||
+||||||| expected
 	clear_buffer_locked(bh);
 =======
 	clear_bit(R5_LOCKED, &sh->dev[i].flags);
->>>>>>>
+>>>>>>> replacement
 	set_bit(STRIPE_HANDLE, &sh->state);
 	release_stripe(sh);
 }
@@ -446,17 +446,17 @@ static void raid5_end_write_request (struct bio *bi)
 
 	spin_lock_irqsave(&conf->device_lock, flags);
 	if (!uptodate)
-<<<<<<<
+<<<<<<< found
 		md_error(conf->mddev, bh->b_dev);
 	clear_bit(BH_Lock, &bh->b_state);
-|||||||
+||||||| expected
 		md_error(conf->mddev, bh->b_bdev);
 	clear_buffer_locked(bh);
 =======
 		md_error(conf->mddev, bi->bi_bdev);
 	
 	clear_bit(R5_LOCKED, &sh->dev[i].flags);
->>>>>>>
+>>>>>>> replacement
 	set_bit(STRIPE_HANDLE, &sh->state);
 	__release_stripe(conf, sh);
 	spin_unlock_irqrestore(&conf->device_lock, flags);
@@ -477,29 +477,29 @@ static void raid5_build_block (struct stripe_head *sh, int i)
 	dev->vec.bv_len = STRIPE_SIZE;
 	dev->vec.bv_offset = 0;
 
-<<<<<<<
+<<<<<<< found
 	bh->b_dev       = conf->disks[i].dev;
-|||||||
+||||||| expected
 	bh->b_dev       = conf->disks[i].dev;
 	/* FIXME - later we will need bdev here */
 =======
 	dev->req.bi_bdev = conf->disks[i].bdev;
 	dev->req.bi_sector = sh->sector;
->>>>>>>
+>>>>>>> replacement
 	dev->req.bi_private = sh;
 
 	dev->flags = 0;
 	if (i != sh->pd_idx)
-<<<<<<<
+<<<<<<< found
 	bh->b_size	= sh->size;
 	bh->b_list	= BUF_LOCKED;
 	return bh;
-|||||||
+||||||| expected
 	bh->b_size	= sh->size;
 	return bh;
 =======
 		dev->sector = compute_blocknr(sh, i);
->>>>>>>
+>>>>>>> replacement
 }
 
 static int error (mddev_t *mddev, kdev_t dev)
@@ -755,16 +755,16 @@ static void compute_block(struct stripe_head *sh, int dd_idx)
 		check_xor();
 	}
 	if (count != 1)
-<<<<<<<
+<<<<<<< found
 		xor_block(count, bh_ptr);
 	set_bit(BH_Uptodate, &sh->bh_cache[dd_idx]->b_state);
-|||||||
+||||||| expected
 		xor_block(count, bh_ptr);
 	set_buffer_uptodate(sh->bh_cache[dd_idx]);
 =======
 		xor_block(count, STRIPE_SIZE, ptr);
 	set_bit(R5_UPTODATE, &sh->dev[i].flags);
->>>>>>>
+>>>>>>> replacement
 }
 
 static void compute_parity(struct stripe_head *sh, int method)
@@ -820,13 +820,13 @@ static void compute_parity(struct stripe_head *sh, int method)
 			sector_t sector = sh->dev[i].sector;
 			copy_data(1, chosen[i], sh->dev[i].page, sector);
 
-<<<<<<<
+<<<<<<< found
 			memcpy(bh->b_data,
 			       bdata,sh->size);
 			bh_kunmap(chosen[i]);
 			set_bit(BH_Lock, &bh->b_state);
 			mark_buffer_uptodate(bh, 1);
-|||||||
+||||||| expected
 			memcpy(bh->b_data,
 			       bdata,sh->size);
 			bh_kunmap(chosen[i]);
@@ -835,7 +835,7 @@ static void compute_parity(struct stripe_head *sh, int method)
 =======
 			set_bit(R5_LOCKED, &sh->dev[i].flags);
 			set_bit(R5_UPTODATE, &sh->dev[i].flags);
->>>>>>>
+>>>>>>> replacement
 		}
 
 	switch(method) {
@@ -858,12 +858,12 @@ static void compute_parity(struct stripe_head *sh, int method)
 		xor_block(count, STRIPE_SIZE, ptr);
 	
 	if (method != CHECK_PARITY) {
-<<<<<<<
+<<<<<<< found
 		mark_buffer_uptodate(sh->bh_cache[pd_idx], 1);
 		set_bit(BH_Lock, &sh->bh_cache[pd_idx]->b_state);
 	} else
 		mark_buffer_uptodate(sh->bh_cache[pd_idx], 0);
-|||||||
+||||||| expected
 		set_buffer_uptodate(sh->bh_cache[pd_idx]);
 		set_buffer_locked(sh->bh_cache[pd_idx]);
 	} else
@@ -873,7 +873,7 @@ static void compute_parity(struct stripe_head *sh, int method)
 		set_bit(R5_LOCKED,   &sh->dev[pd_idx].flags);
 	} else
 		clear_bit(R5_UPTODATE, &sh->dev[pd_idx].flags);
->>>>>>>
+>>>>>>> replacement
 }
 
 /*
@@ -1098,17 +1098,17 @@ static void handle_stripe(struct stripe_head *sh)
 					compute_block(sh, i);
 					uptodate++;
 				} else if (conf->disks[i].operational) {
-<<<<<<<
+<<<<<<< found
 					set_bit(BH_Lock, &bh->b_state);
 					action[i] = READ+1;
-|||||||
+||||||| expected
 					set_buffer_locked(bh);
 					action[i] = READ+1;
 =======
 					set_bit(R5_LOCKED, &dev->flags);
 					action[i] = READ+1;
 #if 0
->>>>>>>
+>>>>>>> replacement
 					/* if I am just reading this block and we don't have
 					   a failed drive, or any pending writes then sidestep the cache */
 					if (sh->bh_read[i] && !sh->bh_read[i]->b_reqnext &&
@@ -1170,13 +1170,13 @@ static void handle_stripe(struct stripe_head *sh)
 					if (test_bit(STRIPE_PREREAD_ACTIVE, &sh->state))
 					{
 						PRINTK("Read_old block %d for r-m-w\n", i);
-<<<<<<<
+<<<<<<< found
 						set_bit(BH_Lock, &bh->b_state);
-|||||||
+||||||| expected
 						set_buffer_locked(bh);
 =======
 						set_bit(R5_LOCKED, &dev->flags);
->>>>>>>
+>>>>>>> replacement
 						action[i] = READ+1;
 						locked++;
 					} else {
@@ -1195,13 +1195,13 @@ static void handle_stripe(struct stripe_head *sh)
 					if (test_bit(STRIPE_PREREAD_ACTIVE, &sh->state))
 					{
 						PRINTK("Read_old block %d for Reconstruct\n", i);
-<<<<<<<
+<<<<<<< found
 						set_bit(BH_Lock, &bh->b_state);
-|||||||
+||||||| expected
 						set_buffer_locked(bh);
 =======
 						set_bit(R5_LOCKED, &dev->flags);
->>>>>>>
+>>>>>>> replacement
 						action[i] = READ+1;
 						locked++;
 					} else {
@@ -1265,16 +1265,16 @@ static void handle_stripe(struct stripe_head *sh)
 			}
 			if (uptodate != disks)
 				BUG();
-<<<<<<<
+<<<<<<< found
 			bh = sh->bh_cache[failed_num];
 			set_bit(BH_Lock, &bh->b_state);
-|||||||
+||||||| expected
 			bh = sh->bh_cache[failed_num];
 			set_buffer_locked(bh);
 =======
 			dev = &sh->dev[failed_num];
 			set_bit(R5_LOCKED, &dev->flags);
->>>>>>>
+>>>>>>> replacement
 			action[failed_num] = WRITE+1;
 			locked++;
 			set_bit(STRIPE_INSYNC, &sh->state);
@@ -1328,13 +1328,13 @@ static void handle_stripe(struct stripe_head *sh)
 				generic_make_request(bi);
 			} else {
 				PRINTK("skip op %d on disc %d for sector %ld\n", action[i]-1, i, sh->sector);
-<<<<<<<
+<<<<<<< found
 				clear_bit(BH_Lock, &bh->b_state);
-|||||||
+||||||| expected
 				clear_buffer_locked(bh);
 =======
 				clear_bit(R5_LOCKED, &dev->flags);
->>>>>>>
+>>>>>>> replacement
 				set_bit(STRIPE_HANDLE, &sh->state);
 			}
 		}
@@ -1421,10 +1421,10 @@ static int make_request (mddev_t *mddev, int rw, struct bio * bi)
 			handle_stripe(sh);
 			release_stripe(sh);
 		}
-<<<<<<<
+<<<<<<< found
 	} else
 		bh->b_end_io(bh, test_bit(BH_Uptodate, &bh->b_state));
-|||||||
+||||||| expected
 	} else
 		bh->b_end_io(bh, buffer_uptodate(bh));
 =======
@@ -1433,11 +1433,11 @@ static int make_request (mddev_t *mddev, int rw, struct bio * bi)
 	if (--bi->bi_phys_segments == 0) 
 		bi->bi_end_io(bi);
 	spin_unlock_irq(&conf->device_lock);
->>>>>>>
+>>>>>>> replacement
 	return 0;
 }
 
-<<<<<<<
+<<<<<<< found
 /*
  * Determine correct block size for this device.
  */
@@ -1455,10 +1455,10 @@ unsigned int device_bsize (kdev_t dev)
 	return correct_size;
 }
 
-|||||||
+||||||| expected
 =======
 /* FIXME go_faster isn't used */
->>>>>>>
+>>>>>>> replacement
 static int sync_request (mddev_t *mddev, sector_t sector_nr, int go_faster)
 {
 	raid5_conf_t *conf = (raid5_conf_t *) mddev->private;

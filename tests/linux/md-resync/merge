@@ -977,16 +977,16 @@ static int raid1_diskop(mddev_t *mddev, mdp_disk_t **d, int state)
 	 * Deactivate a spare disk:
 	 */
 	case DISKOP_SPARE_INACTIVE:
-<<<<<<<
+<<<<<<< found
 		if (conf->start_future > 0) {
 			MD_BUG();
 			err = -EBUSY;
 			break;
 		}
-|||||||
+||||||| expected
 		close_sync(conf);
 =======
->>>>>>>
+>>>>>>> replacement
 		sdisk = conf->mirrors + spare_disk;
 		sdisk->operational = 0;
 		sdisk->write_only = 0;
@@ -999,16 +999,16 @@ static int raid1_diskop(mddev_t *mddev, mdp_disk_t **d, int state)
 	 * property)
 	 */
 	case DISKOP_SPARE_ACTIVE:
-<<<<<<<
+<<<<<<< found
 		if (conf->start_future > 0) {
 			MD_BUG();
 			err = -EBUSY;
 			break;
 		}
-|||||||
+||||||| expected
 		close_sync(conf);
 =======
->>>>>>>
+>>>>>>> replacement
 		sdisk = conf->mirrors + spare_disk;
 		fdisk = conf->mirrors + failed_disk;
 
@@ -1137,13 +1137,13 @@ static int raid1_diskop(mddev_t *mddev, mdp_disk_t **d, int state)
 	}
 abort:
 	md_spin_unlock_irq(&conf->device_lock);
-<<<<<<<
+<<<<<<< found
 	if (state == DISKOP_SPARE_ACTIVE || state == DISKOP_SPARE_INACTIVE)
 		/* should move to "END_REBUILD" when such exists */
 		raid1_shrink_buffers(conf);
 
 	print_raid1_conf(conf);
-|||||||
+||||||| expected
 	if (state == DISKOP_SPARE_ACTIVE || state == DISKOP_SPARE_INACTIVE) {
 		mempool_destroy(conf->r1buf_pool);
 		conf->r1buf_pool = NULL;
@@ -1153,7 +1153,7 @@ abort:
 =======
 
 	print_conf(conf);
->>>>>>>
+>>>>>>> replacement
 	return err;
 }
 
@@ -1300,16 +1300,16 @@ static void raid1d (void *data)
 #undef IO_ERROR
 #undef REDIRECT_SECTOR
 
-<<<<<<<
+<<<<<<< found
 static void raid1syncd (void *data)
 {
 	raid1_conf_t *conf = data;
-|||||||
+||||||| expected
 static void raid1syncd(void *data)
 {
 	conf_t *conf = data;
 =======
->>>>>>>
+>>>>>>> replacement
 
 /*
  * perform a "sync" on one "block"
@@ -1470,13 +1470,13 @@ static int raid1_sync_request (mddev_t *mddev, unsigned long sector_nr)
 	return (bsize >> 9);
 
 nomem:
-<<<<<<<
+<<<<<<< found
 	raid1_shrink_buffers(conf);
 	return -ENOMEM;
 }
 
 static void end_sync_read(struct buffer_head *bh, int uptodate)
-|||||||
+||||||| expected
 	if (!sector_nr)
 		if (init_resync(conf))
 			return -ENOMEM;
@@ -1497,7 +1497,7 @@ static void end_sync_read(struct buffer_head *bh, int uptodate)
 	/*
 	 * If there is non-resync activity waiting for us then
 	 * put in a delay to throttle resync.
->>>>>>>
+>>>>>>> replacement
 {
 	struct raid1_bh * r1_bh = (struct raid1_bh *)(bh->b_private);
 
@@ -1520,13 +1520,13 @@ static void end_sync_write(struct buffer_head *bh, int uptodate)
  		md_error (r1_bh->mddev, bh->b_dev);
 	if (atomic_dec_and_test(&r1_bh->remaining)) {
 		mddev_t *mddev = r1_bh->mddev;
-<<<<<<<
+<<<<<<< found
  		unsigned long sect = bh->b_blocknr;
 		int size = bh->b_size;
 		raid1_free_buf(r1_bh);
 		sync_request_done(sect, mddev_to_conf(mddev));
 		md_done_sync(mddev,size>>9, uptodate);
-|||||||
+||||||| expected
 	r1_bio->sector = sector_nr;
 	r1_bio->cmd = SPECIAL;
 
@@ -1538,7 +1538,7 @@ static void end_sync_write(struct buffer_head *bh, int uptodate)
 	r1_bio->sector = sector_nr;
 	r1_bio->cmd = SPECIAL;
 
->>>>>>>
+>>>>>>> replacement
 	}
 }
 
@@ -1760,20 +1760,20 @@ static int raid1_run (mddev_t *mddev)
 		}
 	}
 
-<<<<<<<
+<<<<<<< found
 	if (!start_recovery && !(sb->state & (1 << MD_SB_CLEAN)) &&
 	    (conf->working_disks > 1)) {
 		const char * name = "raid1syncd";
 
 		conf->resync_thread = md_register_thread(raid1syncd, conf,name);
-|||||||
+||||||| expected
 	if (!start_recovery && !(sb->state & (1 << MD_SB_CLEAN)) &&
 						(conf->working_disks > 1)) {
 		const char * name = "raid1syncd";
 
 		conf->resync_thread = md_register_thread(raid1syncd, conf, name);
 =======
->>>>>>>
+>>>>>>> replacement
 
 	/*
 	 * Regenerate the "device is in sync with the raid set" bit for
@@ -1818,7 +1818,7 @@ out:
 #undef NONE_OPERATIONAL
 #undef ARRAY_IS_ACTIVE
 
-<<<<<<<
+<<<<<<< found
 static int raid1_stop_resync (mddev_t *mddev)
 {
 	raid1_conf_t *conf = mddev_to_conf(mddev);
@@ -1838,7 +1838,7 @@ static int raid1_stop_resync (mddev_t *mddev)
 static int raid1_restart_resync (mddev_t *mddev)
 {
 	raid1_conf_t *conf = mddev_to_conf(mddev);
-|||||||
+||||||| expected
 static int stop_resync(mddev_t *mddev)
 {
 	conf_t *conf = mddev_to_conf(mddev);
@@ -1859,7 +1859,7 @@ static int restart_resync(mddev_t *mddev)
 {
 	conf_t *conf = mddev_to_conf(mddev);
 =======
->>>>>>>
+>>>>>>> replacement
 static int raid1_stop (mddev_t *mddev)
 {
 	raid1_conf_t *conf = mddev_to_conf(mddev);
@@ -1883,14 +1883,14 @@ static mdk_personality_t raid1_personality=
 	status:		raid1_status,
 	error_handler:	raid1_error,
 	diskop:		raid1_diskop,
-<<<<<<<
+<<<<<<< found
 	stop_resync:	raid1_stop_resync,
 	restart_resync:	raid1_restart_resync,
-|||||||
+||||||| expected
 	stop_resync:	stop_resync,
 	restart_resync:	restart_resync,
 =======
->>>>>>>
+>>>>>>> replacement
 	sync_request:	raid1_sync_request
 };
 

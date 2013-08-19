@@ -711,15 +711,15 @@ static int make_request(mddev_t *mddev, struct bio * bio)
 	int i, targets = 0, disks;
 	struct bitmap *bitmap;
 	unsigned long flags;
-<<<<<<<
-|||||||
+<<<<<<< found
+||||||| expected
 	struct bio_list bl;
 	struct page **behind_pages = NULL;
 =======
 	struct bio_list bl;
 	int bl_count;
 	struct page **behind_pages = NULL;
->>>>>>>
+>>>>>>> replacement
 	const int rw = bio_data_dir(bio);
 	const unsigned long do_sync = (bio->bi_rw & REQ_SYNC);
 	const unsigned long do_flush_fua = (bio->bi_rw & (REQ_FLUSH | REQ_FUA));
@@ -915,10 +915,10 @@ static int make_request(mddev_t *mddev, struct bio * bio)
 				bvec->bv_page = r1_bio->behind_pages[j];
 			if (test_bit(WriteMostly, &conf->mirrors[i].rdev->flags))
 				atomic_inc(&r1_bio->behind_remaining);
-<<<<<<<
+<<<<<<< found
 		}
 
-|||||||
+||||||| expected
 		bio_list_add(&bl, mbio);
 	}
 	kfree(behind_pages); /* the behind pages are attached to the bios now */
@@ -929,15 +929,15 @@ static int make_request(mddev_t *mddev, struct bio * bio)
 	}
 	kfree(behind_pages); /* the behind pages are attached to the bios now */
 
->>>>>>>
+>>>>>>> replacement
 		atomic_inc(&r1_bio->remaining);
-<<<<<<<
+<<<<<<< found
 		spin_lock_irqsave(&conf->device_lock, flags);
 		bio_list_add(&conf->pending_bio_list, mbio);
 		spin_unlock_irqrestore(&conf->device_lock, flags);
 	}
 	r1_bio_write_done(r1_bio);
-|||||||
+||||||| expected
 	spin_lock_irqsave(&conf->device_lock, flags);
 	bio_list_merge(&conf->pending_bio_list, &bl);
 	bio_list_init(&bl);
@@ -950,7 +950,7 @@ static int make_request(mddev_t *mddev, struct bio * bio)
 	bio_list_init(&bl);
 
 	blk_plug_device(mddev->queue);
->>>>>>>
+>>>>>>> replacement
 
 	/* In case raid1d snuck in to freeze_array */
 	wake_up(&conf->wait_barrier);
@@ -1950,11 +1950,11 @@ static conf_t *setup_conf(mddev_t *mddev)
 	init_waitqueue_head(&conf->wait_barrier);
 
 	bio_list_init(&conf->pending_bio_list);
-<<<<<<<
+<<<<<<< found
 
 	conf->last_used = -1;
 	for (i = 0; i < conf->raid_disks; i++) {
-|||||||
+||||||| expected
 	bio_list_init(&conf->flushing_bio_list);
 
 
@@ -1963,7 +1963,7 @@ static conf_t *setup_conf(mddev_t *mddev)
 	bio_list_init(&conf->flushing_bio_list);
 
 
->>>>>>>
+>>>>>>> replacement
 
 		disk = conf->mirrors + i;
 

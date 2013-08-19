@@ -1417,10 +1417,10 @@ retry_write:
 			mbio->bi_rw = WRITE | do_sync | do_fua;
 			mbio->bi_private = r10_bio;
 
-<<<<<<<
+<<<<<<< found
 		atomic_inc(&r10_bio->remaining);
 		spin_lock_irqsave(&conf->device_lock, flags);
-|||||||
+||||||| expected
 		atomic_inc(&r10_bio->remaining);
 
 		cb = blk_check_plugged(raid10_unplug, mddev, sizeof(*plug));
@@ -1440,12 +1440,12 @@ retry_write:
 			else
 				plug = NULL;
 			spin_lock_irqsave(&conf->device_lock, flags);
->>>>>>>
-<<<<<<<
+>>>>>>> replacement
+<<<<<<< found
 		bio_list_add(&conf->pending_bio_list, mbio);
 		conf->pending_count++;
 		spin_unlock_irqrestore(&conf->device_lock, flags);
-|||||||
+||||||| expected
 		if (plug) {
 			bio_list_add(&plug->pending, mbio);
 			plug->pending_cnt++;
@@ -1463,7 +1463,7 @@ retry_write:
 				conf->pending_count++;
 			}
 			spin_unlock_irqrestore(&conf->device_lock, flags);
->>>>>>>
+>>>>>>> replacement
 			if (!mddev_check_plugged(mddev))
 				md_wakeup_thread(mddev->thread);
 		}

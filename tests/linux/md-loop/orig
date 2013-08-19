@@ -640,13 +640,13 @@ static void free_mddev(mddev_t *mddev)
 	while (sem_getcount(&mddev->recovery_sem) != 1)
 		schedule();
 
-<<<<<<<
+<<<<<<< found
 	del_mddev_mapping(mddev, MKDEV(MD_MAJOR, mdidx(mddev)));
-|||||||
+||||||| expected
 	del_mddev_mapping(mddev, mk_kdev(MD_MAJOR, mdidx(mddev)));
 =======
  	mddev_map[mdidx(mddev)] = NULL;
->>>>>>>
+>>>>>>> replacement
 	md_list_del(&mddev->all_mddevs);
 	kfree(mddev);
 	MOD_DEC_USE_COUNT;
@@ -3951,10 +3951,10 @@ MD_EXPORT_SYMBOL(md_wakeup_thread);
 MD_EXPORT_SYMBOL(md_print_devices);
 MD_EXPORT_SYMBOL(find_rdev_nr);
 MD_EXPORT_SYMBOL(md_interrupt_thread);
-<<<<<<<
+<<<<<<< found
 MD_EXPORT_SYMBOL(mddev_map);
-|||||||
+||||||| expected
 EXPORT_SYMBOL(mddev_map);
 =======
->>>>>>>
+>>>>>>> replacement
 MODULE_LICENSE("GPL");

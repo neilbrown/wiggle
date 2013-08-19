@@ -5,11 +5,11 @@ current
 version
 of
 the
-<<<<<<<
+<<<<<<< found
 file.
-|||||||
+||||||| expected
 file
 =======
 file that has changed
->>>>>>>
+>>>>>>> replacement
 

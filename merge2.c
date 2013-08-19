@@ -679,7 +679,7 @@ void print_merge(FILE *out, struct file *a, struct file *b, struct file *c,
 				continue;
 			}
 
-			fputs(words ? "<<<---" : "<<<<<<<\n", out);
+			fputs(words ? "<<<---" : "<<<<<<< found\n", out);
 			for (cm = m; cm->in_conflict; cm++) {
 				if (cm->type == Conflict)
 					found_conflict = 1;
@@ -690,7 +690,7 @@ void print_merge(FILE *out, struct file *a, struct file *b, struct file *c,
 				printrange(out, a, cm->a+st1, cm->al-st1);
 				st1 = 0;
 			}
-			fputs(words ? "|||" : "|||||||\n", out);
+			fputs(words ? "|||" : "||||||| expected\n", out);
 			st1 = st;
 			for (cm = m; cm->in_conflict; cm++) {
 				if (cm->in_conflict == 1 && cm != m) {
@@ -720,7 +720,7 @@ void print_merge(FILE *out, struct file *a, struct file *b, struct file *c,
 				 * but full conflict display was requested.
 				 * So now print out the wiggled result as well.
 				 */
-				fputs(words ? "&&&" : "&&&&&&&\n", out);
+				fputs(words ? "&&&" : "&&&&&&& resolution\n", out);
 				st1 = st;
 				for (cm = m; cm->in_conflict; cm++) {
 					int last = 0;
@@ -748,7 +748,7 @@ void print_merge(FILE *out, struct file *a, struct file *b, struct file *c,
 					st1 = 0;
 				}
 			}
-			fputs(words ? "--->>>" : ">>>>>>>\n", out);
+			fputs(words ? "--->>>" : ">>>>>>> replacement\n", out);
 			m = cm;
 			if (m->in_conflict == 1 && m[1].in_conflict == 0) {
 				/* End of a conflict, no conflict follows */

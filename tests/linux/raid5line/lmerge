@@ -1,7 +1,7 @@
 		clear_bit(BH_Uptodate, &sh->bh_cache[i]->b_state);
-<<<<<<<
-|||||||
+<<<<<<< found
+||||||| expected
 		clear_buffer_uptodate(sh->bh_cache[i]);
 =======
 		dev->flags = 0;
->>>>>>>
+>>>>>>> replacement

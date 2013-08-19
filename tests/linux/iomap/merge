@@ -233,12 +233,12 @@ void __iomem *ioport_map(unsigned long port, unsigned int nr)
 	return (void __iomem *) (unsigned long) (port + PIO_OFFSET);
 }
 
-<<<<<<<
+<<<<<<< found
 void ioport_unmap(void __iomem *addr)
 {
 	/* Nothing to do */
 }
-|||||||
+||||||| expected
 #ifdef CONFIG_PCI
 /**
  * pci_iomap - create a virtual mapping cookie for a PCI BAR
@@ -258,15 +258,15 @@ void ioport_unmap(void __iomem *addr)
  * @maxlen: max length of the memory to map
  *
  * Using this function you will get a __iomem address to your device BAR.
->>>>>>>
+>>>>>>> replacement
 EXPORT_SYMBOL(ioport_map);
 EXPORT_SYMBOL(ioport_unmap);
 #endif /* CONFIG_HAS_IOPORT */
 
 #ifdef CONFIG_PCI
 /* Hide the details if this is a MMIO or PIO address space and just do what
-<<<<<<<
- * you expect in the correct way. */|||||||
+<<<<<<< found
+ * you expect in the correct way. */||||||| expected
  * you expect from them in the correct way.
  *
  * @maxlen specifies the maximum length to map. If you want to get access to
@@ -324,7 +324,7 @@ void __iomem *pci_iomap_range(struct pci_dev *dev, int bar,
 			return ioremap(start, len);
 		return ioremap_nocache(start, len);
 	}
->>>>>>>
+>>>>>>> replacement
 
 /**
  * pci_iomap - create a virtual mapping cookie for a PCI BAR

@@ -1031,13 +1031,13 @@ svc_tcp_init(struct svc_sock *svsk)
 		sk->write_space = svc_write_space;
 
 		svsk->sk_reclen = 0;
-<<<<<<<
+<<<<<<< found
 		svsk->sk_tcplen = 0;
 
 		/* initialise setting must have enough space to
 		 * receive and respond to one request.  
 		 * svc_tcp_recvfrom will re-adjust if necessary
-|||||||
+||||||| expected
                 svsk->sk_tcplen = 0;
 
                 /* initialise setting must have enough space to
@@ -1051,7 +1051,7 @@ svc_tcp_init(struct svc_sock *svsk)
                 /* initialise setting must have enough space to
                  * receive and respond to one request.
                  * svc_tcp_recvfrom will re-adjust if necessary
->>>>>>>
+>>>>>>> replacement
 		 */
 		svc_sock_setbufsize(svsk->sk_sock,
 				    3 * svsk->sk_server->sv_bufsz,

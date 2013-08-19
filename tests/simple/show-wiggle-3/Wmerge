@@ -4,12 +4,12 @@ are other extraneous sections of text
 that should not cause an extra wiggle
 
 
-<<<<<<<
+<<<<<<< found
 Here is a line
-|||||||
+||||||| expected
 Here was a line
 =======
 Here will be a line
->>>>>>>
+>>>>>>> replacement
 
 There is nothing else.
