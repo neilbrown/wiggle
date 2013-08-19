@@ -124,11 +124,6 @@ int isolate_conflicts(struct file af, struct file bf, struct file cf,
 	 * conflict, from m->a+m->lo to m->a+m->hi are clean, and
 	 * m->a+m->hi to m->a+m->al are in the following conflict.
 	 *
-	 * We initially mark all conflicts and wiggles so we can count
-	 * them and return those counts.  If show_wiggles is clear, we
-	 * then clear the in_conflict flag for any extended conflict
-	 * which doesn't set in_conflict to '1'.
-	 *
 	 * We need to ensure there is adequate context for the conflict.
 	 * So ensure there are at least 3 newlines in Extraneous or
 	 * Unchanged on both sides of a Conflict - but don't go so far
@@ -151,6 +146,9 @@ int isolate_conflicts(struct file af, struct file bf, struct file cf,
 		m[i].in_conflict = 0;
 
 	for (i = 0; m[i].type != End; i++) {
+		/* The '3' here is a count of newlines.  Once we find
+		 * that many newlines of the particular type, we have escaped.
+		 */
 		if (m[i].type == Changed && !m[i].ignored)
 			changed = 3;
 		if (m[i].type == Unmatched)
@@ -169,8 +167,8 @@ int isolate_conflicts(struct file af, struct file bf, struct file cf,
 			in_wiggle = 0;
 
 		if ((m[i].type == Conflict && m[i].ignored == 0) ||
-		    (show_wiggles && m[i].type != Unchanged && changed && (unmatched || extraneous))) {
-			/* We have a conflict (or wiggle) here.
+		    (show_wiggles && in_wiggle)) {
+			/* We have a conflict or wiggle here.
 			 * First search backwards for an Unchanged marking
 			 * things as in_conflict.  Then find the
 			 * cut-point in the Unchanged.  If there isn't one,
@@ -266,7 +264,6 @@ int isolate_conflicts(struct file af, struct file bf, struct file cf,
 				    bf.list[m[j].b].start[0] == '\0')
 					/* hunk header - not conflict any more */
 					break;
-				m[j].in_conflict = 1;
 				if (m[j].type == Extraneous) {
 					for (k = 0; k < m[j].bl; k++)
 						if (ends_line(bf.list[m[j].b+k]))
@@ -280,6 +277,7 @@ int isolate_conflicts(struct file af, struct file bf, struct file cf,
 						m[j].in_conflict = m[i].in_conflict;
 					continue;
 				}
+				m[j].in_conflict = 1;
 				m[j].hi = m[j].al;
 				if (words) {
 					m[j].lo = 0;
@@ -345,16 +343,37 @@ int isolate_conflicts(struct file af, struct file bf, struct file cf,
 					break;
 				m[j].in_conflict = m[i].in_conflict;
 			}
-			i = j - 1;
+			if (m[j-1].in_conflict == 1)
+				i = j - 1;
+			else
+				/* A hunk header bordered the conflict */
+				i = j;
 
-			while (--j >= 0 && (m[j].in_conflict > 1 ||
-					    (m[j].in_conflict == 1 && j < i))) {
+			/* If any of the merges are Changed or Conflict,
+			 * then this really is a Conflict or Wiggle.
+			 * If not they are just Unchanged, Unmatched,
+			 * Extraneous or AlreadyApplied, and so don't
+			 * really count.
+			 * Note that the first/last merges (in_conflict==1)
+			 * can be Changed and so much be check separately.
+			 */
+			if (m[j].type == Changed)
+				goto out;
+			for (j = i-1; j >= 0 && m[j].in_conflict > 1; j--)
 				if (m[j].type == Changed || m[j].type == Conflict)
 					goto out;
-			}
-			/* False alarm, no real conflict/wiggle here */
-			if (m[j].in_conflict == 1)
+			if (j >= 0 && m[j].type == Changed)
+				goto out;
+			/* False alarm, no real conflict/wiggle here as
+			 * nothing changed. */
+			if (j < 0)
+				j = 0;
+			if (m[j].in_conflict == 1) {
 				m[j].hi = m[j].al;
+				if (m[j].lo == 0)
+					m[j].in_conflict = 0;
+				j++;
+			}
 			while (j <= i)
 				m[j++].in_conflict = 0;
 		out:;
@@ -650,6 +669,13 @@ void print_merge(FILE *out, struct file *a, struct file *b, struct file *c,
 					if (cm->in_conflict == 1 && cm != m)
 						break;
 				}
+
+			if (m->in_conflict == 1 &&
+			    m[1].in_conflict == 1) {
+				/* Nothing between two conflicts */
+				m++;
+				continue;
+			}
 
 			fputs(words ? "<<<---" : "<<<<<<<\n", out);
 			for (cm = m; cm->in_conflict; cm++) {
