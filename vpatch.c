@@ -434,7 +434,7 @@ static struct elmnt next_melmnt(struct mp *pos,
 					pos->s = 0;
 					pos->m++;
 				}
-			} while (!stream_valid(pos->s, m[pos->m].type));
+			} while (!stream_valid(pos->s, m[pos->m].oldtype));
 		} else
 			break;
 	}
@@ -478,7 +478,7 @@ static struct elmnt prev_melmnt(struct mp *pos,
 				pos->m--;
 			}
 		} while (pos->m >= 0 &&
-			 !stream_valid(pos->s, m[pos->m].type));
+			 !stream_valid(pos->s, m[pos->m].oldtype));
 		if (pos->m >= 0) {
 			switch (pos->s) {
 			case 0:
@@ -514,7 +514,6 @@ static int visible(int mode, struct merge *m, struct mpos *pos)
 {
 	enum mergetype type;
 	int stream = pos->p.s;
-	unsigned int ignore;
 
 	if (mode == 0)
 		return -1;
@@ -531,8 +530,32 @@ static int visible(int mode, struct merge *m, struct mpos *pos)
 			return a_unmatched;
 		break;
 	case Unchanged: /* visible everywhere, but only show stream 0 */
-		if (stream == 0)
+		if (m[pos->p.m].oldtype == Conflict) {
+			switch (stream) {
+			case 0:
+				if (mode & RESULT)
+					return a_unmatched;
+				if (mode & ORIG)
+					return a_unmatched;
+				break;
+			case 1:
+				if (mode & BEFORE)
+					return a_extra;
+				break;
+			case 2:
+				if (mode & RESULT)
+					break;
+				if (mode & AFTER)
+					return a_added;
+				break;
+			}
+			break;
+		}
+		if (stream == 0) {
+			if (m[pos->p.m].oldtype != Unchanged)
+				return a_common | A_UNDERLINE;
 			return a_common;
+		}
 		break;
 	case Extraneous: /* stream 2 is visible in BEFORE and AFTER */
 		if ((mode & (BEFORE|AFTER))
@@ -540,11 +563,6 @@ static int visible(int mode, struct merge *m, struct mpos *pos)
 			return a_extra;
 		break;
 	case Changed: /* stream zero visible ORIG and BEFORE, stream 2 elsewhere */
-		if (m[pos->p.m].ignored) {
-			if (stream == 0)
-				return a_common | A_UNDERLINE;
-			break;
-		}
 		if (stream == 0 &&
 		    (mode & (ORIG|BEFORE)))
 			return a_delete;
@@ -553,26 +571,18 @@ static int visible(int mode, struct merge *m, struct mpos *pos)
 			return a_added;
 		break;
 	case Conflict:
-		if (m[pos->p.m].ignored)
-			ignore = A_REVERSE|A_UNDERLINE;
-		else
-			ignore = 0;
 		switch (stream) {
 		case 0:
-			if (ignore && (mode & RESULT))
-				return a_unmatched;
 			if (mode & ORIG)
-				return a_unmatched | (A_REVERSE & ~ignore);
+				return a_unmatched | A_REVERSE;
 			break;
 		case 1:
 			if (mode & BEFORE)
-				return a_extra | (A_UNDERLINE & ~ignore);
+				return a_extra | A_UNDERLINE;
 			break;
 		case 2:
-			if ((mode & RESULT) && m[pos->p.m].ignored)
-				break;
 			if (mode & (AFTER|RESULT))
-				return a_added | (A_UNDERLINE & ~ignore);
+				return a_added | A_UNDERLINE;
 			break;
 		}
 		break;
@@ -613,14 +623,10 @@ static int check_line(struct mpos pos, struct file fm, struct file fb,
 	if (pos.p.m < 0)
 		return 0;
 	do {
-		if (m[pos.p.m].type == Changed && !m[pos.p.m].ignored)
+		if (m[pos.p.m].type == Changed)
 			rv |= CHANGES;
 		else if (m[pos.p.m].type == Conflict) {
-			if (m[pos.p.m].ignored &&
-			    (mode & RESULT))
-				;
-			else
-				rv |= CONFLICTED | CHANGES;
+			rv |= CONFLICTED | CHANGES;
 		} else if (m[pos.p.m].type == AlreadyApplied) {
 			rv |= CONFLICTED;
 			if (mode & (BEFORE|AFTER))
@@ -1301,7 +1307,7 @@ static int merge_window(struct plist *p, FILE *f, int reverse, int replace,
 		tnum;
 	int changes = 0; /* If any edits have been made to the merge */
 	int answer;	/* answer to 'save changes?' question */
-	int do_ignore;
+	int do_mark;
 	struct elmnt e;
 	char search[80];  /* string we are searching for */
 	unsigned int searchlen = 0;
@@ -1389,6 +1395,8 @@ static int merge_window(struct plist *p, FILE *f, int reverse, int replace,
 	csl2 = diff_patch(fb, fa);
 
 	ci = make_merger(fm, fb, fa, csl1, csl2, 0, 1, 0);
+	for (i = 0; ci.merger[i].type != End; i++)
+		ci.merger[i].oldtype = ci.merger[i].type;
 
 	term_init(!selftest);
 
@@ -1615,9 +1623,9 @@ static int merge_window(struct plist *p, FILE *f, int reverse, int replace,
 			char lbuf[30];
 			(void)attrset(A_BOLD);
 			snprintf(lbuf, 29, "%s%s ln:%d",
-				 ci.merger[curs.pos.m].ignored
+				 ci.merger[curs.pos.m].type != ci.merger[curs.pos.m].oldtype
 				 ? "Ignored ":"",
-				 typenames[ci.merger[curs.pos.m].type],
+				 typenames[ci.merger[curs.pos.m].oldtype],
 				 (pos.p.lineno-1)/2);
 			/* Longest type is AlreadyApplied - need to ensure
 			 * we erase all of that.
@@ -2150,39 +2158,50 @@ static int merge_window(struct plist *p, FILE *f, int reverse, int replace,
 				vpos = tvpos;
 			break;
 
-		case 'x': /* Toggle rejecting of conflict */
-			if (ci.merger[curs.pos.m].type == Conflict ||
-			    ci.merger[curs.pos.m].type == Changed) {
-				ci.merger[curs.pos.m].ignored =
-					! ci.merger[curs.pos.m].ignored;
-				p->conflicts = isolate_conflicts(
-					fm, fb, fa, csl1, csl2, 0,
-					ci.merger, 0, &p->wiggles);
-				refresh = 1;
-				changes = 1;
-			}
+		case 'x': /* Toggle rejecting of conflict.
+			   * A 'Conflict' or 'Changed' becomes 'Unchanged'
+			   */
+			if (ci.merger[curs.pos.m].oldtype != Conflict &&
+			    ci.merger[curs.pos.m].oldtype != Changed)
+				break;
+
+			if (ci.merger[curs.pos.m].type == Unchanged)
+				ci.merger[curs.pos.m].type = ci.merger[curs.pos.m].oldtype;
+
+			else
+				ci.merger[curs.pos.m].type = Unchanged;
+			p->conflicts = isolate_conflicts(
+				fm, fb, fa, csl1, csl2, 0,
+				ci.merger, 0, &p->wiggles);
+			refresh = 1;
+			changes = 1;
 			break;
 
-		case 'X': /* toggle 'ignored' for all Conflicts and Changeds
-			   * in the current line.
-			   * If any are not ignored, ignore them all, else
-			   * un-ignore them all.
+		case 'X': /* toggle where all Conflicts and Changeds
+			   * in the current line are marked Unchanged.
+			   * If any are not mark, mark them all, else
+			   * un-mark them all.
 			   */
 			tpos = pos;
-			do_ignore = 0;
+			do_mark = 0;
 			do {
-				if ((ci.merger[tpos.p.m].type == Conflict ||
-				     ci.merger[tpos.p.m].type == Changed)
-				    && ci.merger[tpos.p.m].ignored == 0)
-					do_ignore = 1;
+				if ((ci.merger[tpos.p.m].oldtype == Conflict ||
+				     ci.merger[tpos.p.m].oldtype == Changed)
+				    && ci.merger[tpos.p.m].type != Unchanged)
+					do_mark = 1;
 				e = prev_melmnt(&tpos.p, fm, fb, fa, ci.merger);
 			} while (!ends_line(e) ||
 				 visible(mode & (RESULT|AFTER), ci.merger, &tpos) < 0);
 			tpos = pos;
 			do {
-				if (ci.merger[tpos.p.m].type == Conflict ||
-				    ci.merger[tpos.p.m].type == Changed)
-					ci.merger[tpos.p.m].ignored = do_ignore;
+				if (ci.merger[tpos.p.m].oldtype == Conflict ||
+				    ci.merger[tpos.p.m].oldtype == Changed) {
+					if (do_mark)
+						ci.merger[tpos.p.m].type = Unchanged;
+					else
+						ci.merger[tpos.p.m].type =
+							ci.merger[tpos.p.m].oldtype;
+				}
 				e = prev_melmnt(&tpos.p, fm, fb, fa, ci.merger);
 			} while (!ends_line(e) ||
 				 visible(mode & (RESULT|AFTER), ci.merger, &tpos) < 0);

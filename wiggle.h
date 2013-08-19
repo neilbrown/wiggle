@@ -107,12 +107,11 @@ struct merge {
 	enum mergetype {
 		End, Unmatched, Unchanged, Extraneous,
 		Changed, Conflict, AlreadyApplied,
-	} type;
+	} type, oldtype;
 	int a, b, c; /* start of ranges */
 	int al, bl, cl; /* length of ranges */
 	int c1, c2; /* this or next common-sequence */
 	int in_conflict;
-	int ignored;
 	int lo, hi; /* region of a Changed or Unchanged that is not involved
 		    * in a conflict.
 		    * These are distances from start of the "before" section,

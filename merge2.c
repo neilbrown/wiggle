@@ -149,7 +149,7 @@ int isolate_conflicts(struct file af, struct file bf, struct file cf,
 		/* The '3' here is a count of newlines.  Once we find
 		 * that many newlines of the particular type, we have escaped.
 		 */
-		if (m[i].type == Changed && !m[i].ignored)
+		if (m[i].type == Changed)
 			changed = 3;
 		if (m[i].type == Unmatched)
 			unmatched = 3;
@@ -166,7 +166,7 @@ int isolate_conflicts(struct file af, struct file bf, struct file cf,
 		} else
 			in_wiggle = 0;
 
-		if ((m[i].type == Conflict && m[i].ignored == 0) ||
+		if ((m[i].type == Conflict) ||
 		    (show_wiggles && in_wiggle)) {
 			/* We have a conflict or wiggle here.
 			 * First search backwards for an Unchanged marking
@@ -244,7 +244,7 @@ int isolate_conflicts(struct file af, struct file bf, struct file cf,
 					/* no start-of-line found... */
 					m[j].hi = -1;
 				if (m[j].hi > 0 &&
-				    (m[j].type == Changed && !m[j].ignored)) {
+				    (m[j].type == Changed)) {
 					/* this can only work if start is
 					 * also a line break */
 					if (is_cutpoint(m[j], af,bf,cf))
@@ -332,7 +332,7 @@ int isolate_conflicts(struct file af, struct file bf, struct file cf,
 						m[j].lo = m[j].al+1;
 				}
 				if (m[j].lo <= m[j].al+1 &&
-				    (m[j].type == Changed && !m[j].ignored)) {
+				    (m[j].type == Changed)) {
 					/* this can only work if the end is a line break */
 					if (is_cutpoint(m[j+1], af,bf,cf))
 						/* ok */;
@@ -467,7 +467,6 @@ struct ci make_merger(struct file af, struct file bf, struct file cf,
 		rv.merger[i].c1 = c1;
 		rv.merger[i].c2 = c2;
 		rv.merger[i].in_conflict = 0;
-		rv.merger[i].ignored = 0;
 
 		if (!match1 && match2) {
 			/* This is either Unmatched or Extraneous - probably both.
@@ -564,6 +563,7 @@ struct ci make_merger(struct file af, struct file bf, struct file cf,
 				 */
 				rv.merger[i].al = 0;
 		}
+		rv.merger[i].oldtype = rv.merger[i].type;
 		a += rv.merger[i].al;
 		b += rv.merger[i].bl;
 		c += rv.merger[i].cl;
@@ -581,13 +581,13 @@ struct ci make_merger(struct file af, struct file bf, struct file cf,
 			break;
 	}
 	rv.merger[i].type = End;
+	rv.merger[i].oldtype = End;
 	rv.merger[i].a = a;
 	rv.merger[i].b = b;
 	rv.merger[i].c = c;
 	rv.merger[i].c1 = c1;
 	rv.merger[i].c2 = c2;
 	rv.merger[i].in_conflict = 0;
-	rv.merger[i].ignored = 0;
 	assert(i < l);
 
 	/* Now revert any AlreadyApplied that aren't bounded by
@@ -708,7 +708,7 @@ void print_merge(FILE *out, struct file *a, struct file *b, struct file *c,
 						printrange(out, c, cm->c, cm->cl);
 					break;
 				}
-				if (cm->type == Changed && !cm->ignored)
+				if (cm->type == Changed)
 					st1 = 0; /* All of result of change must be printed */
 				printrange(out, c, cm->c+st1, cm->cl-st1);
 				st1 = 0;
@@ -724,7 +724,7 @@ void print_merge(FILE *out, struct file *a, struct file *b, struct file *c,
 					int last = 0;
 					if (cm->in_conflict == 1 && cm != m)
 						last = 1;
-					switch (cm->ignored ? Unchanged : cm->type) {
+					switch (cm->type) {
 					case Unchanged:
 					case AlreadyApplied:
 					case Unmatched:
@@ -786,16 +786,9 @@ void print_merge(FILE *out, struct file *a, struct file *b, struct file *c,
 		case Extraneous:
 			break;
 		case Changed:
-			if (m->ignored)
-				printrange(out, a, m->a, m->al);
-			else
-				printrange(out, c, m->c, m->cl);
+			printrange(out, c, m->c, m->cl);
 			break;
 		case Conflict:
-			if (m->ignored) {
-				printrange(out, a, m->a, m->al);
-				break;
-			}
 		case End:
 			assert(0);
 		}
