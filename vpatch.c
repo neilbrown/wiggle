@@ -1148,14 +1148,14 @@ static char *result_help[] = {
 static char *before_help[] = {
 	"This view shows the 'before' section of a patch.",
 	"It allows the expected match text to be seen uncluttered",
-	"by text that is meant to replaced it."
+	"by text that is meant to replaced it.",
 	"Red text is text that will be removed by the patch",
 	NULL
 };
 static char *after_help[] = {
 	"This view shows the 'after' section of a patch.",
 	"It allows the intended result to be seen uncluttered",
-	"by text that was meant to be matched and replaced."
+	"by text that was meant to be matched and replaced.",
 	"Green text is text that was added by the patch - it",
 	"was not present in the 'before' part of the patch",
 	NULL
@@ -1195,7 +1195,7 @@ static char *merge_window_help[] = {
 	" underline           remove or added text can also be",
 	"                     underlined indicating that it",
 	"                     was involved in a conflict",
-	""
+	"",
 	"While viewing a merge various keystroke commands can",
 	"be used to move around and change the view.  Basic",
 	"movement commands from both 'vi' and 'emacs' are",
@@ -1212,7 +1212,7 @@ static char *merge_window_help[] = {
 	" ESC-<  0-G          Go to start of file",
 	" ESC->  G            Go to end of file",
 	" q                   Return to list of files or exit",
-	" control-C           Disable auto-save-on-exit"
+	" control-C           Disable auto-save-on-exit",
 	" control-L           recenter current line",
 	" control-V SPACE     page down",
 	" ESC-v	  BACKSPC     page up",
@@ -2467,7 +2467,7 @@ static char *main_help[] = {
 	"       in to place",
 	"  Co   The number of chunks that created an unresolvable",
 	"       conflict",
-	""
+	"",
 	"Keystrokes recognised in this page are:",
 	"  ?          Display this help",
 	"  SPC        On a directory, toggle hiding of contents",
