@@ -2261,6 +2261,8 @@ static int merge_window(struct plist *p, FILE *f, int reverse, int replace,
 				    && ci.merger[tpos.p.m].type != Unchanged)
 					do_mark = 1;
 				e = prev_melmnt(&tpos.p, fm, fb, fa, ci.merger);
+				if (tpos.p.m < 0)
+					break;
 			} while (!ends_line(e) ||
 				 visible(mode & (RESULT|AFTER), ci.merger, &tpos) < 0);
 			tpos = pos;
@@ -2274,6 +2276,8 @@ static int merge_window(struct plist *p, FILE *f, int reverse, int replace,
 							ci.merger[tpos.p.m].oldtype;
 				}
 				e = prev_melmnt(&tpos.p, fm, fb, fa, ci.merger);
+				if (tpos.p.m < 0)
+					break;
 			} while (!ends_line(e) ||
 				 visible(mode & (RESULT|AFTER), ci.merger, &tpos) < 0);
 			p->conflicts = isolate_conflicts(
