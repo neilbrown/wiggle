@@ -1227,6 +1227,7 @@ static char *merge_window_help[] = {
 	" ESC-<  0-G          Go to start of file",
 	" ESC->  G            Go to end of file",
 	" q                   Return to list of files or exit",
+	" S                   Arrange for merge to be saved on exit",
 	" control-C           Disable auto-save-on-exit",
 	" control-L           recenter current line",
 	" control-V SPACE     page down",
@@ -1743,6 +1744,10 @@ static int merge_window(struct plist *p, FILE *f, int reverse, int replace,
 			else
 				mesg = "Use 'q' to quit";
 			replace = 0;
+			break;
+		case 'S':
+			mesg = "Will auto-save on exit, using Ctrl-C to cancel";
+			replace = 1;
 			break;
 		case 'q':
 			refresh = 2;
