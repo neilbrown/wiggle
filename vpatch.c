@@ -2582,6 +2582,10 @@ static void main_window(struct plist *pl, int *np, FILE *f, int reverse,
 	int any; /* count of files that have been save*/
 	int ans;
 	MEVENT mevent;
+	char *debug = getenv("WIGGLE_DEBUG");
+
+	if (debug && !*debug)
+		debug = NULL;
 
 	freopen("/dev/null","w",stderr);
 	term_init(1);
@@ -2640,7 +2644,7 @@ static void main_window(struct plist *pl, int *np, FILE *f, int reverse,
 			move(0, cols - last_mesg_len);
 			addstr(mesg);
 			mesg = NULL;
-		} else {
+		} else if (debug) {
 			/* debugging help: report last keystroke */
 			char bb[30];
 			sprintf(bb, "last-key = 0%o", c);
