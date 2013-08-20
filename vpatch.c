@@ -1249,10 +1249,11 @@ static char *merge_window_help[] = {
 	"",
 	" I                   toggle whether spaces are ignored",
 	"                     when matching text.",
-	" x                   toggle ignoring of current Changed",
-	"                     or Conflict item",
-	" X                   toggle ignored of all Change and",
-	"                     Conflict items in current line",
+	" x                   toggle ignoring of current Changed,",
+	"                     Conflict, or Unmatched item",
+	" c                   toggle accepting of result of conflict",
+	" X                   toggle ignored of all Change, Conflict",
+	"                     and Unmatched items in current line",
 	NULL
 };
 static char *save_query[] = {
@@ -1430,6 +1431,7 @@ static int merge_window(struct plist *p, FILE *f, int reverse, int replace,
 	memset(&curs, 0, sizeof(curs));
 	vpos = pos;
 	while (1) {
+		unsigned int next;
 		if (refresh >= 2) {
 			char buf[100];
 			clear();
@@ -1643,11 +1645,12 @@ static int merge_window(struct plist *p, FILE *f, int reverse, int replace,
 		/* Now that curs is accurate, report the type */
 		{
 			char lbuf[30];
+			int l = 0;
 			(void)attrset(A_BOLD);
-			snprintf(lbuf, 29, "%s%s ln:%d",
-				 ci.merger[curs.pos.m].type != ci.merger[curs.pos.m].oldtype
-				 ? "Ignored ":"",
-				 typenames[ci.merger[curs.pos.m].oldtype],
+			if (ci.merger[curs.pos.m].type != ci.merger[curs.pos.m].oldtype)
+				l = sprintf(lbuf, "%s->", typenames[ci.merger[curs.pos.m].oldtype]);
+			snprintf(lbuf+l, 29-l, "%s ln:%d",
+				 typenames[ci.merger[curs.pos.m].type],
 				 (pos.p.lineno-1)/2);
 			/* Longest type is AlreadyApplied - need to ensure
 			 * we erase all of that.
@@ -2231,16 +2234,37 @@ static int merge_window(struct plist *p, FILE *f, int reverse, int replace,
 
 		case 'x': /* Toggle rejecting of conflict.
 			   * A 'Conflict' or 'Changed' becomes 'Unchanged'
+			   * 'Unmatched' becomes 'Changed'
 			   */
-			if (ci.merger[curs.pos.m].oldtype != Conflict &&
-			    ci.merger[curs.pos.m].oldtype != Changed)
+			if (ci.merger[curs.pos.m].oldtype == Conflict ||
+			    ci.merger[curs.pos.m].oldtype == Changed)
+				next = Unchanged;
+			else if (ci.merger[curs.pos.m].oldtype == Unmatched)
+				next = Changed;
+			else
 				break;
 
-			if (ci.merger[curs.pos.m].type == Unchanged)
+			if (ci.merger[curs.pos.m].type == next)
 				ci.merger[curs.pos.m].type = ci.merger[curs.pos.m].oldtype;
-
 			else
-				ci.merger[curs.pos.m].type = Unchanged;
+				ci.merger[curs.pos.m].type = next;
+			p->conflicts = isolate_conflicts(
+				fm, fb, fa, csl1, csl2, 0,
+				ci.merger, 0, &p->wiggles);
+			refresh = 1;
+			changes = 1;
+			break;
+
+		case 'c': /* Toggle accepting of conflict.
+			   * A 'Conflict' becomes 'Changed'
+			   */
+			if (ci.merger[curs.pos.m].oldtype != Conflict)
+				break;
+
+			if (ci.merger[curs.pos.m].type == Changed)
+				ci.merger[curs.pos.m].type = ci.merger[curs.pos.m].oldtype;
+			else
+				ci.merger[curs.pos.m].type = Changed;
 			p->conflicts = isolate_conflicts(
 				fm, fb, fa, csl1, csl2, 0,
 				ci.merger, 0, &p->wiggles);
@@ -2257,8 +2281,10 @@ static int merge_window(struct plist *p, FILE *f, int reverse, int replace,
 			do_mark = 0;
 			do {
 				if ((ci.merger[tpos.p.m].oldtype == Conflict ||
-				     ci.merger[tpos.p.m].oldtype == Changed)
-				    && ci.merger[tpos.p.m].type != Unchanged)
+				     ci.merger[tpos.p.m].oldtype == Changed ||
+				     ci.merger[tpos.p.m].oldtype == Unmatched)
+				    && (ci.merger[tpos.p.m].type ==
+					ci.merger[tpos.p.m].oldtype))
 					do_mark = 1;
 				e = prev_melmnt(&tpos.p, fm, fb, fa, ci.merger);
 				if (tpos.p.m < 0)
@@ -2268,9 +2294,13 @@ static int merge_window(struct plist *p, FILE *f, int reverse, int replace,
 			tpos = pos;
 			do {
 				if (ci.merger[tpos.p.m].oldtype == Conflict ||
-				    ci.merger[tpos.p.m].oldtype == Changed) {
+				    ci.merger[tpos.p.m].oldtype == Changed ||
+				    ci.merger[tpos.p.m].oldtype == Unmatched) {
+					next = Unchanged;
+					if (ci.merger[tpos.p.m].oldtype == Unmatched)
+						next = Changed;
 					if (do_mark)
-						ci.merger[tpos.p.m].type = Unchanged;
+						ci.merger[tpos.p.m].type = next;
 					else
 						ci.merger[tpos.p.m].type =
 							ci.merger[tpos.p.m].oldtype;
