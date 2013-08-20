@@ -89,15 +89,28 @@
 #include	<stdlib.h>
 #include	<stdio.h>
 #include	<ctype.h>
+#include	<sys/stat.h>
 
 char *Cmd = "wiggle";
 int do_trace = 0;
 
-void die()
+void die(char *reason)
 {
-	fprintf(stderr, "%s: fatal error\n", Cmd);
-	abort();
+	fprintf(stderr, "%s: fatal error: %s failure\n", Cmd, reason);
 	exit(3);
+}
+
+void check_dir(char *name, int fd)
+{
+	struct stat st;
+	if (fstat(fd, &st) != 0) {
+		fprintf(stderr, "%s: fatal: %s is strange\n", Cmd, name);
+		exit(3);
+	}
+	if (S_ISDIR(st.st_mode)) {
+		fprintf(stderr, "%s: %s is a directory\n", Cmd, name);
+		exit(3);
+	}
 }
 
 void *xmalloc(int size)
@@ -612,6 +625,7 @@ static int multi_merge(int argc, char *argv[], int obj, int blanks,
 			Cmd, filename);
 		return 2;
 	}
+	check_dir(filename, fileno(f));
 	pl = parse_patch(f, NULL, &num_patches);
 	fclose(f);
 	if (set_prefix(pl, num_patches, strip) == 0) {

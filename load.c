@@ -54,7 +54,7 @@ static void join_streams(struct stream list[], int cnt)
 
 	c = realloc(list[0].body, len+1);
 	if (c == NULL)
-		die();
+		die("memory allocation");
 
 	list[0].body = c;
 	c  += list[0].len;
@@ -77,7 +77,7 @@ static struct stream load_regular(int fd)
 	s.len = stb.st_size;
 	s.body = xmalloc(s.len+1);
 	if (read(fd, s.body, s.len) != s.len)
-		die();
+		die("file read");
 
 	s.body[s.len] = 0;
 	return s;
@@ -93,7 +93,7 @@ static struct stream load_other(int fd)
 		list[i].body = xmalloc(8192);
 		list[i].len = read(fd, list[i].body, 8192);
 		if (list[i].len < 0)
-			die();
+			die("file read");
 		if (list[i].len == 0)
 			break;
 		i++;
@@ -114,7 +114,7 @@ struct stream load_segment(FILE *f,
 	s.body = xmalloc(s.len+1);
 	fseek(f, start, 0);
 	if (fread(s.body, 1, s.len, f) != (size_t)s.len)
-		die();
+		die("file read");
 	/* ensure string is 'nul' terminated - for sscanf */
 	s.body[s.len] = 0;
 	return s;
@@ -148,7 +148,7 @@ struct stream load_file(char *name)
 			if (fd < 0)
 				return s;
 		}
-
+		check_dir(name, fd);
 		if (fstat(fd, &stb) == 0) {
 
 			if (S_ISREG(stb.st_mode))

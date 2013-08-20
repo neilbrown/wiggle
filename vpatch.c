@@ -3059,6 +3059,7 @@ int vpatch(int argc, char *argv[], int patch, int strip,
 			fprintf(stderr, "%s: cannot open %s\n", Cmd, argv[0]);
 			exit(1);
 		}
+		check_dir(argv[0], fileno(f));
 		if (patch) {
 			pl = parse_patch(f, NULL, &num_patches);
 			if (set_prefix(pl, num_patches, strip) == 0) {
@@ -3080,6 +3081,7 @@ int vpatch(int argc, char *argv[], int patch, int strip,
 		break;
 	case 2: /* an orig and a diff/.ref */
 		f = fopen(argv[1], "r");
+		check_dir(argv[1], fileno(f));
 		if (!f) {
 			fprintf(stderr, "%s: cannot open %s\n", Cmd, argv[0]);
 			exit(1);

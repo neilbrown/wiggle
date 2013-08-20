@@ -177,7 +177,8 @@ extern struct ci make_merger(struct file a, struct file b, struct file c,
 			     struct csl *c1, struct csl *c2, int words,
 			     int ignore_already, int show_wiggles);
 
-extern void die(void);
+extern void die(char *reason);
+extern void check_dir(char *name, int fd);
 extern void *xmalloc(int len);
 extern int do_trace;
 
