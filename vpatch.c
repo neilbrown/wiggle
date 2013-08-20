@@ -1247,6 +1247,8 @@ static char *merge_window_help[] = {
 	" m                   display 'merge' view",
 	" |                   display side-by-side view",
 	"",
+	" I                   toggle whether spaces are ignored",
+	"                     when matching text.",
 	" x                   toggle ignoring of current Changed",
 	"                     or Conflict item",
 	" X                   toggle ignored of all Change and",
@@ -1260,6 +1262,16 @@ static char *save_query[] = {
 	" Y = save the modified merge",
 	" N = discard modifications, don't save",
 	" Q = return to viewing modified merge",
+	NULL
+};
+
+static char *toggle_ignore[] = {
+	"",
+	"You have modified the merge.",
+	"Toggling ignoring of spaces will discard changes.",
+	"Do you want to proceed?",
+	" Y = discard changes and toggle ignoring of spaces",
+	" N = keep changes, don't toggle",
 	NULL
 };
 
@@ -1421,12 +1433,14 @@ static int merge_window(struct plist *p, FILE *f, int reverse, int replace,
 		if (refresh >= 2) {
 			char buf[100];
 			clear();
-			snprintf(buf, 100, "File: %s%s Mode: %s\n",
+			snprintf(buf, 100, "File: %s%s Mode: %s",
 				p->file, reverse ? " - reversed" : "", modename);
 			(void)attrset(A_BOLD);
 			mvaddstr(0, 0, buf);
-			clrtoeol();
 			(void)attrset(A_NORMAL);
+			if (ignore_blanks)
+				addstr(" (ignoring blanks)");
+			clrtoeol();
 			refresh = 1;
 		}
 		if (row < 1 || row >= lastrow)
@@ -1778,6 +1792,51 @@ static int merge_window(struct plist *p, FILE *f, int reverse, int replace,
 			free(ci.merger);
 			endwin();
 			return answer;
+
+		case 'I': /* Toggle ignoring of spaces */
+			if (changes) {
+				refresh = 2;
+				answer = help_window(toggle_ignore, NULL, 1);
+				if (answer <= 0)
+					break;
+				changes = 0;
+			}
+			free(fm.list);
+			free(fb.list);
+			free(fa.list);
+			free(csl1);
+			free(csl2);
+			free(ci.merger);
+			ignore_blanks = ignore_blanks ? 0 : IgnoreBlanks;
+			fm = split_stream(sm, ByWord | ignore_blanks);
+			fb = split_stream(sb, ByWord | ignore_blanks);
+			fa = split_stream(sa, ByWord | ignore_blanks);
+
+			if (ch)
+				csl1 = pdiff(fm, fb, ch);
+			else
+				csl1 = diff(fm, fb);
+			csl2 = diff_patch(fb, fa);
+
+			ci = make_merger(fm, fb, fa, csl1, csl2, 0, 1, 0);
+			for (i = 0; ci.merger[i].type != End; i++)
+				ci.merger[i].oldtype = ci.merger[i].type;
+
+		{
+			int ln = pos.p.lineno;
+			pos.p.m = 0; /* merge node */
+			pos.p.s = 0; /* stream number */
+			pos.p.o = -1; /* offset */
+			pos.p.lineno = 1;
+			pos.state = 0;
+			next_mline(&pos, fm, fb, fa, ci.merger, mode);
+			memset(&curs, 0, sizeof(curs));
+			while (pos.p.lineno < ln && ci.merger[pos.p.m].type != End)
+				next_mline(&pos, fm, fb, fa, ci.merger, mode);
+			vpos = pos;
+		}
+			refresh = 2;
+			break;
 
 		case '/':
 		case 'S'-64:
@@ -2520,6 +2579,8 @@ static char *main_help[] = {
 	"             prompt on exit to save the rest.",
 	"  R          Revert the current saved file to its original",
 	"             content",
+	"  I          toggle whether spaces are ignored",
+	"             when matching text.",
 	NULL
 };
 static char *saveall_msg = " %d file%s (of %d) have not been saved.";
@@ -2596,8 +2657,10 @@ static void main_window(struct plist *pl, int *np, FILE *f, int reverse,
 			clear(); (void)attrset(0);
 			attron(A_BOLD);
 			mvaddstr(0, 0, "Ch Wi Co Patched Files");
-			move(2, 0);
 			attroff(A_BOLD);
+			if (ignore_blanks)
+				addstr(" (ignoring blanks)");
+			move(2, 0);
 			refresh = 1;
 		}
 		if (row < 1  || row >= rows)
@@ -2832,6 +2895,13 @@ static void main_window(struct plist *pl, int *np, FILE *f, int reverse,
 				} else
 					mesg = "Could not restore file!";
 			}
+			break;
+
+		case 'I': /* Toggle ignoring blanks */
+			ignore_blanks = ignore_blanks ? 0 : IgnoreBlanks;
+			refresh = 2;
+			for (i = 0; i < *np; i++)
+				pl[i].calced = 0;
 			break;
 
 		case '?':
