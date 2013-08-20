@@ -977,6 +977,13 @@ static void draw_mside(int mode, int row, int offset, int start, int cols,
 			for (l = 0; l < e.plen + e.prefix; l++)
 				if (c[l] == '\t')
 					highlight_space = 1;
+		if (!highlight_space && (c[0] == ' ' || c[0] == '\t')) {
+			/* always highlight space/tab at end-of-line */
+			struct mp nxt = pos.p;
+			struct elmnt nxte = next_melmnt(&nxt, fm, fb, fa, m);
+			if (nxte.start[0] == '\n')
+				highlight_space = 1;
+		}
 		for (l = 0; l < e.plen + e.prefix; l++) {
 			int scol = col;
 			if (*c == '\n')
