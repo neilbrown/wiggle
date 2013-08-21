@@ -1414,16 +1414,7 @@ static int merge_window(struct plist *p, FILE *f, int reverse, int replace,
 	while (1) {
 		unsigned int next;
 		if (refresh >= 2) {
-			char buf[100];
 			clear();
-			snprintf(buf, 100, "File: %s%s Mode: %s",
-				p->file, reverse ? " - reversed" : "", modename);
-			(void)attrset(A_BOLD);
-			mvaddstr(0, 0, buf);
-			(void)attrset(A_NORMAL);
-			if (ignore_blanks)
-				addstr(" (ignoring blanks)");
-			clrtoeol();
 			refresh = 1;
 		}
 		if (row < 1 || row >= lastrow)
@@ -1625,20 +1616,23 @@ static int merge_window(struct plist *p, FILE *f, int reverse, int replace,
 		}
 		/* Now that curs is accurate, report the type */
 		{
-			char lbuf[30];
 			int l = 0;
+			char buf[100];
+			snprintf(buf, 100, "File: %s%s Mode: %s",
+				p->file, reverse ? " - reversed" : "", modename);
+			(void)attrset(A_BOLD);
+			mvaddstr(0, 0, buf);
+			(void)attrset(A_NORMAL);
+			if (ignore_blanks)
+				addstr(" (ignoring blanks)");
+			clrtoeol();
 			(void)attrset(A_BOLD);
 			if (ci.merger[curs.pos.m].type != ci.merger[curs.pos.m].oldtype)
-				l = sprintf(lbuf, "%s->", typenames[ci.merger[curs.pos.m].oldtype]);
-			snprintf(lbuf+l, 29-l, "%s ln:%d",
+				l = snprintf(buf, sizeof(buf), "%s->", typenames[ci.merger[curs.pos.m].oldtype]);
+			snprintf(buf+l, sizeof(buf)-l, "%s ln:%d",
 				 typenames[ci.merger[curs.pos.m].type],
 				 (pos.p.lineno-1)/2);
-			/* Longest type is AlreadyApplied - need to ensure
-			 * we erase all of that.
-			 */
-			move(0, cols - strlen(lbuf) - 14);
-			clrtoeol();
-			mvaddstr(0, cols - strlen(lbuf) - 1, lbuf);
+			mvaddstr(0, cols - strlen(buf) - 1, buf);
 		}
 #define META(c) ((c)|0x1000)
 #define	SEARCH(c) ((c)|0x2000)
