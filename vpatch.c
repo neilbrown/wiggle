@@ -519,8 +519,10 @@ static int visible(int mode, struct merge *m, struct mpos *pos)
 		return -1;
 	if (pos->p.m < 0)
 		type = End;
-	else
+	else if (mode & RESULT)
 		type = m[pos->p.m].type;
+	else
+		type = m[pos->p.m].oldtype;
 	/* mode can be any combination of ORIG RESULT BEFORE AFTER */
 	switch (type) {
 	case End: /* The END is always visible */
@@ -530,32 +532,8 @@ static int visible(int mode, struct merge *m, struct mpos *pos)
 			return a_unmatched;
 		break;
 	case Unchanged: /* visible everywhere, but only show stream 0 */
-		if (m[pos->p.m].oldtype == Conflict) {
-			switch (stream) {
-			case 0:
-				if (mode & RESULT)
-					return a_unmatched;
-				if (mode & ORIG)
-					return a_unmatched;
-				break;
-			case 1:
-				if (mode & BEFORE)
-					return a_extra;
-				break;
-			case 2:
-				if (mode & RESULT)
-					break;
-				if (mode & AFTER)
-					return a_added;
-				break;
-			}
-			break;
-		}
-		if (stream == 0) {
-			if (m[pos->p.m].oldtype != Unchanged)
-				return a_common | A_UNDERLINE;
+		if (stream == 0)
 			return a_common;
-		}
 		break;
 	case Extraneous: /* stream 2 is visible in BEFORE and AFTER */
 		if ((mode & (BEFORE|AFTER))
@@ -623,15 +601,18 @@ static int check_line(struct mpos pos, struct file fm, struct file fb,
 	if (pos.p.m < 0)
 		return 0;
 	do {
-		if (m[pos.p.m].type == Changed)
+		int type = m[pos.p.m].oldtype;
+		if (mode & RESULT)
+			type = m[pos.p.m].type;
+		if (type == Changed)
 			rv |= CHANGES;
-		else if (m[pos.p.m].type == Conflict) {
+		else if (type == Conflict) {
 			rv |= CONFLICTED | CHANGES;
-		} else if (m[pos.p.m].type == AlreadyApplied) {
+		} else if (type == AlreadyApplied) {
 			rv |= CONFLICTED;
 			if (mode & (BEFORE|AFTER))
 				rv |= CHANGES;
-		} else if (m[pos.p.m].type == Extraneous) {
+		} else if (type == Extraneous) {
 			if (fb.list[m[pos.p.m].b].start[0] == '\0')
 				/* hunk headers don't count as wiggles
 				 * and nothing before a hunk header
@@ -639,7 +620,7 @@ static int check_line(struct mpos pos, struct file fm, struct file fb,
 				break;
 			else
 				rv |= WIGGLED;
-		} else if (m[pos.p.m].type == Unmatched)
+		} else if (type == Unmatched)
 			unmatched = 1;
 
 		if (m[pos.p.m].in_conflict > 1)
