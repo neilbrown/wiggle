@@ -44,6 +44,7 @@
 #include <signal.h>
 #include <fcntl.h>
 #include <ctype.h>
+#include <sys/wait.h>
 
 static void term_init(int raw);
 
@@ -1235,6 +1236,8 @@ static char *merge_window_help[] = {
 	" c                   toggle accepting of result of conflict",
 	" X                   toggle ignored of all Change, Conflict",
 	"                     and Unmatched items in current line",
+	" v                   Save the current merge and run the",
+	"                     default editor on the file.",
 	NULL
 };
 static char *save_query[] = {
@@ -1256,6 +1259,25 @@ static char *toggle_ignore[] = {
 	" N = keep changes, don't toggle",
 	NULL
 };
+
+static void do_edit(char *file)
+{
+	char *ed = getenv("VISUAL");
+	if (!ed)
+		ed = getenv("EDITOR");
+	if (!ed)
+		ed = "/usr/bin/edit";
+	switch(fork()) {
+	case 0:
+		execlp(ed, ed, file, NULL);
+		exit(2);
+	case -1:
+		break;
+	default:
+		wait(NULL);
+	}
+}
+
 
 static int merge_window(struct plist *p, FILE *f, int reverse, int replace,
 			int selftest, int ignore_blanks)
@@ -1334,6 +1356,46 @@ static int merge_window(struct plist *p, FILE *f, int reverse, int replace,
 		unsigned int searchlen;
 	} *anchor = NULL;
 
+	void free_stuff(void)
+	{
+		free(fm.list);
+		free(fb.list);
+		free(fa.list);
+		free(csl1);
+		free(csl2);
+		free(ci.merger);
+	}
+	void find_line(int ln)
+	{
+		pos.p.m = 0; /* merge node */
+		pos.p.s = 0; /* stream number */
+		pos.p.o = -1; /* offset */
+		pos.p.lineno = 1;
+		pos.state = 0;
+		memset(&curs, 0, sizeof(curs));
+		do
+			next_mline(&pos, fm, fb, fa, ci.merger, mode);
+		while (pos.p.lineno < ln && ci.merger[pos.p.m].type != End);
+		vpos = pos;
+	}
+	void prepare_merge(int ch)
+	{
+		/* FIXME check for errors in the stream */
+		fm = split_stream(sm, ByWord | ignore_blanks);
+		fb = split_stream(sb, ByWord | ignore_blanks);
+		fa = split_stream(sa, ByWord | ignore_blanks);
+
+		if (ch)
+			csl1 = pdiff(fm, fb, ch);
+		else
+			csl1 = diff(fm, fb);
+		csl2 = diff_patch(fb, fa);
+
+		ci = make_merger(fm, fb, fa, csl1, csl2, 0, 1, 0);
+		for (i = 0; ci.merger[i].type != End; i++)
+			ci.merger[i].oldtype = ci.merger[i].type;
+	}
+
 	if (selftest) {
 		intr_kills = 1;
 		selftest = 1;
@@ -1385,32 +1447,12 @@ static int merge_window(struct plist *p, FILE *f, int reverse, int replace,
 		endwin();
 		return 0;
 	}
-	/* FIXME check for errors in the stream */
-	fm = split_stream(sm, ByWord | ignore_blanks);
-	fb = split_stream(sb, ByWord | ignore_blanks);
-	fa = split_stream(sa, ByWord | ignore_blanks);
-
-	if (ch)
-		csl1 = pdiff(fm, fb, ch);
-	else
-		csl1 = diff(fm, fb);
-	csl2 = diff_patch(fb, fa);
-
-	ci = make_merger(fm, fb, fa, csl1, csl2, 0, 1, 0);
-	for (i = 0; ci.merger[i].type != End; i++)
-		ci.merger[i].oldtype = ci.merger[i].type;
-
+	prepare_merge(ch);
 	term_init(!selftest);
 
 	row = 1;
-	pos.p.m = 0; /* merge node */
-	pos.p.s = 0; /* stream number */
-	pos.p.o = -1; /* offset */
-	pos.p.lineno = 1;
-	pos.state = 0;
-	next_mline(&pos, fm, fb, fa, ci.merger, mode);
-	memset(&curs, 0, sizeof(curs));
-	vpos = pos;
+	find_line(1);
+
 	while (1) {
 		unsigned int next;
 		if (refresh >= 2) {
@@ -1762,12 +1804,7 @@ static int merge_window(struct plist *p, FILE *f, int reverse, int replace,
 			free(sm.body);
 			free(sb.body);
 			free(sa.body);
-			free(fm.list);
-			free(fb.list);
-			free(fa.list);
-			free(csl1);
-			free(csl2);
-			free(ci.merger);
+			free_stuff();
 			endwin();
 			return answer;
 
@@ -1779,41 +1816,36 @@ static int merge_window(struct plist *p, FILE *f, int reverse, int replace,
 					break;
 				changes = 0;
 			}
-			free(fm.list);
-			free(fb.list);
-			free(fa.list);
-			free(csl1);
-			free(csl2);
-			free(ci.merger);
+			free_stuff();
 			ignore_blanks = ignore_blanks ? 0 : IgnoreBlanks;
-			fm = split_stream(sm, ByWord | ignore_blanks);
-			fb = split_stream(sb, ByWord | ignore_blanks);
-			fa = split_stream(sa, ByWord | ignore_blanks);
+			prepare_merge(ch);
+			find_line(pos.p.lineno);
 
-			if (ch)
-				csl1 = pdiff(fm, fb, ch);
-			else
-				csl1 = diff(fm, fb);
-			csl2 = diff_patch(fb, fa);
-
-			ci = make_merger(fm, fb, fa, csl1, csl2, 0, 1, 0);
-			for (i = 0; ci.merger[i].type != End; i++)
-				ci.merger[i].oldtype = ci.merger[i].type;
-
-		{
-			int ln = pos.p.lineno;
-			pos.p.m = 0; /* merge node */
-			pos.p.s = 0; /* stream number */
-			pos.p.o = -1; /* offset */
-			pos.p.lineno = 1;
-			pos.state = 0;
-			next_mline(&pos, fm, fb, fa, ci.merger, mode);
-			memset(&curs, 0, sizeof(curs));
-			while (pos.p.lineno < ln && ci.merger[pos.p.m].type != End)
-				next_mline(&pos, fm, fb, fa, ci.merger, mode);
-			vpos = pos;
-		}
 			refresh = 2;
+			break;
+
+		case 'v':
+			save_merge(fm, fb, fa, ci.merger,
+				   p->file, !p->is_merge);
+			p->is_merge = 1;
+			endwin();
+			free_stuff();
+			do_edit(p->file);
+			sp = load_file(p->file);
+			split_merge(sp, &sm, &sb, &sa);
+			free(sp.body);
+			prepare_merge(0);
+			p->wiggles = 0;
+			p->conflicts = isolate_conflicts(
+					fm, fb, fa, csl1, csl2, 0,
+					ci.merger, 0, &p->wiggles);
+			p->chunks = p->conflicts;
+			refresh = 2;
+			changes = 0;
+
+			find_line(pos.p.lineno);
+
+			doupdate();
 			break;
 
 		case '/':
