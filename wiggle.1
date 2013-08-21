@@ -555,7 +555,7 @@ rejects a patch, it does so for a good reason.  Even though
 may be able to find a believable place to apply each textual change,
 there is no guarantee that the result is correct in any semantic
 sense.  The result should always be inspected to make sure it is
-correct. 
+correct.
 
 .SH EXAMPLES
 
@@ -592,6 +592,37 @@ Parse the
 .B update.patch
 file for patches and present a list of patched files which can be
 browsed to examine each patch in detail.
+
+.I wiggle
+can be integrated with
+.I git
+so that it is used as the default merge tool. This can be achieved by
+adding the following lines to
+.B .gitconfig
+in the user's home directory.
+
+.RS 4
+.nf
+[merge "wiggle"]
+	name = "Wiggle flexible merging"
+	driver = /usr/bin/wiggle \-\-report\-wiggles \-r %A %O %B
+	recursive = binary
+[merge]
+	tool = wiggle
+[mergetool "wiggle"]
+	path = /usr/bin/wiggle
+	cmd = wiggle \-Br $LOCAL $BASE $REMOTE
+.fi
+.RE
+
+and then adding
+.RS 4
+* merge=wiggle
+.RE
+to
+.BR $HOME/.config/git/attributes .
+
+
 
 .SH QUOTE
 The name of
@@ -636,4 +667,6 @@ and later and SUSE, still in Sydney, Australia.
 .IR diff (1),
 .IR merge (1),
 .IR wdiff (1),
-.IR diff3 (1).
+.IR diff3 (1),
+.IR git-config (1),
+.IR gitattributes (5).
