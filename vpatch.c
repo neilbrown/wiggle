@@ -1954,6 +1954,7 @@ static int merge_window(struct plist *p, FILE *f, int reverse, int replace,
 			row = lastrow / 2;
 			break;
 
+		case KEY_NPAGE:
 		case ' ':
 		case 'V'-64: /* page down */
 			pos = botpos;
@@ -1965,6 +1966,7 @@ static int merge_window(struct plist *p, FILE *f, int reverse, int replace,
 				row = 2;
 			refresh = 1;
 			break;
+		case KEY_PPAGE:
 		case KEY_BACKSPACE:
 		case META('v'): /* page up */
 			pos = toppos;
