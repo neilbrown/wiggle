@@ -712,6 +712,11 @@ int main(int argc, char *argv[])
 				mode = opt;
 				continue;
 			}
+			if (mode == 'B' && opt == 'd') {
+				/* Browse/diff mode */
+				ispatch = 2;
+				continue;
+			}
 			fprintf(stderr,
 				"%s: mode is '%c' - cannot set to '%c'\n",
 				Cmd, mode, opt);

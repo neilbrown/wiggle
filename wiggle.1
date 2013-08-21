@@ -128,7 +128,12 @@ Select the "merge" function.  This is the default function.
 
 .TP
 .BR \-d ", " \-\-diff
-Select the "diff" function.  This displays the differences between files.
+Select the "diff" function.  This displays the differences between
+files.  This can be given after
+.B \-\-browse
+(see below) in which case a patch or diff of two files can be viewed
+without the originals.
+
 
 .TP
 .BR \-x ", " \-\-extract
@@ -137,12 +142,12 @@ merge file.
 
 .TP
 .BR \-B ", " \-\-browse
-Select the "browse" function.  This is similar to "merge" only with a
-different presentation.  Instead of the result simply being sent to
-standard output, it is presented using an ncurses-based GUI so that
-each hunk of the patch can be examined to understand what conflicts
-where involved and what needed to be ignored in order of the patch to
-be wiggled in to place.
+Select the "browse" function.  This is similar to "merge" (or "diff")
+only with a different presentation.  Instead of the result simply
+being sent to standard output, it is presented using an ncurses-based
+GUI so that each hunk of the patch can be examined to understand what
+conflicts where involved and what needed to be ignored in order of the
+patch to be wiggled in to place.
 
 .TP
 .BR \-w ", " \-\-words
@@ -515,10 +520,12 @@ with obvious meanings.
 
 The browse function of
 .I wiggle
-presents the result of a merge in a text-based GUI that can be
+presents the result of a merge or (with
+.B \-d
+a diff) in a text-based GUI that can be
 navigated using keystrokes similar to vi(1) or emacs(1).
 
-The browser allows each of the three streams to be viewed individually
+The browser allows each of the two or  three streams to be viewed individually
 with colours used to highlight different sorts of text - green for
 added text, red for deleted text etc.  It can also show the patch by
 itself, the full result of the merge, or the merge and the patch
@@ -529,20 +536,38 @@ can be accessed by typing '?'
 
 A limited amount of editing is permitted while in
 .B browse
-mode.  Currently any Conflict or Changed section can be marked as
-"ignored" by using the
+mode.  Currently any Conflict or Changed section can be converted to
+Unchanged by using the
 .B x
 key (lower case), or all the Conflict and Changes sections in a line
-can be ignored by using
+can be converted to Unchanged.
 .B X
 (upper case).  The effect can be toggled by pressing
 .B x
 or
 .B X
-again.  If you make any changes, then wiggle will ask you if you want
+again.
+
+A Conflict section can also be converted to Change (so the result is
+accepted even though there wasn't a proper match) with the (lower
+case)
+.B c
+key.  Pressing
+.B c
+effects a toggle.
+
+If you make any changes, then wiggle will ask you if you want
 to save the changes, even if
 .B \-\-replace
 was not given.
+
+To make more sweeping changes you can use
+.B v
+which runs an editor, preferring
+.B $VISUAL
+or
+.B $EDITOR
+if they are set in the environment.
 
 .SH WARNING
 
