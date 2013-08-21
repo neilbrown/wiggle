@@ -132,7 +132,7 @@ void printword(FILE *f, struct elmnt e)
 	else {
 		int a, b, c;
 		sscanf(e.start+1, "%d %d %d", &a, &b, &c);
-		fprintf(f, "*** %d,%d **** %d\n", b, c, a);
+		fprintf(f, "*** %d,%d **** %d%s", b, c, a, e.start+18);
 	}
 }
 
@@ -141,7 +141,7 @@ static void printsep(struct elmnt e1, struct elmnt e2)
 	int a, b, c, d, e, f;
 	sscanf(e1.start+1, "%d %d %d", &a, &b, &c);
 	sscanf(e2.start+1, "%d %d %d", &d, &e, &f);
-	printf("@@ -%d,%d +%d,%d @@\n", b, c, e, f);
+	printf("@@ -%d,%d +%d,%d @@%s", b, c, e, f, e1.start+18);
 }
 
 static int extract(int argc, char *argv[], int ispatch, int which)

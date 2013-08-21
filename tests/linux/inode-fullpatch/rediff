@@ -1,4 +1,4 @@
-@@ -470,6 +470,7 @@
+@@ -470,6 +470,7 @@ static int shrink_icache_memory(int nr, 
  	return inodes_stat.nr_inodes;
  }
  
@@ -6,7 +6,7 @@
  /*
   * Called with the inode lock held.
   * NOTE: we are not increasing the inode-refcount, you must call __iget()
-@@ -492,6 +493,11 @@
+@@ -492,6 +493,11 @@ static struct inode * find_inode(struct 
  			continue;
  		if (!test(inode, data))
  			continue;
@@ -18,7 +18,7 @@
  		break;
  	}
  	return inode;
-@@ -517,6 +523,11 @@
+@@ -517,6 +523,11 @@ static struct inode * find_inode_fast(st
  			continue;
  		if (inode->i_sb != sb)
  			continue;
@@ -30,7 +30,7 @@
  		break;
  	}
  	return inode;
-@@ -949,7 +960,6 @@
+@@ -949,7 +960,6 @@ void generic_delete_inode(struct inode *
  {
  	struct super_operations *op = inode->i_sb->s_op;
  
@@ -38,7 +38,7 @@
  	list_del_init(&inode->i_list);
  	inode->i_state|=I_FREEING;
  	inodes_stat.nr_inodes--;
-@@ -968,6 +978,10 @@
+@@ -968,6 +978,10 @@ void generic_delete_inode(struct inode *
  		delete(inode);
  	} else
  		clear_inode(inode);
@@ -49,7 +49,7 @@
  	if (inode->i_state != I_CLEAR)
  		BUG();
  	destroy_inode(inode);
-@@ -1219,6 +1233,21 @@
+@@ -1219,6 +1233,21 @@ repeat:
  	current->state = TASK_RUNNING;
  }
  

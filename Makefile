@@ -63,6 +63,6 @@ v : version
 	cat version
 
 demo.patch: force
-	diff -ru demo.orig demo.patched | sed 's/demo.patched/demo/' > demo.patch
+	diff -rup demo.orig demo.patched | sed 's/demo.patched/demo/' > demo.patch
 
 force:

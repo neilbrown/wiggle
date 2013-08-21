@@ -33,7 +33,7 @@
  * A line is any string that ends with \n
  *
  * As a special case to allow proper aligning of multiple chunks
- * in a patch, a word starting \0 will include 20 chars with a newline
+ * in a patch, a word starting \0 will include 20+ chars with a newline
  * second from the end.
  *
  * We make two passes through the stream.
@@ -67,9 +67,10 @@ static int split_internal(char *start, char *end, int type,
 			}
 		start = cp;
 
-		if (*cp == '\0' && cp+19 < end && cp[18] == '\n') {
+		if (*cp == '\0' && cp+19 < end) {
 			/* special word */
-			cp += 20;
+			cp += 19;
+			cp += strlen(cp) + 1;
 		} else
 			switch (type & ByMask) {
 			case ByLine:

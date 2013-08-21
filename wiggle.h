@@ -43,8 +43,8 @@ struct stream {
  * 'start' points into a 'body' in a stream.
  * When a stream is made of 'diff' hunks, there is a special
  * elmnt at the start of each hunk which starts with '\0' and
- * records the line offsets of the hunk.  These are 20 bytes long.
- * "\0\d{5} \d{5} \d{5}\n\0"
+ * records the line offsets of the hunk.  These are 20+ bytes long.
+ * "\0\d{5} \d{5} \d{5}{SP funcname}?\n\0"
  * The 3 numbers are: chunk number, starting line, number if lines.
  * An element with len==0 marks EOF.
  */
@@ -58,8 +58,10 @@ static  inline int match(struct elmnt *a, struct elmnt *b)
 {
 	return
 		a->hash == b->hash &&
-		a->len == b->len &&
-		strncmp(a->start, b->start, a->len) == 0;
+		((a->start[0] == 0 && b->start[0] == 0)
+		 ||
+		 (a->len == b->len &&
+		  strncmp(a->start, b->start, a->len) == 0));
 }
 
 /* end-of-line is important for narrowing conflicts.
@@ -69,7 +71,7 @@ static  inline int match(struct elmnt *a, struct elmnt *b)
  */
 static inline int ends_line(struct elmnt e)
 {
-	if (e.len == 20 && e.start[0] == 0)
+	if (e.len >= 20 && e.start[0] == 0)
 		return 1;
 	return e.len &&  e.start[e.plen-1] == '\n';
 }

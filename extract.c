@@ -67,12 +67,14 @@ int split_patch(struct stream f, struct stream *f1, struct stream *f2)
 	int a, b, c, d;
 	int lineno = 0;
 	char before[100], after[100];
+	char func[100];
 
 	f1->body = f2->body = NULL;
 
 	r1.body = xmalloc(f.len);
 	r2.body = xmalloc(f.len);
 	r1.len = r2.len = 0;
+	func[0] = 0;
 
 	cp = f.body;
 	end = f.body+f.len;
@@ -86,7 +88,7 @@ int split_patch(struct stream f, struct stream *f1, struct stream *f2)
 		lineno++;
 		switch (state) {
 		case 0:
-			if (sscanf(cp, "@@ -%s +%s @@", before, after) == 2) {
+			if (sscanf(cp, "@@ -%99s +%99s @@%99[^\n]", before, after, func) >= 2) {
 				int ok = 1;
 				if (sscanf(before, "%d,%d", &a, &b) == 2)
 					acnt = b;
@@ -111,15 +113,28 @@ int split_patch(struct stream f, struct stream *f1, struct stream *f2)
 			} else if (sscanf(cp, "--- %d,%d ----", &c, &d) == 2) {
 				bcnt = d-c+1;
 				state = 2;
-			}
+			} else
+				sscanf(cp, "***************%99[^\n]", func);
+
 			skip_eol(&cp, end);
 			if (state == 1 || state == 3) {
+				char *f;
 				char buf[20];
 				buf[0] = 0;
 				chunks++;
-				sprintf(buf+1, "%5d %5d %5d\n", chunks, a, acnt);
-				memcpy(r1.body+r1.len, buf, 20);
-				r1.len += 20;
+				sprintf(buf+1, "%5d %5d %5d", chunks, a, acnt);
+				memcpy(r1.body+r1.len, buf, 18);
+				r1.len += 18;
+				f = func;
+				while (*f == ' ')
+					f++;
+				if (*f) {
+					r1.body[r1.len++] = ' ';
+					strcpy(r1.body + r1.len, f);
+					r1.len += strlen(f);
+				}
+				r1.body[r1.len++] = '\n';
+				r1.body[r1.len++] = '\0';
 			}
 			if (state == 2 || state == 3) {
 				char buf[20];
@@ -128,6 +143,8 @@ int split_patch(struct stream f, struct stream *f1, struct stream *f2)
 				memcpy(r2.body+r2.len, buf, 20);
 				r2.len += 20;
 			}
+			if (state)
+				func[0] = 0;
 			break;
 		case 1:
 			if ((*cp == ' ' || *cp == '!' || *cp == '-' || *cp == '+')
@@ -316,6 +333,8 @@ int split_merge(struct stream f, struct stream *f1, struct stream *f2, struct st
 			break;
 		}
 	}
+	if (cp > end)
+		abort();
 	*f1 = r1;
 	*f2 = r2;
 	*f3 = r3;

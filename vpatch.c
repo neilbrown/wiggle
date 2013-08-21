@@ -1039,14 +1039,14 @@ static void draw_mside(int mode, int row, int offset, int start, int cols,
 	if (col < start)
 		col = start;
 	if (e.start && e.start[0] == 0) {
-		char b[40];
+		char b[100];
 		struct elmnt e1;
 		if (pos.p.s == 2 && m[pos.p.m].type == Extraneous) {
 			int A, B, C, D, E, F;
 			e1 = fb.list[m[pos.p.m].b + pos.p.o];
 			sscanf(e1.start+1, "%d %d %d", &A, &B, &C);
 			sscanf(e.start+1, "%d %d %d", &D, &E, &F);
-			sprintf(b, "@@ -%d,%d +%d,%d @@\n", B, C, E, F);
+			snprintf(b, sizeof(b), "@@ -%d,%d +%d,%d @@%s", B, C, E, F, e1.start+18);
 			(void)attrset(a_sep);
 		} else {
 			(void)attrset(visible(mode, m, &pos));
