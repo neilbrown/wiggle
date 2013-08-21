@@ -237,7 +237,7 @@ already have been applied in the original.  With this flag those
 changes are reported as conflicts rather than being ignored.
 
 .TP
-.BR -W ", " \-\-show\-wiggle
+.BR -W ", " \-\-show\-wiggles
 When used with
 .IR \-\-merge ,
 conflicts that can be wiggled into place are reported as conflicts
@@ -261,6 +261,23 @@ Text that would result from a successful wiggle
 .ft
 .fi
 .in -5
+
+.TP
+.B \-\-report\-wiggles
+If a merge is successful in applying all changes, it will normally exit
+with a success status (0), only reporting failure (1) if a conflict
+occurred and was annotated.  With
+.B \-\-report\-wiggles
+.I wiggle
+will also report failure if any changes had to be wiggled in.  This
+can be useful when
+.I wiggle
+is used for automatic merges as with
+.IR git .
+If any wiggles happen,
+.I git
+will report the failure, and the results can be examined to confirm
+they are acceptable.
 
 .TP
 .BR -h ", " \-\-help
@@ -355,6 +372,14 @@ If no errors occur (such as file access errors)
 will exit with a status of 0 if all changes were successfully merged,
 and with an exit status of 1 and a brief message if any changes could
 not be fully merged and were instead inserted as annotations.
+However if either
+.B \-\-report\-wiggles
+or
+.B \-\-show\-wiggles
+options were given,
+.I wiggle
+will also exist with status of 1 if any changes had to be wiggled in
+even though this was successful.
 
 The merge function can operate in three different modes with respect
 to lines or words.
@@ -372,7 +397,7 @@ the \f(CW <<<|||===>>> \fP conflict format.
 
 Without either of these options, a hybrid approach is taken.
 Individual words are compared and merged, but when a conflict is found
-the whole surrounding line is reported as being in conflict.  
+the whole surrounding line is reported as being in conflict.
 
 .I wiggle
 will ensure that every change between the two other texts is reflected

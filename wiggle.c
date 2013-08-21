@@ -565,7 +565,7 @@ static int do_merge(int argc, char *argv[], int obj, int blanks,
 	csl2 = diff_patch(fl[1], fl[2]);
 
 	ci = make_merger(fl[0], fl[1], fl[2], csl1, csl2,
-			 obj == 'w', ignore, show_wiggles);
+			 obj == 'w', ignore, show_wiggles > 1);
 	print_merge(outfile, &fl[0], &fl[1], &fl[2],
 		    obj == 'w', ci.merger);
 	if (!quiet && ci.conflicts)
@@ -591,7 +591,10 @@ static int do_merge(int argc, char *argv[], int obj, int blanks,
 			return 2;
 		}
 	}
-	return (ci.conflicts > 0);
+	if (show_wiggles)
+		return ci.conflicts + ci.wiggles > 0;
+	else
+		return ci.conflicts > 0;
 }
 
 static int multi_merge(int argc, char *argv[], int obj, int blanks,
@@ -739,8 +742,11 @@ int main(int argc, char *argv[])
 			ignore = 0;
 			continue;
 		case 'W':
-			show_wiggles = 1;
+			show_wiggles = 2;
 			ignore = 0;
+			continue;
+		case REPORT_WIGGLES:
+			show_wiggles = 1;
 			continue;
 
 		case '1':

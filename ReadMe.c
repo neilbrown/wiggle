@@ -56,9 +56,10 @@ struct option long_options[] = {
 	{"quiet",	0, 0, 'q'},
 	{"strip",	1, 0, 'p'},
 	{"no-ignore",	0, 0, 'i'},
-	{"show-wiggle",	0, 0, 'W'},
+	{"show-wiggles",0, 0, 'W'},
 	{"ignore-blanks",0,0, 'b'},
 	{"self-test",   0, 0, SELF_TEST},
+	{"report-wiggles", 0, 0, REPORT_WIGGLES},
 	{0, 0, 0, 0}
 };
 

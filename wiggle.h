@@ -194,6 +194,7 @@ extern char short_options[];
 extern struct option long_options[];
 enum other_options {
 	SELF_TEST = 300,
+	REPORT_WIGGLES = 301,
 };
 extern char Usage[];
 extern char Help[];
