@@ -1276,6 +1276,12 @@ static void do_edit(char *file, int line)
 	}
 }
 
+static void *memdup(void *a, int len)
+{
+	char *r = malloc(len);
+	memcpy(r, a, len);
+	return r;
+}
 
 static int merge_window(struct plist *p, FILE *f, int reverse, int replace,
 			int selftest, int ignore_blanks, int just_diff)
@@ -1848,6 +1854,16 @@ static int merge_window(struct plist *p, FILE *f, int reverse, int replace,
 			do_edit(tempname, lineno);
 			sp = load_file(tempname);
 			split_merge(sp, &sm, &sb, &sa);
+			if (sp.len == sm.len &&
+			    memcmp(sp.body, sm.body, sm.len) == 0 &&
+				!p->is_merge) {
+				/* no conflicts left, so display diff */
+				free(sm.body);
+				sm = load_file(p->file);
+				free(sb.body);
+				sb = sm;
+				sb.body = memdup(sm.body, sm.len);
+			}
 			free(sp.body);
 			prepare_merge(0);
 			refresh = 2;
