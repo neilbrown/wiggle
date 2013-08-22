@@ -24,6 +24,7 @@
  */
 
 #include "wiggle.h"
+#include <limits.h>
 
 /*
  * Second attempt at merging....
@@ -611,19 +612,31 @@ struct ci make_merger(struct file af, struct file bf, struct file cf,
 	return rv;
 }
 
-static void printrange(FILE *out, struct file *f, int start, int len)
+static int printrange(FILE *out, struct file *f, int start, int len,
+		      int offset)
 {
+	int lines = 0;
 	while (len > 0) {
-		printword(out, f->list[start]);
+		struct elmnt e = f->list[start];
+		printword(out, e);
+		if (e.start[e.plen-1] == '\n' &&
+		    offset > 0)
+			lines++;
+		offset--;
 		start++;
 		len--;
 	}
+	return lines;
 }
 
-void print_merge(FILE *out, struct file *a, struct file *b, struct file *c,
-		      int words, struct merge *merger)
+int print_merge(FILE *out, struct file *a, struct file *b, struct file *c,
+		int words, struct merge *merger,
+		struct merge *mpos, int streampos, int offsetpos)
 {
 	struct merge *m;
+	int lineno = 1;
+	int rv = 0;
+	int offset = INT_MAX;
 
 	for (m = merger; m->type != End ; m++) {
 		struct merge *cm;
@@ -651,9 +664,13 @@ void print_merge(FILE *out, struct file *a, struct file *b, struct file *c,
 				st = m->hi;
 			st1 = st;
 
+			if (m == mpos)
+				offset = offsetpos;
 			if (m->in_conflict == 1 && m->type == Unchanged)
-				printrange(out, a, m->a+m->lo, m->hi - m->lo);
+				lineno += printrange(out, a, m->a+m->lo, m->hi - m->lo, offset - m->lo);
 
+			if (m == mpos)
+				rv = lineno;
 			if (do_trace)
 				for (cm = m; cm->in_conflict; cm++) {
 					printf("{%s: %d-%d,%d-%d,%d-%d%s(%d,%d)}\n",
@@ -680,47 +697,73 @@ void print_merge(FILE *out, struct file *a, struct file *b, struct file *c,
 			}
 
 			fputs(words ? "<<<---" : "<<<<<<< found\n", out);
+			if (!words)
+				lineno++;
 			for (cm = m; cm->in_conflict; cm++) {
+				if (cm == mpos && streampos == 0)
+					offset = offsetpos;
 				if (cm->type == Conflict)
 					found_conflict = 1;
 				if (cm->in_conflict == 1 && cm != m) {
-					printrange(out, a, cm->a, cm->lo);
+					lineno += printrange(out, a, cm->a, cm->lo, offset);
 					break;
 				}
-				printrange(out, a, cm->a+st1, cm->al-st1);
+				lineno += printrange(out, a, cm->a+st1, cm->al-st1, offset-st1);
 				st1 = 0;
+				if (cm == mpos && streampos == 0)
+					rv = lineno;
 			}
+			if (cm == mpos && streampos == 0)
+				rv = lineno;
 			fputs(words ? "|||" : "||||||| expected\n", out);
+			if (!words)
+				lineno++;
 			st1 = st;
 			for (cm = m; cm->in_conflict; cm++) {
+				if (cm == mpos && streampos == 1)
+					offset = offsetpos;
 				if (cm->in_conflict == 1 && cm != m) {
-					printrange(out, a, cm->a, cm->lo);
+					lineno += printrange(out, a, cm->a, cm->lo, offset);
 					break;
 				}
-				printrange(out, b, cm->b+st1, cm->bl-st1);
+				lineno += printrange(out, b, cm->b+st1, cm->bl-st1, offset-st1);
 				st1 = 0;
+				if (cm == mpos && streampos == 1)
+					rv = lineno;
 			}
+			if (cm == mpos && streampos == 1)
+				rv = lineno;
 			fputs(words ? "===" : "=======\n", out);
+			if (!words)
+				lineno++;
 			st1 = st;
 			for (cm = m; cm->in_conflict; cm++) {
+				if (cm == mpos && streampos == 2)
+					offset = offsetpos;
 				if (cm->in_conflict == 1 && cm != m) {
 					if (cm->type == Unchanged)
-						printrange(out, a, cm->a, cm->lo);
+						lineno += printrange(out, a, cm->a, cm->lo, offset);
 					else
-						printrange(out, c, cm->c, cm->cl);
+						lineno += printrange(out, c, cm->c, cm->cl, offset);
 					break;
 				}
 				if (cm->type == Changed)
 					st1 = 0; /* All of result of change must be printed */
-				printrange(out, c, cm->c+st1, cm->cl-st1);
+				lineno += printrange(out, c, cm->c+st1, cm->cl-st1, offset-st1);
 				st1 = 0;
+				if (cm == mpos && streampos == 2)
+					rv = lineno;
 			}
+			if (cm == mpos && streampos == 2)
+				rv = lineno;
 			if (!found_conflict) {
 				/* This section was wiggled in successfully,
 				 * but full conflict display was requested.
 				 * So now print out the wiggled result as well.
 				 */
 				fputs(words ? "&&&" : "&&&&&&& resolution\n", out);
+				if (!words)
+					lineno++;
 				st1 = st;
 				for (cm = m; cm->in_conflict; cm++) {
 					int last = 0;
@@ -730,14 +773,14 @@ void print_merge(FILE *out, struct file *a, struct file *b, struct file *c,
 					case Unchanged:
 					case AlreadyApplied:
 					case Unmatched:
-						printrange(out, a, cm->a+st1,
-							   last ? cm->lo : cm->al-st1);
+						lineno += printrange(out, a, cm->a+st1,
+								     last ? cm->lo : cm->al-st1, offset-st1);
 						break;
 					case Extraneous:
 						break;
 					case Changed:
-						printrange(out, c, cm->c,
-							   last ? cm->lo : cm->cl);
+						lineno += printrange(out, c, cm->c,
+								     last ? cm->lo : cm->cl, offset);
 						break;
 					case Conflict:
 					case End:
@@ -749,11 +792,17 @@ void print_merge(FILE *out, struct file *a, struct file *b, struct file *c,
 				}
 			}
 			fputs(words ? "--->>>" : ">>>>>>> replacement\n", out);
+			if (!words)
+				lineno++;
 			m = cm;
 			if (m->in_conflict == 1 && m[1].in_conflict == 0) {
 				/* End of a conflict, no conflict follows */
+				if (m == mpos)
+					offset = offsetpos;
 				if (m->type == Unchanged)
-					printrange(out, a, m->a+m->lo, m->hi-m->lo);
+					lineno += printrange(out, a, m->a+m->lo, m->hi-m->lo, offset-m->lo);
+				if (m == mpos)
+					rv = lineno;
 				m++;
 			}
 		}
@@ -778,23 +827,28 @@ void print_merge(FILE *out, struct file *a, struct file *b, struct file *c,
 			       m->in_conflict ? " in_conflict" : "",
 			       m->lo, m->hi);
 		}
+		if (m == mpos)
+			offset = offsetpos;
 
 		switch (m->type) {
 		case Unchanged:
 		case AlreadyApplied:
 		case Unmatched:
-			printrange(out, a, m->a, m->al);
+			lineno += printrange(out, a, m->a, m->al, offset);
 			break;
 		case Extraneous:
 			break;
 		case Changed:
-			printrange(out, c, m->c, m->cl);
+			lineno += printrange(out, c, m->c, m->cl, offset);
 			break;
 		case Conflict:
 		case End:
 			assert(0);
 		}
+		if (m == mpos)
+			rv = lineno;
 	}
+	return rv;
 }
 
 int save_merge(struct file a, struct file b, struct file c,
@@ -805,6 +859,7 @@ int save_merge(struct file a, struct file b, struct file c,
 	int fd;
 	FILE *outfile;
 	int err = 0;
+	int lineno = 0;
 	strcpy(replacename, file);
 	strcat(replacename, "XXXXXX");
 	strcpy(orignew, file);
@@ -812,11 +867,12 @@ int save_merge(struct file a, struct file b, struct file c,
 
 	fd = mkstemp(replacename);
 	if (fd < 0) {
-		err = 1;
+		err = -1;
 		goto out;
 	}
 	outfile = fdopen(fd, "w");
-	print_merge(outfile, &a, &b, &c, 0, merger);
+	lineno = print_merge(outfile, &a, &b, &c, 0, merger,
+			     NULL, 0, 0);
 	fclose(outfile);
 	if (backup && rename(file, orignew) != 0)
 		err = -2;
@@ -826,15 +882,17 @@ int save_merge(struct file a, struct file b, struct file c,
 out:
 	free(replacename);
 	free(orignew);
-	return err;
+	return err < 0 ? err : lineno;
 }
 
 int save_tmp_merge(struct file a, struct file b, struct file c,
-		   struct merge *merger, char **filep)
+		   struct merge *merger, char **filep,
+		   struct merge *mpos, int streampos, int offsetpos)
 {
 	int fd;
 	FILE *outfile;
 	char *dir, *fname;
+	int lineno;
 
 	dir = getenv("TMPDIR");
 	if (!dir)
@@ -848,8 +906,9 @@ int save_tmp_merge(struct file a, struct file b, struct file c,
 		return -1;
 	}
 	outfile = fdopen(fd, "w");
-	print_merge(outfile, &a, &b, &c, 0, merger);
+	lineno = print_merge(outfile, &a, &b, &c, 0, merger,
+			     mpos, streampos, offsetpos);
 	fclose(outfile);
 	*filep = fname;
-	return 0;
+	return lineno;
 }

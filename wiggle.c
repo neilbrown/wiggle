@@ -567,7 +567,7 @@ static int do_merge(int argc, char *argv[], int obj, int blanks,
 	ci = make_merger(fl[0], fl[1], fl[2], csl1, csl2,
 			 obj == 'w', ignore, show_wiggles > 1);
 	print_merge(outfile, &fl[0], &fl[1], &fl[2],
-		    obj == 'w', ci.merger);
+		    obj == 'w', ci.merger, NULL, 0, 0);
 	if (!quiet && ci.conflicts)
 		fprintf(stderr,
 			"%d unresolved conflict%s found\n",

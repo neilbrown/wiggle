@@ -1256,16 +1256,18 @@ static char *toggle_ignore[] = {
 	NULL
 };
 
-static void do_edit(char *file)
+static void do_edit(char *file, int line)
 {
 	char *ed = getenv("VISUAL");
+	char linebuf[20];
 	if (!ed)
 		ed = getenv("EDITOR");
 	if (!ed)
 		ed = "/usr/bin/edit";
+	snprintf(linebuf, sizeof(linebuf), "+%d", line);
 	switch(fork()) {
 	case 0:
-		execlp(ed, ed, file, NULL);
+		execlp(ed, ed, linebuf, file, NULL);
 		exit(2);
 	case -1:
 		break;
@@ -1325,6 +1327,7 @@ static int merge_window(struct plist *p, FILE *f, int reverse, int replace,
 		tmeta;
 	int num = -1,     /* numeric arg being typed. */
 		tnum;
+	int lineno;
 	int changes = 0; /* If any edits have been made to the merge */
 	int answer;	/* answer to 'save changes?' question */
 	int do_mark;
@@ -1835,11 +1838,14 @@ static int merge_window(struct plist *p, FILE *f, int reverse, int replace,
 				mesg = "Cannot run editor when diffing";
 				break;
 			}
-			save_tmp_merge(fm, fb, fa, ci.merger,
-				       &tempname);
+			lineno = save_tmp_merge(fm, fb, fa, ci.merger,
+						&tempname,
+						ci.merger + pos.p.m,
+						pos.p.s,
+						pos.p.o);
 			endwin();
 			free_stuff();
-			do_edit(tempname);
+			do_edit(tempname, lineno);
 			sp = load_file(tempname);
 			split_merge(sp, &sm, &sb, &sa);
 			free(sp.body);
