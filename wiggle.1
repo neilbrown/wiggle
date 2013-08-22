@@ -634,8 +634,8 @@ browsed to examine each patch in detail.
 .I wiggle
 can be integrated with
 .I git
-so that it is used as the default merge tool. This can be achieved by
-adding the following lines to
+so that it is used as the default merge tool and diff tool.
+This can be achieved by adding the following lines to
 .B .gitconfig
 in the user's home directory.
 
@@ -643,21 +643,35 @@ in the user's home directory.
 .nf
 [merge "wiggle"]
 	name = "Wiggle flexible merging"
-	driver = /usr/bin/wiggle \-\-report\-wiggles \-r %A %O %B
+	driver = wiggle \-o %A %A %O %B
 	recursive = binary
 [merge]
 	tool = wiggle
 [mergetool "wiggle"]
-	path = /usr/bin/wiggle
 	cmd = wiggle \-B \-o $MERGED $LOCAL $BASE $REMOTE
+[difftool "wiggle"]
+	cmd = wiggle \-Bd $LOCAL $REMOTE
 .fi
 .RE
 
-and then adding
+This will make
+.B "git mergetool"
+and
+.B "git difftool"
+use
+.IR wiggle .
+
+If you want
+.I git
+to always use
+.I wiggle
+for merges (which may be dangerous), you can add
 .RS 4
 * merge=wiggle
 .RE
-to
+to an appropriate
+.I gitattributes
+file such as
 .BR $HOME/.config/git/attributes .
 
 
