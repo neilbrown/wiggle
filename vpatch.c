@@ -1328,6 +1328,7 @@ static int merge_window(struct plist *p, FILE *f, int reverse, int replace,
 	int changes = 0; /* If any edits have been made to the merge */
 	int answer;	/* answer to 'save changes?' question */
 	int do_mark;
+	char *tempname;
 	struct elmnt e;
 	char search[80];  /* string we are searching for */
 	unsigned int searchlen = 0;
@@ -1834,23 +1835,17 @@ static int merge_window(struct plist *p, FILE *f, int reverse, int replace,
 				mesg = "Cannot run editor when diffing";
 				break;
 			}
-			save_merge(fm, fb, fa, ci.merger,
-				   p->file, !p->is_merge);
-			p->is_merge = 1;
+			save_tmp_merge(fm, fb, fa, ci.merger,
+				       &tempname);
 			endwin();
 			free_stuff();
-			do_edit(p->file);
-			sp = load_file(p->file);
+			do_edit(tempname);
+			sp = load_file(tempname);
 			split_merge(sp, &sm, &sb, &sa);
 			free(sp.body);
 			prepare_merge(0);
-			p->wiggles = 0;
-			p->conflicts = isolate_conflicts(
-					fm, fb, fa, csl1, csl2, 0,
-					ci.merger, 0, &p->wiggles);
-			p->chunks = p->conflicts;
 			refresh = 2;
-			changes = 0;
+			changes = 1;
 
 			find_line(pos.p.lineno);
 

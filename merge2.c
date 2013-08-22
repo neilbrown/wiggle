@@ -828,3 +828,28 @@ out:
 	free(orignew);
 	return err;
 }
+
+int save_tmp_merge(struct file a, struct file b, struct file c,
+		   struct merge *merger, char **filep)
+{
+	int fd;
+	FILE *outfile;
+	char *dir, *fname;
+
+	dir = getenv("TMPDIR");
+	if (!dir)
+		dir = "/tmp";
+
+	asprintf(&fname, "%s/wiggle-tmp-XXXXXX", dir);
+	fd = mkstemp(fname);
+
+	if (fd < 0) {
+		free(fname);
+		return -1;
+	}
+	outfile = fdopen(fd, "w");
+	print_merge(outfile, &a, &b, &c, 0, merger);
+	fclose(outfile);
+	*filep = fname;
+	return 0;
+}

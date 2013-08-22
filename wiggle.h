@@ -22,6 +22,7 @@
  *    Email: <neilb@suse.de>
  */
 
+#define _GNU_SOURCE /* for asprintf */
 #include	<stdio.h>
 #include	<string.h>
 #include	<memory.h>
@@ -171,6 +172,8 @@ extern void print_merge(FILE *out,
 extern void printword(FILE *f, struct elmnt e);
 extern int save_merge(struct file a, struct file b, struct file c,
 		      struct merge *merger, char *file, int backup);
+extern int save_tmp_merge(struct file a, struct file b, struct file c,
+			  struct merge *merger, char **filep);
 
 extern int isolate_conflicts(struct file af, struct file bf, struct file cf,
 			     struct csl *csl1, struct csl *csl2, int words,
