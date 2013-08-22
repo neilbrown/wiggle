@@ -2,7 +2,7 @@
  * wiggle - apply rejected patches
  *
  * Copyright (C) 2005 Neil Brown <neilb@cse.unsw.edu.au>
- * Copyright (C) 2010-2011 Neil Brown <neilb@suse.de>
+ * Copyright (C) 2010-2013 Neil Brown <neilb@suse.de>
  *
  *
  *    This program is free software; you can redistribute it and/or modify
@@ -16,8 +16,7 @@
  *    GNU General Public License for more details.
  *
  *    You should have received a copy of the GNU General Public License
- *    along with this program; if not, write to the Free Software Foundation, Inc.,
- *    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ *    along with this program.
  *
  *    Author: Neil Brown
  *    Email: <neilb@suse.de>
