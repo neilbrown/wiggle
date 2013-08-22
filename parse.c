@@ -159,14 +159,13 @@ static struct plist *patch_add_file(struct plist *pl, int *np, char *file,
 		}
 		pl = npl;
 	}
+	memset(&pl[n], 0, sizeof(pl[n]));
 	pl[n].file = file;
 	pl[n].start = start;
 	pl[n].end = end;
 	pl[n].last = pl[n].next = pl[n].prev = pl[n].parent = -1;
-	pl[n].chunks = pl[n].wiggles = 0; pl[n].conflicts = 100;
+	pl[n].conflicts = 100;
 	pl[n].open = 1;
-	pl[n].calced = 0;
-	pl[n].is_merge = 0;
 	*np = n+1;
 	return pl;
 }

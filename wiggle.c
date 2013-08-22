@@ -459,7 +459,8 @@ static int do_diff(int argc, char *argv[], int obj, int ispatch,
 }
 
 static int do_merge(int argc, char *argv[], int obj, int blanks,
-		    int reverse, int replace, int ignore, int show_wiggles,
+		    int reverse, int replace, char *outfilename,
+		    int ignore, int show_wiggles,
 		    int quiet)
 {
 	/* merge three files, A B C, so changed between B and C get made to A
@@ -524,7 +525,14 @@ static int do_merge(int argc, char *argv[], int obj, int blanks,
 			return 2;
 		}
 	}
-	if (replace) {
+	if (outfilename) {
+		outfile = fopen(outfilename, "w");
+		if (!outfile) {
+			fprintf(stderr, "%s: could not create %s\n",
+				Cmd, outfilename);
+			return 2;
+		}
+	} else if (replace) {
 		int fd;
 		replacename = xmalloc(strlen(argv[0]) + 20);
 		orignew = xmalloc(strlen(argv[0]) + 20);
@@ -579,7 +587,9 @@ static int do_merge(int argc, char *argv[], int obj, int blanks,
 			ci.ignored,
 			ci.ignored == 1 ? "" : "s");
 
-	if (replace) {
+	if (outfilename)
+		fclose(outfile);
+	else if (replace) {
 		fclose(outfile);
 		if (rename(argv[0], orignew) == 0 &&
 		    rename(replacename, argv[0]) == 0)
@@ -642,7 +652,7 @@ static int multi_merge(int argc, char *argv[], int obj, int blanks,
 			 pl[i].start, pl[i].end, filename);
 		av[0] = pl[i].file;
 		av[1] = name;
-		rv |= do_merge(2, av, obj, blanks, reverse, 1, ignore,
+		rv |= do_merge(2, av, obj, blanks, reverse, 1, NULL, ignore,
 			 show_wiggles, quiet);
 	}
 	return rv;
@@ -665,6 +675,7 @@ int main(int argc, char *argv[])
 	int show_wiggles = 0;
 	char *helpmsg;
 	char *trace;
+	char *outfile = NULL;
 	int selftest = 0;
 	int ignore_blanks = 0;
 
@@ -735,6 +746,10 @@ int main(int argc, char *argv[])
 		case 'r':
 			replace = 1;
 			continue;
+		case 'o':
+			outfile = optarg;
+			replace = 1;
+			continue;
 		case 'R':
 			reverse = 1;
 			continue;
@@ -787,7 +802,7 @@ int main(int argc, char *argv[])
 
 	if (mode == 'B') {
 		vpatch(argc-optind, argv+optind, ispatch,
-		       strip, reverse, replace, selftest,
+		       strip, reverse, replace, outfile, selftest,
 		       ignore_blanks);
 		/* should not return */
 		exit(1);
@@ -801,9 +816,14 @@ int main(int argc, char *argv[])
 	}
 	if (mode != 'm' && !obj)
 		obj = 'w';
+	if (ispatch && outfile) {
+		fprintf(stderr, "%s: --output incompatible with --patch\n",
+			Cmd);
+		exit(2);
+	}
 	if (replace && mode != 'm') {
 		fprintf(stderr,
-			"%s: --replace only allowed with --merge\n", Cmd);
+			"%s: --replace or --output only allowed with --merge\n", Cmd);
 		exit(2);
 	}
 	if (mode == 'x' && !which) {
@@ -847,6 +867,7 @@ int main(int argc, char *argv[])
 			exit_status = do_merge(
 				argc-optind, argv+optind,
 				obj, ignore_blanks, reverse, replace,
+				outfile,
 				ignore, show_wiggles, quiet);
 		break;
 	}

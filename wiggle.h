@@ -131,7 +131,7 @@ struct merge {
  * as a directory-tree.
  */
 struct plist {
-	char *file;
+	char *file, *outfile;
 	unsigned int start, end;
 	int parent;
 	int next, prev, last;
@@ -190,7 +190,8 @@ extern void *xmalloc(int len);
 extern int do_trace;
 
 extern int vpatch(int argc, char *argv[], int patch, int strip,
-		  int reverse, int replace, int selftest,
+		  int reverse, int replace, char *outfile,
+		  int selftest,
 		  int ignore_blanks);
 
 extern char *Cmd;

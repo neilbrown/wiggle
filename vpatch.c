@@ -1813,7 +1813,8 @@ static int merge_window(struct plist *p, FILE *f, int reverse, int replace,
 					ci.merger, 0, &p->wiggles);
 				p->chunks = p->conflicts;
 				save_merge(fm, fb, fa, ci.merger,
-					   p->file, !p->is_merge);
+					   p->outfile ?: p->file,
+					   p->outfile ? 0 : !p->is_merge);
 			}
 			if (!just_diff)
 				free(sm.body);
@@ -2402,12 +2403,15 @@ static int merge_window(struct plist *p, FILE *f, int reverse, int replace,
 
 static int show_merge(char *origname, FILE *patch, int reverse,
 		      int is_merge, char *before, char *after,
-		      int replace, int selftest, int ignore_blanks,
+		      int replace, char *outfile,
+		      int selftest, int ignore_blanks,
 		      int just_diff)
 {
-	struct plist p;
+	struct plist p = {0};
 
 	p.file = origname;
+	if (replace)
+		p.outfile = outfile;
 	if (patch) {
 		p.start = 0;
 		fseek(patch, 0, SEEK_END);
@@ -3068,7 +3072,8 @@ static void term_init(int doraw)
 }
 
 int vpatch(int argc, char *argv[], int patch, int strip,
-	   int reverse, int replace, int selftest, int ignore_blanks)
+	   int reverse, int replace, char *outfilename,
+	   int selftest, int ignore_blanks)
 {
 	/* NOTE argv[0] is first arg...
 	 * Behaviour depends on number of args and 'patch'.
@@ -3150,16 +3155,19 @@ int vpatch(int argc, char *argv[], int patch, int strip,
 			char *origname = strdup(argv[0]);
 			origname[strlen(origname) - 4] = '\0';
 			show_merge(origname, f, reverse, 0, NULL, NULL,
-				   replace, selftest, ignore_blanks, just_diff);
+				   replace, outfilename,
+				   selftest, ignore_blanks, just_diff);
 		} else
 			show_merge(argv[0], f, reverse, 1, NULL, NULL,
-				   replace, selftest, ignore_blanks, just_diff);
+				   replace, outfilename,
+				   selftest, ignore_blanks, just_diff);
 
 		break;
 	case 2: /* an orig and a diff/.rej  or two files */
 		if (just_diff) {
 			show_merge(NULL, NULL, reverse, 0, argv[0], argv[1],
-				   replace, selftest, ignore_blanks, just_diff);
+				   replace, outfilename,
+				   selftest, ignore_blanks, just_diff);
 			break;
 		}
 		f = fopen(argv[1], "r");
@@ -3169,11 +3177,13 @@ int vpatch(int argc, char *argv[], int patch, int strip,
 			exit(1);
 		}
 		show_merge(argv[0], f, reverse, 0, NULL, NULL,
-			   replace, selftest, ignore_blanks, just_diff);
+			   replace, outfilename,
+			   selftest, ignore_blanks, just_diff);
 		break;
 	case 3: /* orig, before, after */
 		show_merge(argv[0], NULL, reverse, 0, argv[1], argv[2],
-			   replace, selftest, ignore_blanks, just_diff);
+			   replace, outfilename,
+			   selftest, ignore_blanks, just_diff);
 		break;
 	}
 

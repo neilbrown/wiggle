@@ -38,7 +38,7 @@
 
 char Version[] = "wiggle " VERSION " " VERS_DATE " GPL-2+ http://neil.brown.name/wiggle/\n";
 
-char short_options[] = "xdmwlrhiW123p::VRvqBb";
+char short_options[] = "xdmwlrho:iW123p::VRvqBb";
 
 struct option long_options[] = {
 	{"browse",	0, 0, 'B'},
@@ -55,6 +55,7 @@ struct option long_options[] = {
 	{"verbose",	0, 0, 'v'},
 	{"quiet",	0, 0, 'q'},
 	{"strip",	1, 0, 'p'},
+	{"output",	1, 0, 'o'},
 	{"no-ignore",	0, 0, 'i'},
 	{"show-wiggles",0, 0, 'W'},
 	{"ignore-blanks",0,0, 'b'},

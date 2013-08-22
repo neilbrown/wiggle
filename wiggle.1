@@ -222,6 +222,19 @@ mode, this instructs
 to always save the resulting merge when exiting.
 
 .TP
+.BR \-o ", " \-\-output=
+Rather than writing the result to stdout or to replace the original
+file, this requests that the output be written to the given file.
+This is only meaningful with
+.B \-\-merge
+or
+.B \-\-browse
+when given a single merge to browse.
+
+This option overrides
+.BR \-r .
+
+.TP
 .BR -R ", " \-\-reverse
 When used with the
 .B diff
@@ -636,7 +649,7 @@ in the user's home directory.
 	tool = wiggle
 [mergetool "wiggle"]
 	path = /usr/bin/wiggle
-	cmd = wiggle \-Br $LOCAL $BASE $REMOTE
+	cmd = wiggle \-B -o $MERGED $LOCAL $BASE $REMOTE
 .fi
 .RE
 
