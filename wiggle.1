@@ -111,7 +111,7 @@ Alternately, the original patch file can be feed to the
 .B browse
 mode as
 .ti +5
-wiggle -B < patchfile
+wiggle \-B < patchfile
 
 This will allow the changes and conflicts to be inspected and, to some
 extent, modified; and then the results can be save.
@@ -185,7 +185,7 @@ has no effect in
 mode.
 
 .TP
-.BR -p ", " \-\-patch
+.BR \-p ", " \-\-patch
 Treat the last named file as a patch instead of a file (with \-\-diff)
 or a merge (\-\-extract).
 In
@@ -193,7 +193,7 @@ In
 or
 .B browse
 mode,
-.B -p
+.B \-p
 requires there be exactly one file which is a patch and which can
 contain patches to multiple files.  The patches are merged into each
 file.  When used in
@@ -212,7 +212,7 @@ will deduce an appropriate number based what files are present in the
 filesystem.
 
 .TP
-.BR -r ", " \-\-replace
+.BR \-r ", " \-\-replace
 Normally the merged output is written to standard-output.  With
 \-\-replace, the original file is replaced with the merge output.
 In
@@ -235,7 +235,7 @@ This option overrides
 .BR \-r .
 
 .TP
-.BR -R ", " \-\-reverse
+.BR \-R ", " \-\-reverse
 When used with the
 .B diff
 function, swap the files before calculating
@@ -249,13 +249,13 @@ functions,
 attempts to revert changes rather than apply them.
 
 .TP
-.BR -i ", " \-\-no\-ignore
+.BR \-i ", " \-\-no\-ignore
 Normally wiggle will ignore changes in the patch which appear to
 already have been applied in the original.  With this flag those
 changes are reported as conflicts rather than being ignored.
 
 .TP
-.BR -W ", " \-\-show\-wiggles
+.BR \-W ", " \-\-show\-wiggles
 When used with
 .IR \-\-merge ,
 conflicts that can be wiggled into place are reported as conflicts
@@ -298,7 +298,7 @@ will report the failure, and the results can be examined to confirm
 they are acceptable.
 
 .TP
-.BR -h ", " \-\-help
+.BR \-h ", " \-\-help
 Print a simple help message.  If given after one of the function
 selectors
 .RB ( \-\-merge ,
@@ -308,16 +308,16 @@ selectors
 help specific to that function is displayed.
 
 .TP
-.BR -V ", " \-\-version
+.BR \-V ", " \-\-version
 Display the version number of
 .IR wiggle .
 
 .TP
-.BR -v ", " \-\-verbose
+.BR \-v ", " \-\-verbose
 Enable verbose mode.  Currently this makes no difference.
 
 .TP
-.BR -q ", " \-\-quiet
+.BR \-q ", " \-\-quiet
 Enable quiet mode.  This suppresses the message from the merge
 function when there are unresolvable conflicts.
 
@@ -523,10 +523,10 @@ merge file unless
 is given, in which case a patch is assumed.
 
 The choice of branch in made by providing one of
-.BR -1 ,
-.BR  -2 ,
+.BR \-1 ,
+.BR \-2 ,
 or
-.B -3
+.B \-3
 with obvious meanings.
 
 .SS BROWSE
@@ -608,7 +608,7 @@ that
 could not apply, and merge them into
 .BR file .
 
-.B "  wiggle -dp1 file file.rej"
+.B "  wiggle \-dp1 file file.rej"
 .br
 This will perform a word-wise comparison between the
 .B file
@@ -624,7 +624,7 @@ patch would apply.
 Get help about the merge function of
 .IR wiggle .
 
-.B "   wiggle --browse --patch update.patch"
+.B "   wiggle \-\-browse \-\-patch update.patch"
 .br
 Parse the
 .B update.patch
@@ -649,7 +649,7 @@ in the user's home directory.
 	tool = wiggle
 [mergetool "wiggle"]
 	path = /usr/bin/wiggle
-	cmd = wiggle \-B -o $MERGED $LOCAL $BASE $REMOTE
+	cmd = wiggle \-B \-o $MERGED $LOCAL $BASE $REMOTE
 .fi
 .RE
 
