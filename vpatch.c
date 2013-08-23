@@ -1605,7 +1605,8 @@ static int merge_window(struct plist *p, FILE *f, int reverse, int replace,
 				spos.state = 1;
 			while (spos.p.m >= 0 && spos.state != 0)
 				prev_mline(&spos, fm, fb, fa, ci.merger, smode);
-			while (!same_mpos(spos, tpos))
+			while (!same_mpos(spos, tpos) &&
+			       ci.merger[spos.p.m].type != End)
 				next_mline(&spos, fm, fb, fa, ci.merger, smode);
 
 			(void)attrset(a_sep);
