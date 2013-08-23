@@ -1,0 +1,57 @@
+#!/usr/bin/env bash
+
+dir=$PWD
+
+while [ ! -f $dir/wiggle ]
+do
+  if [ -z "$dir" ]; then
+    echo >&2 Cannot find wiggle program : $WIGGLE
+    exit 1
+  fi
+  dir=${dir%/*}
+done
+export WIGGLE=$dir/wiggle
+
+if [ -d tests ]
+then cd tests
+fi
+
+vallog=/tmp/valg.log-$$
+> $vallog
+VG="valgrind --log-file=$vallog"
+
+status=0
+ok=0
+fail=0
+
+find . -name core | xargs rm -f
+list=$(find . -type f  -name merge )
+
+WIGGLE="$WIGGLE --self-test"
+for path in $list
+do
+  dir=${path%/*}
+  (
+    cd $dir
+
+    if [ -f patch ]
+    then $VG $WIGGLE -B orig patch
+    elif [ -f new ] 
+    then $VG $WIGGLE -B orig new new2
+    else $VG $WIGGLE -B  orig
+    fi
+    if grep 'ERROR SUMMARY: [1-9]' $vallog > /dev/null 2>&1
+    then msg="VALGRIND ERRORS"; xit=1
+    else msg="SUCCESS"; xit=0
+    fi
+    echo $path $msg
+    exit $xit
+  ) 
+  if [ $? = 0 ]
+  then let ok++; 
+  else status=1 ; let fail++ 
+  fi
+done
+find . -name core -ls
+echo $ok succeeded and $fail failed
+exit $status
