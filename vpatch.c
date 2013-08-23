@@ -613,12 +613,13 @@ static int check_line(struct mpos pos, struct file fm, struct file fb,
 			if (mode & (BEFORE|AFTER))
 				rv |= CHANGES;
 		} else if (type == Extraneous) {
-			if (fb.list[m[pos.p.m].b].start[0] == '\0')
+			if (fb.list[m[pos.p.m].b].start[0] == '\0') {
 				/* hunk headers don't count as wiggles
 				 * and nothing before a hunk header
 				 * can possibly be part of this 'line' */
+				e.start = NULL;
 				break;
-			else
+			} else
 				rv |= WIGGLED;
 		} else if (type == Unmatched)
 			unmatched = 1;
