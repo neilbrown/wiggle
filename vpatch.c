@@ -1238,8 +1238,7 @@ static char *merge_window_help[] = {
 	" x                   toggle ignoring of current Changed,",
 	"                     Conflict, or Unmatched item",
 	" c                   toggle accepting of result of conflict",
-	" X                   toggle ignored of all Change, Conflict",
-	"                     and Unmatched items in current line",
+	" X                   Revert 'c' and 'x' changes on this line",
 	" v                   Save the current merge and run the",
 	"                     default editor on the file.",
 	NULL
@@ -1344,7 +1343,6 @@ static int merge_window(struct plist *p, FILE *f, int reverse, int replace,
 	int lineno;
 	int changes = 0; /* If any edits have been made to the merge */
 	int answer;	/* answer to 'save changes?' question */
-	int do_mark;
 	char *tempname;
 	struct elmnt e;
 	char search[80];  /* string we are searching for */
@@ -2260,9 +2258,10 @@ static int merge_window(struct plist *p, FILE *f, int reverse, int replace,
 			break;
 
 		case 'c': /* Toggle accepting of conflict.
-			   * A 'Conflict' becomes 'Changed'
+			   * A 'Conflict' or 'Extraneous' becomes 'Changed'
 			   */
-			if (ci.merger[curs.pos.m].oldtype != Conflict)
+			if (ci.merger[curs.pos.m].oldtype != Conflict &&
+			    ci.merger[curs.pos.m].oldtype != Extraneous)
 				break;
 
 			if (ci.merger[curs.pos.m].type == Changed)
@@ -2276,39 +2275,11 @@ static int merge_window(struct plist *p, FILE *f, int reverse, int replace,
 			changes = 1;
 			break;
 
-		case 'X': /* toggle where all Conflicts and Changeds
-			   * in the current line are marked Unchanged.
-			   * If any are not mark, mark them all, else
-			   * un-mark them all.
-			   */
-			tpos = pos;
-			do_mark = 0;
-			do {
-				if ((ci.merger[tpos.p.m].oldtype == Conflict ||
-				     ci.merger[tpos.p.m].oldtype == Changed ||
-				     ci.merger[tpos.p.m].oldtype == Unmatched)
-				    && (ci.merger[tpos.p.m].type ==
-					ci.merger[tpos.p.m].oldtype))
-					do_mark = 1;
-				e = prev_melmnt(&tpos.p, fm, fb, fa, ci.merger);
-				if (tpos.p.m < 0)
-					break;
-			} while (!ends_line(e) ||
-				 visible(mode & (RESULT|AFTER), ci.merger, &tpos) < 0);
+		case 'X': /* Reset all changes on the current line */
 			tpos = pos;
 			do {
-				if (ci.merger[tpos.p.m].oldtype == Conflict ||
-				    ci.merger[tpos.p.m].oldtype == Changed ||
-				    ci.merger[tpos.p.m].oldtype == Unmatched) {
-					next = Unchanged;
-					if (ci.merger[tpos.p.m].oldtype == Unmatched)
-						next = Changed;
-					if (do_mark)
-						ci.merger[tpos.p.m].type = next;
-					else
-						ci.merger[tpos.p.m].type =
-							ci.merger[tpos.p.m].oldtype;
-				}
+				ci.merger[tpos.p.m].type =
+					ci.merger[tpos.p.m].oldtype;
 				e = prev_melmnt(&tpos.p, fm, fb, fa, ci.merger);
 				if (tpos.p.m < 0)
 					break;

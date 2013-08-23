@@ -534,30 +534,18 @@ experimentations should help.
 .P
 A limited amount of editing is permitted while in
 .B browse
-mode.  Currently any Conflict or Changed section can be converted to
-Unchanged by using the
-.B x
-key (lower case), or all the Conflict and Changes sections in a line
-can be converted to Unchanged.
-.B X
-(upper case).  The effect can be toggled by pressing
-.B x
-or
-.B X
-again.
+mode.  Currently text that is unwanted can be discarded with
+.BR x .
+This will convert a Conflict or Change to Unchanged, and an Unmatched
+to Changed (which effectively changes it to the empty string).
+Similarly a text can be marked as wanted with
+.BR c .
+This will convert a Conflict or Extraneous to Changed.  Using the same
+key again will revert the change.
 .P
-A Conflict section can also be converted to Change (so the result is
-accepted even though there wasn't a proper match) with the (lower
-case)
-.B c
-key.  Pressing
-.B c
-effects a toggle.
-.P
-If you make any changes, then wiggle will ask you if you want
-to save the changes, even if
-.B \-\-replace
-was not given.
+Finally, the uppercase
+.B X
+will revert all changes on the current line.
 .P
 To make more sweeping changes you can use
 .B v
@@ -566,6 +554,11 @@ which runs an editor, preferring
 or
 .B $EDITOR
 if they are set in the environment.
+.P
+If you make any changes, then wiggle will ask you if you want
+to save the changes, even if
+.B \-\-replace
+was not given.
 .SH WARNING
 Caution should always be exercised when applying a rejected patch with
 .IR wiggle .
