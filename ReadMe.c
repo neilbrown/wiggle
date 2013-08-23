@@ -29,10 +29,10 @@
 #include "wiggle.h"
 
 #ifndef VERSION
-#define VERSION "0.9"
+#define VERSION "1.0"
 #endif
 #ifndef VERS_DATE
-#define VERS_DATE "2012-05-14"
+#define VERS_DATE "2013-08-23"
 #endif
 
 char Version[] = "wiggle " VERSION " " VERS_DATE " GPL-2+ http://neil.brown.name/wiggle/\n";

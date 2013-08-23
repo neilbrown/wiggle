@@ -1,6 +1,6 @@
 Summary: A tool for applying patches with conflicts
 Name: wiggle
-Version: 0.9
+Version: 1.0
 Release: 1
 License: GPL
 Group: Development/Tools 
