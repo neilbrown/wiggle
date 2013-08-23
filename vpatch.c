@@ -1853,6 +1853,7 @@ static int merge_window(struct plist *p, FILE *f, int reverse, int replace,
 			free_stuff();
 			do_edit(tempname, lineno);
 			sp = load_file(tempname);
+			unlink(tempname);
 			split_merge(sp, &sm, &sb, &sa);
 			if (sp.len == sm.len &&
 			    memcmp(sp.body, sm.body, sm.len) == 0 &&
