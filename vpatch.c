@@ -1867,6 +1867,7 @@ static int merge_window(struct plist *p, FILE *f, int reverse, int replace,
 				sb.body = memdup(sm.body, sm.len);
 			}
 			free(sp.body);
+			ignore_blanks = 0;
 			prepare_merge(0);
 			refresh = 2;
 			changes = 1;
