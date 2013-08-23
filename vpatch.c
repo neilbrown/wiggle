@@ -1533,8 +1533,11 @@ static int merge_window(struct plist *p, FILE *f, int reverse, int replace,
 			       * in main pane. */
 		if (check_line(vispos, fm, fb, fa, ci.merger, mode)
 		    & CHANGES) {
-			if (vispos.state == 0)
+			if (vispos.state == 0) {
 				vispos.state = 1;
+				vispos.lo = vispos.p;
+				vispos.hi = vispos.p;
+			}
 		} else {
 			vispos.state = 0;
 		}
@@ -1571,7 +1574,7 @@ static int merge_window(struct plist *p, FILE *f, int reverse, int replace,
 					   tpos, NULL);
 
 			}
-			if (i) {
+			if (i > 0) {
 				row -= (i+1);
 				refresh = 1;
 				goto retry;
