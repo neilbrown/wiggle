@@ -1326,7 +1326,7 @@ static int merge_window(struct plist *p, FILE *f, int reverse, int replace,
 	struct mpos tpos, /* temp point while drawing lines above and below pos */
 		toppos,   /* pos at top of screen - for page-up */
 		botpos;   /* pos at bottom of screen - for page-down */
-	struct mpos vpos, tvpos, vispos;
+	struct mpos vispos;
 	int botrow = 0;
 	int meta = 0,     /* mode for multi-key commands- SEARCH or META */
 		tmeta;
@@ -1381,7 +1381,6 @@ static int merge_window(struct plist *p, FILE *f, int reverse, int replace,
 		do
 			next_mline(&pos, fm, fb, fa, ci.merger, mode);
 		while (pos.p.lineno < ln && ci.merger[pos.p.m].type != End);
-		vpos = pos;
 	}
 	void prepare_merge(int ch)
 	{
@@ -1511,40 +1510,6 @@ static int merge_window(struct plist *p, FILE *f, int reverse, int replace,
 				row = lastrow/2+1;
 			if (row >= lastrow)
 				row = lastrow-1;
-		}
-		if (getenv("WIGGLE_VTRACE")) {
-			char b[100];
-			char *e, e2[7];
-			int i;
-			switch (vpos.p.s) {
-			default: /* keep compiler happy */
-			case 0:
-				e = fm.list[ci.merger[vpos.p.m].a + vpos.p.o].start;
-				break;
-			case 1:
-				e = fb.list[ci.merger[vpos.p.m].b + vpos.p.o].start;
-				break;
-			case 2:
-				e = fa.list[ci.merger[vpos.p.m].c + vpos.p.o].start;
-				break;
-			}
-			for (i = 0; i < 6; i++) {
-				e2[i] = e[i];
-				if (e2[i] < 32 || e2[i] >= 127)
-					e2[i] = '?';
-			}
-			sprintf(b, "st=%d str=%d o=%d m=%d mt=%s(%d,%d,%d) ic=%d  <%.3s>", vpos.state,
-				vpos.p.s, vpos.p.o,
-				vpos.p.m, typenames[ci.merger[vpos.p.m].type],
-				ci.merger[vpos.p.m].al,
-				ci.merger[vpos.p.m].bl,
-				ci.merger[vpos.p.m].cl,
-				ci.merger[vpos.p.m].in_conflict,
-				e2
-				);
-			(void)attrset(A_NORMAL);
-			mvaddstr(0, 50, b);
-			clrtoeol();
 		}
 
 		/* Always refresh the line */
@@ -1737,7 +1702,6 @@ static int merge_window(struct plist *p, FILE *f, int reverse, int replace,
 		}
 		tmeta = meta; meta = 0;
 		tnum = num; num = -1;
-		tvpos = vpos; vpos = pos;
 		cswitch = c | tmeta;
 		/* Handle some ranges */
 		/* case '0' ... '9': */
@@ -2257,17 +2221,6 @@ static int merge_window(struct plist *p, FILE *f, int reverse, int replace,
 				start++;
 			curs.target = start + 1;
 			refresh = 1;
-			break;
-
-		case '<':
-			prev_melmnt(&tvpos.p, fm, fb, fa, ci.merger);
-			if (tvpos.p.m >= 0)
-				vpos = tvpos;
-			break;
-		case '>':
-			next_melmnt(&tvpos.p, fm, fb, fa, ci.merger);
-			if (ci.merger[tvpos.p.m].type != End)
-				vpos = tvpos;
 			break;
 
 		case 'x': /* Toggle rejecting of conflict.
