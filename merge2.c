@@ -892,16 +892,30 @@ int save_tmp_merge(struct file a, struct file b, struct file c,
 	FILE *outfile;
 	char *dir, *fname;
 	int lineno;
+	int suffix = 0;
 
-	dir = getenv("TMPDIR");
-	if (!dir)
-		dir = "/tmp";
+	if (!*filep) {
+		dir = getenv("TMPDIR");
+		if (!dir)
+			dir = "/tmp";
 
-	asprintf(&fname, "%s/wiggle-tmp-XXXXXX", dir);
-	fd = mkstemp(fname);
+		asprintf(&fname, "%s/wiggle-tmp-XXXXXX", dir);
+	} else {
+		char *base;
+		dir = *filep;
+		base = strrchr(dir, '/');
+		if (base)
+			base++;
+		else
+			base = dir;
+		asprintf(&fname, "%.*stmp-XXXXXX-%s", (int)(base-dir), dir, base);
+		suffix = strlen(base)+1;
+	}
+	fd = mkstemps(fname, suffix);
 
 	if (fd < 0) {
 		free(fname);
+		*filep = NULL;
 		return -1;
 	}
 	outfile = fdopen(fd, "w");

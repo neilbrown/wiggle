@@ -1844,6 +1844,7 @@ static int merge_window(struct plist *p, FILE *f, int reverse, int replace,
 				mesg = "Cannot run editor when diffing";
 				break;
 			}
+			tempname = p->file;
 			lineno = save_tmp_merge(fm, fb, fa, ci.merger,
 						&tempname,
 						ci.merger + pos.p.m,
