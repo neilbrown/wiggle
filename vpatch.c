@@ -633,6 +633,15 @@ static int check_line(struct mpos pos, struct file fm, struct file fb,
 	} while (e.start != NULL &&
 		 (!ends_line(e)
 		  || visible(mode, m, &pos) == -1));
+	/* This is a bit of a hack...  If the end-of-line just
+	 * before this line was changed, then quite possibly this
+	 * line is part of a change too.  This is particularly important
+	 * when --ignore-blanks is in effect as newlines are not separate
+	 * from other words.  It could be that this test needs to be
+	 * strengthened when I have examined more cases.
+	 */
+	if (e.start && m[pos.p.m].oldtype == Changed)
+		rv |= CHANGES;
 
 	if (unmatched && (rv & CHANGES))
 		rv |= WIGGLED;
