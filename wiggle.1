@@ -24,18 +24,15 @@
 .TH WIGGLE 1 "" v0.9
 .SH NAME
 wiggle \- apply rejected patches and perform word-wise diffs
-
 .SH SYNOPSIS
-
 .BI wiggle " [function] [options] file [files]"
-
 .SH DESCRIPTION
 The main function of
 .I wiggle
 is to apply a patch to a file in a similar manner to the
 .BR patch (1)
 program.
-
+.P
 The distinctive difference of
 .I wiggle
 is that it will attempt to apply a patch even if the "before" part of
@@ -44,12 +41,12 @@ This is achieved by breaking the file and patch into words and finding
 the best alignment of words in the file with words in the patch.
 Once this alignment has been found, any differences (word-wise) in the
 patch are applied to the file as best as possible.
-
+.P
 Also,
 .I wiggle
 will (in some cases) detect changes that have already been applied,
 and will ignore them.
-
+.P
 .I wiggle
 ensures that every change in the patch is applied to the target
 file somehow.  If a particular change cannot be made in the file, the
@@ -63,27 +60,27 @@ Each annotation contains 3 components: a portion of the original file
 where the change should be applied, a portion of the patch that
 couldn't be matched precisely in the file, and the text that should
 replace that portion of the patch.  These are separated by lines
-containing precisely 7 identical characters, either '<', '|', '=', or '>', so
+containing precisely 7 identical characters, either '<', '|', '=',
+or '>', possibly followed by a descriptive word. So
 .in +5
 .nf
 .ft CW
-<<<<<<<
+<<<<<<< found
 Some portion of the original file
-|||||||
+||||||| expected
 text to replace
 =======
 text to replace it with
->>>>>>>
+>>>>>>> replacement
 .ft
 .fi
 .in -5
-
 indicates that "text to replace" should be replaced by "text to
 replace it with" somewhere in the portion of the original file.
 However
 .I wiggle
 was not able to find a place to make this change.
-
+.P
 .I wiggle
 can also produce conflict reports showing only the words that are
 involved rather than showing whole lines.
@@ -92,8 +89,8 @@ In this case the output looks like:
 .ti +5
 <<<---original|||old===new--->>>
 .ft
-
-A typical usage of
+.P
+One possible usage of
 .I wiggle
 is to run
 .I patch
@@ -102,29 +99,26 @@ the error messages from patch.  Then for each file for which a
 reject was found, run
 .ti +5
 wiggle \-\-replace originalfile originalfile.rej
-
+.P
 Finally each file must be examined to resolve any unresolved
 conflicts, and to make sure the applied patch is semantically correct.
-
-Alternately, the original patch file can be feed to the
+.P
+Alternately, the original patch file can be fed to the
 .B browse
 mode as
 .ti +5
 wiggle \-B < patchfile
-
+.P
 This will allow the changes and conflicts to be inspected and, to some
-extent, modified; and then the results can be save.
-
+extent, modified; and then the results can be saved.
 .SS OPTIONS
 The following options are understood by
 .IR wiggle .
 Some of these are explained in more detail in the following sections
 on MERGE, DIFF, EXTRACT, and BROWSE.
-
 .TP
 .BR \-m ", " \-\-merge
 Select the "merge" function.  This is the default function.
-
 .TP
 .BR \-d ", " \-\-diff
 Select the "diff" function.  This displays the differences between
@@ -132,13 +126,10 @@ files.  This can be given after
 .B \-\-browse
 (see below) in which case a patch or diff of two files can be viewed
 without the originals.
-
-
 .TP
 .BR \-x ", " \-\-extract
 Select the "extract" function.  This extracts one branch of a patch or
 merge file.
-
 .TP
 .BR \-B ", " \-\-browse
 Select the "browse" function.  This is similar to "merge" (or "diff")
@@ -147,42 +138,40 @@ being sent to standard output, it is presented using an ncurses-based
 GUI so that each hunk of the patch can be examined to understand what
 conflicts where involved and what needed to be ignored in order of the
 patch to be wiggled in to place.
-
 .TP
 .BR \-w ", " \-\-words
 Request that all operations and display be word based.  This is the
 default for the "diff" function.
-
 .TP
 .BR \-l ", " \-\-lines
 Request that all operations and display be line based.
-
 .TP
 .BR \-b ", " \-\-ignore\-blanks
 De-emphasise white space (space, tab, and newline) is determining
 differences and changes.
-
+.RS
+.P
 Normally white space is treated like a word which can be matched or
 changed by a patch.  When this flag is in force, white space serves
 only as a separator between other words and is not matched itself.
 The effect of this is that changes in the amount of white space are
 not treated as significant.
-
+.P
 To be precise, any white space is combined with the preceeding word
 or, in the case of leading space on a line, with the following word.
 However it is not involved in any comparisons of that word.  If a patch
 deletes a word, the attached white space is deleted as well.  If a
 patch adds a word, the attached white space is added as well.
-
+.P
 An empty line, or one that contains only blanks, will be treated as a
 single word that will match any other blank line, no matter how many
 spaces it has.
-
+.P
 .B \-b
 has no effect in
 .B \-\-line
 mode.
-
+.RE
 .TP
 .BR \-p ", " \-\-patch
 Treat the last named file as a patch instead of a file (with \-\-diff)
@@ -200,7 +189,8 @@ file.  When used in
 mode, this usage requires the
 .B \-\-replace
 option as writing lots of merged files to standard-out is impractical.
-
+.RS
+.P
 When processing a multi-file patch,
 .B \-p
 can be followed by a numeric argument indicating how many file name
@@ -209,17 +199,17 @@ numeric argument is given,
 .I wiggle
 will deduce an appropriate number based what files are present in the
 filesystem.
-
+.RE
 .TP
 .BR \-r ", " \-\-replace
 Normally the merged output is written to standard-output.  With
-\-\-replace, the original file is replaced with the merge output.
+.BR \-\-replace ,
+the original file is replaced with the merge output.
 In
 .B browse
 mode, this instructs
 .I wiggle
 to always save the resulting merge when exiting.
-
 .TP
 .BR \-o ", " \-\-output=
 Rather than writing the result to stdout or to replace the original
@@ -229,10 +219,11 @@ This is only meaningful with
 or
 .B \-\-browse
 when given a single merge to browse.
-
+.RS
+.P
 This option overrides
 .BR \-r .
-
+.RE
 .TP
 .BR \-R ", " \-\-reverse
 When used with the
@@ -246,17 +237,15 @@ or
 functions,
 .I wiggle
 attempts to revert changes rather than apply them.
-
 .TP
 .BR \-i ", " \-\-no\-ignore
 Normally wiggle will ignore changes in the patch which appear to
 already have been applied in the original.  With this flag those
 changes are reported as conflicts rather than being ignored.
-
 .TP
 .BR \-W ", " \-\-show\-wiggles
 When used with
-.IR \-\-merge ,
+.BR \-\-merge ,
 conflicts that can be wiggled into place are reported as conflicts
 with an extra stanza which shows what the result would be if this flag
 had not been used.  The extra stanza is introduce with a line
@@ -266,19 +255,18 @@ characters thus:
 .in +5
 .nf
 .ft CW
-<<<<<<<
+<<<<<<< found
 Some portion of the original file
-|||||||
+||||||| expected
 text to replace
 =======
 text to replace it with
-&&&&&&&
+&&&&&&& resolution
 Text that would result from a successful wiggle
->>>>>>>
+>>>>>>> replacement
 .ft
 .fi
 .in -5
-
 .TP
 .B \-\-report\-wiggles
 If a merge is successful in applying all changes, it will normally exit
@@ -295,7 +283,6 @@ If any wiggles happen,
 .I git
 will report the failure, and the results can be examined to confirm
 they are acceptable.
-
 .TP
 .BR \-h ", " \-\-help
 Print a simple help message.  If given after one of the function
@@ -305,21 +292,17 @@ selectors
 .BR \-\-extract ,
 .BR \-\-browse )
 help specific to that function is displayed.
-
 .TP
 .BR \-V ", " \-\-version
 Display the version number of
 .IR wiggle .
-
 .TP
 .BR \-v ", " \-\-verbose
 Enable verbose mode.  Currently this makes no difference.
-
 .TP
 .BR \-q ", " \-\-quiet
 Enable quiet mode.  This suppresses the message from the merge
 function when there are unresolvable conflicts.
-
 .SS WORDS
 .I wiggle
 can divide a text into lines or words when performing it's tasks.
@@ -327,22 +310,21 @@ A line is simply a string of characters terminated by a newline.
 A word is either a maximal contiguous string of alphanumerics
 (including underscore), a maximal contiguous string of space or tab
 characters, or any other single character.
-
 .SS MERGE
 The merge function modifies a given text by finding all changes between
 two other texts and imposing those changes on the given text.
-
+.P
 Normally
 .I wiggle
 focuses on which words have changed so as to maximise the possibility
 of finding a good match in the given text for the context of a given
 change.  However it can consider only whole lines instead.
-
+.P
 .I wiggle
 extracts the three texts that it needs from files listed on the
 command line.  Either 1, 2, or 3 files may be listed, and any one of
 them may be a lone hyphen signifying standard-input.
-
+.P
 If one file is given and the
 .B \-p
 option is not present, the file is treated as a
@@ -350,14 +332,14 @@ option is not present, the file is treated as a
 file, i.e. the output of "merge \-A" or "wiggle".  Such a file
 implicitly contains three streams and these are extracted and
 compared.
-
+.P
 If two files are given, then the first simply contains the primary
 text, and the second is treated as a patch file (the output of "diff\ \-u"
 or "diff\ \-c", or a ".rej" file from
 .IR patch )
 and the two other texts
 are extracted from that.
-
+.P
 If one file is given together with the
 .B \-p
 option, the file is treated as a patch file containing the names of
@@ -367,12 +349,12 @@ the other two from the patch itself.  The
 .B \-\-replace
 option is required and the results are written back to the
 target files.
-
+.P
 Finally if three files are listed, they are taken to contain the given
 text and the two other texts, in order.
-
+.P
 Normally the result of the merge is written to standard-output.
-However if the
+If the
 .B \-r
 flag is given, the output is written to a file
 which replaces the original given file. In this case the original file
@@ -383,7 +365,12 @@ suffix (for "patched original" which makes sense if you first use
 to apply a patch, and then use
 .I wiggle
 to wiggle the rejects in).
-
+.P
+Further if the
+.B -o
+option is given with a file name, the output will be written to that
+file.  In this case no backup is created.
+.P
 If no errors occur (such as file access errors)
 .I wiggle
 will exit with a status of 0 if all changes were successfully merged,
@@ -397,25 +384,25 @@ options were given,
 .I wiggle
 will also exist with status of 1 if any changes had to be wiggled in
 even though this was successful.
-
+.P
 The merge function can operate in three different modes with respect
 to lines or words.
-
+.P
 With the
 .B \-\-lines
 option, whole lines are compared and any conflicts
 are reported as whole lines that need to be replaced.
-
+.P
 With the
 .B \-\-words
 option, individual words are compared and any
 conflicts are reported just covering the words affected.  This uses
 the \f(CW <<<|||===>>> \fP conflict format.
-
+.P
 Without either of these options, a hybrid approach is taken.
 Individual words are compared and merged, but when a conflict is found
 the whole surrounding line is reported as being in conflict.
-
+.P
 .I wiggle
 will ensure that every change between the two other texts is reflected
 in the result of the merge somehow.  There are four different ways
@@ -436,7 +423,6 @@ is empty, but
 not that
 .B A
 is empty.
-
 .IP 2
 If a change is found which simply adds
 .B B
@@ -444,7 +430,6 @@ and the text immediately preceding and following the insertion are
 found adjacent in the original file in a suitable place, then
 .B B
 is inserted between those adjacent texts.
-
 .IP 3
 If a change is found which changes
 .B A
@@ -459,23 +444,20 @@ reflecting the number of ignored changes is printed by
 This optimisation can be suppressed with the
 .B \-i
 flag.
-
 .IP 4
 If a change is found that does not fit any of the above possibilities,
 then a conflict is reported as described earlier.
-
 .SS DIFF
-
 The diff function is provided primarily to allow inspection of the
 alignments that
 .I wiggle
 calculated between texts and that it uses for performing a merge.
-
+.P
 The output of the diff function is similar to the unified output of
 diff.  However while diff does not output long stretches of common text,
 .IR wiggle 's
 diff mode outputs everything.
-
+.P
 When calculating a word-based alignment (the default),
 .I wiggle
 may need to show these word-based differences.  This is done using an
@@ -483,22 +465,22 @@ extension to the unified-diff format.  If a line starts with a
 vertical bar, then it may contain sections surrounded by special
 multi-character brackets.  The brackets "<<<++" and "++>>>" surround
 added text while "<<<--" and "-->>>" surround removed text.
-
+.P
 .I wiggle
 can be given the two texts to compare in one of three ways.
-
+.P
 If only one file is given, then it is treated as a patch and the two
-branches of that diff are compared.  This effectively allows a patch
+branches of that patch are compared.  This effectively allows a patch
 to be refined from a line-based patch to a word-based patch.
-
+.P
 If two files are given, then they are normally assumed to be simple
 texts to be compared.
-
+.P
 If two files are given along with the \-\-patch option, then the second
 file is assumed to be a patch and either the first (with \-1) or the
 second (with \-2) branch is extracted and compared with text found in
 the first file.
-
+.P
 This last option causes
 .I wiggle
 to apply a "best-fit" algorithm for aligning patch hunks with the
@@ -507,45 +489,49 @@ merging a patch with a file, and its value can be seen by comparing
 the difference produced this way with the difference produced by first
 extracting one branch of a patch into a file, and then computing the
 difference of that file with the main file.
-
-
 .SS EXTRACT
-
 The extract function of
 .I wiggle
 simply exposes the internal functionality for extracting one branch of
 a patch or a merge file.
-
+.P
 Precisely one file should be given, and it will be assumed to be a
 merge file unless
 .B  \-\-patch
 is given, in which case a patch is assumed.
-
+.P
 The choice of branch in made by providing one of
 .BR \-1 ,
 .BR \-2 ,
 or
 .B \-3
 with obvious meanings.
-
 .SS BROWSE
-
 The browse function of
 .I wiggle
 presents the result of a merge or (with
-.B \-d
-a diff) in a text-based GUI that can be
-navigated using keystrokes similar to vi(1) or emacs(1).
-
+.BR \-d )
+a diff in a text-based GUI that can be
+navigated using keystrokes similar to
+.IR vi (1)
+or
+.IR emacs (1).
+.P
 The browser allows each of the two or  three streams to be viewed individually
 with colours used to highlight different sorts of text - green for
 added text, red for deleted text etc.  It can also show the patch by
 itself, the full result of the merge, or the merge and the patch
 side-by-side.
-
+.P
 The browser provides a number of context-sensitive help pages which
 can be accessed by typing '?'
-
+.P
+The top right of the GUI will report the type of text under the
+cursor, which is also indicated by the colour of the text.  Options
+are Unchanged, Changed, Unmatched, Extraneous, AlreadyApplied and
+Conflict.  If the meanings of these are clear a little
+experimentations should help.
+.P
 A limited amount of editing is permitted while in
 .B browse
 mode.  Currently any Conflict or Changed section can be converted to
@@ -559,7 +545,7 @@ can be converted to Unchanged.
 or
 .B X
 again.
-
+.P
 A Conflict section can also be converted to Change (so the result is
 accepted even though there wasn't a proper match) with the (lower
 case)
@@ -567,12 +553,12 @@ case)
 key.  Pressing
 .B c
 effects a toggle.
-
+.P
 If you make any changes, then wiggle will ask you if you want
 to save the changes, even if
 .B \-\-replace
 was not given.
-
+.P
 To make more sweeping changes you can use
 .B v
 which runs an editor, preferring
@@ -580,9 +566,7 @@ which runs an editor, preferring
 or
 .B $EDITOR
 if they are set in the environment.
-
 .SH WARNING
-
 Caution should always be exercised when applying a rejected patch with
 .IR wiggle .
 When
@@ -593,9 +577,7 @@ may be able to find a believable place to apply each textual change,
 there is no guarantee that the result is correct in any semantic
 sense.  The result should always be inspected to make sure it is
 correct.
-
 .SH EXAMPLES
-
 .B "  wiggle \-\-replace file file.rej"
 .br
 This is the normal usage of
@@ -606,7 +588,7 @@ that
 .I patch
 could not apply, and merge them into
 .BR file .
-
+.P
 .B "  wiggle \-dp1 file file.rej"
 .br
 This will perform a word-wise comparison between the
@@ -617,19 +599,19 @@ branch of the diff in
 .B file.rej
 and display the differences.  This allows you to see where a given
 patch would apply.
-
+.P
 .B "   wiggle \-\-merge \-\-help"
 .br
 Get help about the merge function of
 .IR wiggle .
-
+.P
 .B "   wiggle \-\-browse \-\-patch update.patch"
 .br
 Parse the
 .B update.patch
 file for patches and present a list of patched files which can be
 browsed to examine each patch in detail.
-
+.P
 .I wiggle
 can be integrated with
 .I git
@@ -637,7 +619,6 @@ so that it is used as the default merge tool and diff tool.
 This can be achieved by adding the following lines to
 .B .gitconfig
 in the user's home directory.
-
 .RS 4
 .nf
 [merge "wiggle"]
@@ -652,14 +633,13 @@ in the user's home directory.
 	cmd = wiggle \-Bd $LOCAL $REMOTE
 .fi
 .RE
-
 This will make
 .B "git mergetool"
 and
 .B "git difftool"
 use
 .IR wiggle .
-
+.P
 If you want
 .I git
 to always use
@@ -672,19 +652,11 @@ to an appropriate
 .I gitattributes
 file such as
 .BR $HOME/.config/git/attributes .
-
-
-
 .SH QUOTE
 The name of
 .I wiggle
-was inspired by the following quote.  However
-.I wiggle
-does not yet
-.B help
-you to wiggle a patch into place.  It either does the wiggle itself,
-or leave it for you to finish off.
-
+was inspired by the following quote.
+.P
 .nf
 The problem I find is that I often want to take
   (file1+patch) -> file2,
@@ -692,34 +664,28 @@ when I don't have file1.  But merge tools want to take
   (file1|file2) -> file3.
 I haven't seen a graphical tool which helps you to wiggle a patch
 into a file.
-
+.br
 \-\- Andrew Morton - 2002
 .fi
-
 .SH SHORTCOMINGS
 .IP -
 .I wiggle
 cannot read the extended unified-diff output that it produces for
 \-\-diff \-\-words.
-
 .IP -
 .I wiggle
 cannot read the word-based merge format that it produces for \-\-merge
 \-\-words.
-
 .IP -
 .I wiggle
 does not understand unicode and so will treat all non-ASCII characters
 much the same as it treats punctuation - it will treat each one
 as a separate word.  The browser will not display non-ASCII characters
 properly.
-
 .SH AUTHOR
-
 Neil Brown at Computer Science and Engineering at
 The University of New South Wales, Sydney, Australia;
-and later and SUSE, still in Sydney, Australia.
-
+and later at SUSE, still in Sydney, Australia.
 .SH SEE ALSO
 .IR patch (1),
 .IR diff (1),
