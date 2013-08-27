@@ -22,8 +22,8 @@ wiggle.o load.o parse.o split.o extract.o diff.o bestmatch.o \
                merge2.o vpatch.o :: wiggle.h
 split.o :: ccan/hash/hash.h config.h
 
-VERSION = $(shell [ -d .git ] && git describe HEAD)
-VERS_DATE = $(shell [ -d .git ] && git log -n1 --format=format:%cd --date=short)
+VERSION = $(shell [ -d .git ] && git 2> /dev/null describe HEAD)
+VERS_DATE = $(shell [ -d .git ] && git 2> /dev/null log -n1 --format=format:%cd --date=short)
 DVERS = $(if $(VERSION),-DVERSION=\"$(VERSION)\",)
 DDATE = $(if $(VERS_DATE),-DVERS_DATE=\"$(VERS_DATE)\",)
 CFLAGS += $(DVERS) $(DDATE)
