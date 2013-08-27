@@ -2350,8 +2350,7 @@ static int show_merge(char *origname, FILE *patch, int reverse,
 	struct plist p = {0};
 
 	p.file = origname;
-	if (replace)
-		p.outfile = outfile;
+	p.outfile = replace ? outfile : NULL;
 	if (patch) {
 		p.start = 0;
 		fseek(patch, 0, SEEK_END);
