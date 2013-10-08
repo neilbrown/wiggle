@@ -1379,18 +1379,19 @@ static int merge_window(struct plist *p, FILE *f, int reverse, int replace,
 		free(ci.merger); \
 	} while(0)
 
-	void find_line(int ln)
-	{
-		pos.p.m = 0; /* merge node */
-		pos.p.s = 0; /* stream number */
-		pos.p.o = -1; /* offset */
-		pos.p.lineno = 1;
-		pos.state = 0;
-		memset(&curs, 0, sizeof(curs));
-		do
-			next_mline(&pos, fm, fb, fa, ci.merger, mode);
-		while (pos.p.lineno < ln && ci.merger[pos.p.m].type != End);
-	}
+	#define find_line(ln) \
+	do { \
+		pos.p.m = 0; /* merge node */ \
+		pos.p.s = 0; /* stream number */ \
+		pos.p.o = -1; /* offset */ \
+		pos.p.lineno = 1; \
+		pos.state = 0; \
+		memset(&curs, 0, sizeof(curs)); \
+		do \
+			next_mline(&pos, fm, fb, fa, ci.merger, mode); \
+		while (pos.p.lineno < ln && ci.merger[pos.p.m].type != End); \
+	} while(0)
+
 	void prepare_merge(int ch)
 	{
 		/* FIXME check for errors in the stream */
