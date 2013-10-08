@@ -1369,15 +1369,16 @@ static int merge_window(struct plist *p, FILE *f, int reverse, int replace,
 		unsigned int searchlen;
 	} *anchor = NULL;
 
-	void free_stuff(void)
-	{
-		free(fm.list);
-		free(fb.list);
-		free(fa.list);
-		free(csl1);
-		free(csl2);
-		free(ci.merger);
-	}
+	#define free_stuff(none) \
+	do { \
+		free(fm.list); \
+		free(fb.list); \
+		free(fa.list); \
+		free(csl1); \
+		free(csl2); \
+		free(ci.merger); \
+	} while(0)
+
 	void find_line(int ln)
 	{
 		pos.p.m = 0; /* merge node */
