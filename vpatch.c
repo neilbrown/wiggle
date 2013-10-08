@@ -1392,23 +1392,23 @@ static int merge_window(struct plist *p, FILE *f, int reverse, int replace,
 		while (pos.p.lineno < ln && ci.merger[pos.p.m].type != End); \
 	} while(0)
 
-	void prepare_merge(int ch)
-	{
-		/* FIXME check for errors in the stream */
-		fm = split_stream(sm, ByWord | ignore_blanks);
-		fb = split_stream(sb, ByWord | ignore_blanks);
-		fa = split_stream(sa, ByWord | ignore_blanks);
-
-		if (ch && !just_diff)
-			csl1 = pdiff(fm, fb, ch);
-		else
-			csl1 = diff(fm, fb);
-		csl2 = diff_patch(fb, fa);
-
-		ci = make_merger(fm, fb, fa, csl1, csl2, 0, 1, 0);
-		for (i = 0; ci.merger[i].type != End; i++)
-			ci.merger[i].oldtype = ci.merger[i].type;
-	}
+	#define prepare_merge(ch) \
+	do { \
+		/* FIXME check for errors in the stream */ \
+		fm = split_stream(sm, ByWord | ignore_blanks); \
+		fb = split_stream(sb, ByWord | ignore_blanks); \
+		fa = split_stream(sa, ByWord | ignore_blanks); \
+\
+		if (ch && !just_diff) \
+			csl1 = pdiff(fm, fb, ch); \
+		else \
+			csl1 = diff(fm, fb); \
+		csl2 = diff_patch(fb, fa); \
+\
+		ci = make_merger(fm, fb, fa, csl1, csl2, 0, 1, 0); \
+		for (i = 0; ci.merger[i].type != End; i++) \
+			ci.merger[i].oldtype = ci.merger[i].type; \
+	} while(0)
 
 	if (selftest) {
 		intr_kills = 1;
