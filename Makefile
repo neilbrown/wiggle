@@ -3,7 +3,7 @@
 #OptDbg=-O3
 #OptDbg=-O3 -march=pentium2
 OptDbg=-ggdb
-CFLAGS=$(OptDbg) -I. -Wall -Werror -Wstrict-prototypes -Wextra -Wno-unused-parameter
+CFLAGS=$(OptDbg) -I. -Wall -Werror -Wstrict-prototypes -Wextra -Wno-unused-parameter -Wno-missing-field-initializers
 
 # STRIP = -s
 INSTALL = /usr/bin/install

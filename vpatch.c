@@ -1369,44 +1369,46 @@ static int merge_window(struct plist *p, FILE *f, int reverse, int replace,
 		unsigned int searchlen;
 	} *anchor = NULL;
 
-	void free_stuff(void)
-	{
-		free(fm.list);
-		free(fb.list);
-		free(fa.list);
-		free(csl1);
-		free(csl2);
-		free(ci.merger);
-	}
-	void find_line(int ln)
-	{
-		pos.p.m = 0; /* merge node */
-		pos.p.s = 0; /* stream number */
-		pos.p.o = -1; /* offset */
-		pos.p.lineno = 1;
-		pos.state = 0;
-		memset(&curs, 0, sizeof(curs));
-		do
-			next_mline(&pos, fm, fb, fa, ci.merger, mode);
-		while (pos.p.lineno < ln && ci.merger[pos.p.m].type != End);
-	}
-	void prepare_merge(int ch)
-	{
-		/* FIXME check for errors in the stream */
-		fm = split_stream(sm, ByWord | ignore_blanks);
-		fb = split_stream(sb, ByWord | ignore_blanks);
-		fa = split_stream(sa, ByWord | ignore_blanks);
+	#define free_stuff(none) \
+	do { \
+		free(fm.list); \
+		free(fb.list); \
+		free(fa.list); \
+		free(csl1); \
+		free(csl2); \
+		free(ci.merger); \
+	} while(0)
 
-		if (ch && !just_diff)
-			csl1 = pdiff(fm, fb, ch);
-		else
-			csl1 = diff(fm, fb);
-		csl2 = diff_patch(fb, fa);
+	#define find_line(ln) \
+	do { \
+		pos.p.m = 0; /* merge node */ \
+		pos.p.s = 0; /* stream number */ \
+		pos.p.o = -1; /* offset */ \
+		pos.p.lineno = 1; \
+		pos.state = 0; \
+		memset(&curs, 0, sizeof(curs)); \
+		do \
+			next_mline(&pos, fm, fb, fa, ci.merger, mode); \
+		while (pos.p.lineno < ln && ci.merger[pos.p.m].type != End); \
+	} while(0)
 
-		ci = make_merger(fm, fb, fa, csl1, csl2, 0, 1, 0);
-		for (i = 0; ci.merger[i].type != End; i++)
-			ci.merger[i].oldtype = ci.merger[i].type;
-	}
+	#define prepare_merge(ch) \
+	do { \
+		/* FIXME check for errors in the stream */ \
+		fm = split_stream(sm, ByWord | ignore_blanks); \
+		fb = split_stream(sb, ByWord | ignore_blanks); \
+		fa = split_stream(sa, ByWord | ignore_blanks); \
+\
+		if (ch && !just_diff) \
+			csl1 = pdiff(fm, fb, ch); \
+		else \
+			csl1 = diff(fm, fb); \
+		csl2 = diff_patch(fb, fa); \
+\
+		ci = make_merger(fm, fb, fa, csl1, csl2, 0, 1, 0); \
+		for (i = 0; ci.merger[i].type != End; i++) \
+			ci.merger[i].oldtype = ci.merger[i].type; \
+	} while(0)
 
 	if (selftest) {
 		intr_kills = 1;
