@@ -9,8 +9,8 @@ endif
 CFLAGS=$(OptDbg) -I. $(CWFLAGS)
 
 # STRIP = -s
-INSTALL = /usr/bin/install
-DESTDIR = 
+INSTALL = /usr/bin/install -D
+DESTDIR =
 BINDIR  = /usr/bin
 MANDIR  = /usr/share/man
 MAN1DIR = $(MANDIR)/man1
@@ -48,8 +48,8 @@ clean:
 	find . -name core -o -name '*.tmp*' -o -name .tmp -o -name .time | xargs rm -f
 
 install : wiggle wiggle.1
-	$(INSTALL) -D $(STRIP) -m 755 wiggle $(DESTDIR)$(BINDIR)/wiggle
-	$(INSTALL) -D -m 644 wiggle.1 $(DESTDIR)$(MAN1DIR)/wiggle.1
+	$(INSTALL) $(STRIP) -m 755 wiggle $(DESTDIR)$(BINDIR)/wiggle
+	$(INSTALL) -m 644 wiggle.1 $(DESTDIR)$(MAN1DIR)/wiggle.1
 
 version : ReadMe.c wiggle.1
 	@rm -f version
