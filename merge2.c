@@ -77,7 +77,7 @@ static int check_alreadyapplied(struct file af, struct file cf,
  * the change the mode of display - between displaying the merger
  * and displaying the separate streams.
  * A 'conflict' can only be displayed as separate stream so when
- * one is found, we need to find a preceeding and trailing cut-point
+ * one is found, we need to find a preceding and trailing cut-point
  * and enlarge the conflict to that range.
  * A suitable location is one where all three streams are at a line-end.
  */
@@ -103,7 +103,7 @@ int isolate_conflicts(struct file af, struct file bf, struct file cf,
 	 *
 	 * A Changed text may also border a conflict, but it can
 	 * only border one conflict (where as an Unchanged can border
-	 * a preceeding and a following conflict).
+	 * a preceding and a following conflict).
 	 * The 'new' section of a Changed text appears in the
 	 * conflict as does any part of the original before
 	 * a newline.
@@ -120,7 +120,7 @@ int isolate_conflicts(struct file af, struct file bf, struct file cf,
 	 * When in_conflict == 1, the 'lo' and 'hi' fields indicate
 	 * how much of the 'a' file is included in the conflict, the rest
 	 * being part of the clean result.
-	 * Elements in af from m->a to m->a+m->lo are in the preceeding
+	 * Elements in af from m->a to m->a+m->lo are in the preceding
 	 * conflict, from m->a+m->lo to m->a+m->hi are clean, and
 	 * m->a+m->hi to m->a+m->al are in the following conflict.
 	 *
