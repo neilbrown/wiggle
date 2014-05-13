@@ -8,11 +8,12 @@ CWFLAGS=-Wall -Werror -Wstrict-prototypes -Wextra -Wno-unused-parameter -Wno-mis
 endif
 CFLAGS=$(OptDbg) -I. $(CWFLAGS)
 
+PREFIX  = /usr
 # STRIP = -s
 INSTALL = /usr/bin/install -D
 DESTDIR =
-BINDIR  = /usr/bin
-MANDIR  = /usr/share/man
+BINDIR  = $(PREFIX)/bin
+MANDIR  = $(PREFIX)/share/man
 MAN1DIR = $(MANDIR)/man1
 MAN5DIR = $(MANDIR)/man5
 LDLIBS = -lncurses
