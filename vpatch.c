@@ -2068,8 +2068,8 @@ static int merge_window(struct plist *p, FILE *f, int reverse, int replace,
 			do {
 				pos = tpos; row++;
 				next_mline(&tpos, fm, fb, fa, ci.merger, mmode);
-			} while (!(check_line(pos, fm, fb, fa, ci.merger, mmode)
-				   & CONFLICTED) == 0
+			} while ((check_line(pos, fm, fb, fa, ci.merger, mmode)
+				  & CONFLICTED) != 0
 				 && ci.merger[tpos.p.m].type != End);
 			tpos = pos; row--;
 			do {
