@@ -801,7 +801,7 @@ static int mcontains(struct mpos pos,
 	struct elmnt e;
 	int found = 0;
 	struct mp mp;
-	int o;
+	int o = 0;
 	int len = strlen(search);
 
 	do {
