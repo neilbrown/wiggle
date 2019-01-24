@@ -1680,8 +1680,8 @@ static int merge_window(struct plist *p, FILE *f, int reverse, int replace,
 			attrset(A_NORMAL);
 		}
 		if (num >= 0) {
-			char buf[10];
-			snprintf(buf, 10, "%d ", num);
+			char buf[12+1];
+			snprintf(buf, sizeof(buf), "%d ", num);
 			addstr(buf);
 		}
 		if (meta & META(0))
@@ -2487,7 +2487,7 @@ static int get_next(int pos, struct plist *pl, int n, int mode,
 static void draw_one(int row, struct plist *pl, FILE *f, int reverse,
 		     int ignore_blanks, int just_diff)
 {
-	char hdr[12];
+	char hdr[2*12];
 	hdr[0] = 0;
 
 	if (pl == NULL) {
