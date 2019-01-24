@@ -9,7 +9,7 @@ if SELF_TEST is defined.  You can use this free for any purpose.  It's in
 the public domain.  It has no warranty.
 
 You probably want to use hashlittle().  hashlittle() and hashbig()
-hash byte arrays.  hashlittle() is is faster than hashbig() on
+hash byte arrays.  hashlittle() is faster than hashbig() on
 little-endian machines.  Intel and AMD are little-endian machines.
 On second thought, you probably want hashlittle2(), which is identical to
 hashlittle() except it returns two 32-bit hashes for the price of one.  
@@ -280,7 +280,7 @@ static uint32_t hashlittle( const void *key, size_t length, uint32_t *val2 )
      * rest of the string.  Every machine with memory protection I've seen
      * does it on word boundaries, so is OK with this.  But VALGRIND will
      * still catch it and complain.  The masking trick does make the hash
-     * noticably faster for short strings (like English words).
+     * noticeably faster for short strings (like English words).
      *
      * Not on my testing with gcc 4.5 on an intel i5 CPU, at least --RR.
      */
@@ -457,7 +457,7 @@ static uint32_t hashbig( const void *key, size_t length, uint32_t *val2)
      * rest of the string.  Every machine with memory protection I've seen
      * does it on word boundaries, so is OK with this.  But VALGRIND will
      * still catch it and complain.  The masking trick does make the hash
-     * noticably faster for short strings (like English words).
+     * noticeably faster for short strings (like English words).
      *
      * Not on my testing with gcc 4.5 on an intel i5 CPU, at least --RR.
      */
