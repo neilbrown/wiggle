@@ -276,7 +276,7 @@ static void find_best(struct file *a, struct file *b,
  * in line-mode are interesting) and words that start with
  * and alphanumeric are interesting.  This excludes spaces and
  * special characters in word mode
- * Doing a best-fit comparision on only interesting words is
+ * Doing a best-fit comparison on only interesting words is
  * much faster than on all words, and is nearly as good
  */
 

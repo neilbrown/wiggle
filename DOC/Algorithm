@@ -23,7 +23,7 @@ side and build up the full path using linear space and only doubling
 your work.
 
 Wiggle takes a different approach.  Finding where the snakes cross
-seemed awkward to me, and having two blocks of similiar but not
+seemed awkward to me, and having two blocks of similar but not
 identical code (one to search forward, one to search backwards) didn't
 appeal at all.
 
