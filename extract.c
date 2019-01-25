@@ -118,12 +118,17 @@ int split_patch(struct stream f, struct stream *f1, struct stream *f2)
 			skip_eol(&cp, end);
 			if (state == 1 || state == 3) {
 				char *f;
-				char buf[20];
+				int slen;
+				/* Reserve enough space for 3 integers separated
+				 * by a single space, and prefixed and terminated
+				 * with a null character.
+				 */
+				char buf[(3*12)+1];
 				buf[0] = 0;
 				chunks++;
-				sprintf(buf+1, "%5d %5d %5d", chunks, a, acnt);
-				memcpy(r1.body+r1.len, buf, 18);
-				r1.len += 18;
+				slen = sprintf(buf+1, "%5d %5d %5d", chunks, a, acnt)+1;
+				memcpy(r1.body+r1.len, buf, slen);
+				r1.len += slen;
 				f = func;
 				while (*f == ' ')
 					f++;
@@ -136,11 +141,16 @@ int split_patch(struct stream f, struct stream *f1, struct stream *f2)
 				r1.body[r1.len++] = '\0';
 			}
 			if (state == 2 || state == 3) {
-				char buf[20];
+				int slen;
+				/* Reserve enough space for 3 integers separated
+				 * by a single space, prefixed with a null character
+				 * and terminated with a new line and null character.
+				 */
+				char buf[(3*12)+2];
 				buf[0] = 0;
-				sprintf(buf+1, "%5d %5d %5d\n", chunks, c, bcnt);
-				memcpy(r2.body+r2.len, buf, 20);
-				r2.len += 20;
+				slen = sprintf(buf+1, "%5d %5d %5d\n", chunks, c, bcnt)+2;
+				memcpy(r2.body+r2.len, buf, slen);
+				r2.len += slen;
 			}
 			if (state)
 				func[0] = 0;
