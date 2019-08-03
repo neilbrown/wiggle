@@ -296,7 +296,7 @@ struct plist *parse_patch(FILE *f, FILE *of, int *np)
 			if (of)
 				fputc(c, of);
 
-		start = ftell(of ?: f);
+		start = ftell(of ? of : f);
 
 		if (c == EOF)
 			break;
@@ -312,7 +312,7 @@ struct plist *parse_patch(FILE *f, FILE *of, int *np)
 			else
 				pos = target2;
 		}
-		end = ftell(of ?: f);
+		end = ftell(of ? of : f);
 		if (pos > target2)
 			end -= (pos - target2) - 1;
 		plist = patch_add_file(plist, np,

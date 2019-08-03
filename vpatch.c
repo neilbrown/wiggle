@@ -1790,7 +1790,7 @@ static int merge_window(struct plist *p, FILE *f, int reverse, int replace,
 					ci.merger, 0, &p->wiggles);
 				p->chunks = p->conflicts;
 				save_merge(fm, fb, fa, ci.merger,
-					   p->outfile ?: p->file,
+					   p->outfile ? p->outfile : p->file,
 					   p->outfile ? 0 : !p->is_merge);
 			}
 			if (!just_diff)
