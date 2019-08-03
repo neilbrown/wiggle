@@ -199,6 +199,12 @@ int split_patch(struct stream f, struct stream *f1, struct stream *f2)
 				cp++;
 				copyline(&r2, &cp, end);
 				bcnt--;
+			} else if (*cp == '\n') {
+				/* Empty line - treat like " \n" - a blank line in both */
+				char *cp2 = cp;
+				copyline(&r1, &cp, end);
+				copyline(&r2, &cp2, end);
+				acnt --; bcnt--;
 			} else {
 				fprintf(stderr, "%s: bad unified patch at line %d\n",
 					Cmd, lineno);
