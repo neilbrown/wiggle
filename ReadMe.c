@@ -58,6 +58,7 @@ struct option long_options[] = {
 	{"no-ignore",	0, 0, 'i'},
 	{"show-wiggles",0, 0, 'W'},
 	{"ignore-blanks",0,0, 'b'},
+	{"no-backup",   0, 0, NO_BACKUP },
 	{"self-test",   0, 0, SELF_TEST},
 	{"report-wiggles", 0, 0, REPORT_WIGGLES},
 	{0, 0, 0, 0}
@@ -96,6 +97,7 @@ char Help[] =  "\n"
 "   --quiet     -q    : don't print un-necessary messages.\n"
 "\n"
 "   --replace   -r    : replace first file with result of merger.\n"
+"   --no-backup       : Never save original file (as name.porig).\n"
 "\n"
 "   --strip=    -p    : number of path components to strip from file names.\n"
 "\n"

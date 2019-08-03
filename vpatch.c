@@ -1292,7 +1292,7 @@ static void *memdup(void *a, int len)
 }
 
 static int merge_window(struct plist *p, FILE *f, int reverse, int replace,
-			int selftest, int ignore_blanks, int just_diff)
+			int selftest, int ignore_blanks, int just_diff, int backup)
 {
 	/* Display the merge window in one of the selectable modes,
 	 * starting with the 'merge' mode.
@@ -1791,7 +1791,7 @@ static int merge_window(struct plist *p, FILE *f, int reverse, int replace,
 				p->chunks = p->conflicts;
 				save_merge(fm, fb, fa, ci.merger,
 					   p->outfile ? p->outfile : p->file,
-					   p->outfile ? 0 : !p->is_merge);
+					   backup && (p->outfile ? 0 : !p->is_merge));
 			}
 			if (!just_diff)
 				free(sm.body);
@@ -2347,7 +2347,7 @@ static int show_merge(char *origname, FILE *patch, int reverse,
 		      int is_merge, char *before, char *after,
 		      int replace, char *outfile,
 		      int selftest, int ignore_blanks,
-		      int just_diff)
+		      int just_diff, int backup)
 {
 	struct plist p = {0};
 
@@ -2366,7 +2366,7 @@ static int show_merge(char *origname, FILE *patch, int reverse,
 
 	freopen("/dev/null","w",stderr);
 	return merge_window(&p, patch, reverse, replace, selftest,
-			    ignore_blanks, just_diff);
+			    ignore_blanks, just_diff, backup);
 }
 
 static void calc_one(struct plist *pl, FILE *f, int reverse,
@@ -2538,7 +2538,7 @@ static void draw_one(int row, struct plist *pl, FILE *f, int reverse,
 }
 
 static int save_one(FILE *f, struct plist *pl, int reverse,
-		    int ignore_blanks)
+		    int ignore_blanks, int backup)
 {
 	struct stream sp, sa, sb, sm;
 	struct file fa, fb, fm;
@@ -2559,7 +2559,7 @@ static int save_one(FILE *f, struct plist *pl, int reverse,
 	csl2 = diff_patch(fb, fa);
 	ci = make_merger(fm, fb, fa, csl1, csl2, 0, 1, 0);
 	return save_merge(fm, fb, fa, ci.merger,
-			  pl->file, 1);
+			  pl->file, backup);
 }
 
 static char *main_help[] = {
@@ -2614,7 +2614,7 @@ static char *saveall_query[] = {
 	NULL
 };
 static void main_window(struct plist *pl, int *np, FILE *f, int reverse,
-			int replace, int ignore_blanks, int just_diff)
+			int replace, int ignore_blanks, int just_diff, int backup)
 {
 	/* The main window lists all files together with summary information:
 	 * number of chunks, number of wiggles, number of conflicts.
@@ -2790,9 +2790,11 @@ static void main_window(struct plist *pl, int *np, FILE *f, int reverse,
 			} else {
 				int c;
 				if (pl[pos].is_merge)
-					c = merge_window(&pl[pos], NULL, reverse, 0, 0, ignore_blanks, just_diff);
+					c = merge_window(&pl[pos], NULL, reverse, 0, 0,
+					                 ignore_blanks, just_diff, backup);
 				else
-					c = merge_window(&pl[pos], f, reverse, 0, 0, ignore_blanks, just_diff);
+					c = merge_window(&pl[pos], f, reverse, 0, 0,
+					                 ignore_blanks, just_diff, backup);
 				refresh = 2;
 				if (c) {
 					pl[pos].is_merge = 1;
@@ -2848,7 +2850,7 @@ static void main_window(struct plist *pl, int *np, FILE *f, int reverse,
 					    && !pl[i].is_merge)
 						save_one(f, &pl[i],
 							 reverse,
-							ignore_blanks);
+							 ignore_blanks, backup);
 				}
 			} else
 				cnt = 0;
@@ -2879,7 +2881,7 @@ static void main_window(struct plist *pl, int *np, FILE *f, int reverse,
 				/* Already saved */
 				mesg = "File is already saved.";
 			} else {
-				if (save_one(f, &pl[pos], reverse, ignore_blanks) == 0) {
+				if (save_one(f, &pl[pos], reverse, ignore_blanks, backup) == 0) {
 					pl[pos].is_merge = 1;
 					snprintf(mesg_buf, cols,
 						 "Saved file %s.",
@@ -3014,7 +3016,7 @@ static void term_init(int doraw)
 
 int vpatch(int argc, char *argv[], int patch, int strip,
 	   int reverse, int replace, char *outfilename,
-	   int selftest, int ignore_blanks)
+	   int selftest, int ignore_blanks, int backup)
 {
 	/* NOTE argv[0] is first arg...
 	 * Behaviour depends on number of args and 'patch'.
@@ -3071,7 +3073,8 @@ int vpatch(int argc, char *argv[], int patch, int strip,
 			fprintf(stderr, "%s: aborting\n", Cmd);
 			exit(2);
 		}
-		main_window(pl, &num_patches, in, reverse, replace, ignore_blanks, just_diff);
+		main_window(pl, &num_patches, in, reverse, replace, ignore_blanks,
+		            just_diff, backup);
 		plist_free(pl, num_patches);
 		fclose(in);
 		break;
@@ -3089,7 +3092,8 @@ int vpatch(int argc, char *argv[], int patch, int strip,
 				fprintf(stderr, "%s: aborting\n", Cmd);
 				exit(2);
 			}
-			main_window(pl, &num_patches, f, reverse, replace,ignore_blanks, just_diff);
+			main_window(pl, &num_patches, f, reverse, replace,
+			            ignore_blanks, just_diff, backup);
 			plist_free(pl, num_patches);
 		} else if (strlen(argv[0]) > 4 &&
 			 strcmp(argv[0]+strlen(argv[0])-4, ".rej") == 0) {
@@ -3097,18 +3101,18 @@ int vpatch(int argc, char *argv[], int patch, int strip,
 			origname[strlen(origname) - 4] = '\0';
 			show_merge(origname, f, reverse, 0, NULL, NULL,
 				   replace, outfilename,
-				   selftest, ignore_blanks, just_diff);
+				   selftest, ignore_blanks, just_diff, backup);
 		} else
 			show_merge(argv[0], f, reverse, 1, NULL, NULL,
 				   replace, outfilename,
-				   selftest, ignore_blanks, just_diff);
+				   selftest, ignore_blanks, just_diff, backup);
 
 		break;
 	case 2: /* an orig and a diff/.rej  or two files */
 		if (just_diff) {
 			show_merge(NULL, NULL, reverse, 0, argv[0], argv[1],
 				   replace, outfilename,
-				   selftest, ignore_blanks, just_diff);
+				   selftest, ignore_blanks, just_diff, backup);
 			break;
 		}
 		f = fopen(argv[1], "r");
@@ -3119,12 +3123,12 @@ int vpatch(int argc, char *argv[], int patch, int strip,
 		}
 		show_merge(argv[0], f, reverse, 0, NULL, NULL,
 			   replace, outfilename,
-			   selftest, ignore_blanks, just_diff);
+			   selftest, ignore_blanks, just_diff, backup);
 		break;
 	case 3: /* orig, before, after */
 		show_merge(argv[0], NULL, reverse, 0, argv[1], argv[2],
 			   replace, outfilename,
-			   selftest, ignore_blanks, just_diff);
+			   selftest, ignore_blanks, just_diff, backup);
 		break;
 	}
 

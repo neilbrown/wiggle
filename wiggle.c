@@ -664,6 +664,7 @@ int main(int argc, char *argv[])
 	int mode = 0;
 	int obj = 0;
 	int replace = 0;
+	int backup = 1;
 	int which = 0;
 	int ispatch = 0;
 	int reverse = 0;
@@ -745,6 +746,9 @@ int main(int argc, char *argv[])
 		case 'r':
 			replace = 1;
 			continue;
+		case NO_BACKUP:
+			backup = 0;
+			continue;
 		case 'o':
 			outfile = optarg;
 			replace = 1;
@@ -802,7 +806,7 @@ int main(int argc, char *argv[])
 	if (mode == 'B') {
 		vpatch(argc-optind, argv+optind, ispatch,
 		       strip, reverse, replace, outfile, selftest,
-		       ignore_blanks);
+		       ignore_blanks, backup);
 		/* should not return */
 		exit(1);
 	}

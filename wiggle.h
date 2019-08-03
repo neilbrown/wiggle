@@ -191,7 +191,7 @@ extern int do_trace;
 extern int vpatch(int argc, char *argv[], int patch, int strip,
 		  int reverse, int replace, char *outfile,
 		  int selftest,
-		  int ignore_blanks);
+		  int ignore_blanks, int backup);
 
 extern char *Cmd;
 extern char Version[];
@@ -200,6 +200,7 @@ extern struct option long_options[];
 enum other_options {
 	SELF_TEST = 300,
 	REPORT_WIGGLES = 301,
+	NO_BACKUP,
 };
 extern char Usage[];
 extern char Help[];
