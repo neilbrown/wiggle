@@ -614,7 +614,8 @@ struct csl *diff_patch(struct file a, struct file b)
 {
 	int ap, bp;
 	struct csl *csl = NULL;
-	if (a.list[0].start[0] != '\0' ||
+	if (a.elcnt == 0 || b.elcnt == 0 ||
+	    a.list[0].start[0] != '\0' ||
 	    b.list[0].start[0] != '\0')
 		/* this is not a patch */
 		return diff(a, b);
