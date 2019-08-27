@@ -589,6 +589,20 @@ static int do_merge(int argc, char *argv[], int obj, int blanks,
 	if (outfilename)
 		fclose(outfile);
 	else if (replace) {
+		struct stat statbuf;
+
+		if (stat(argv[0], &statbuf) != 0) {
+			fprintf(stderr,
+				"%s: failed to stat original file. - %s\n",
+				Cmd, strerror(errno));
+			return 2;
+		}
+		if (fchmod(fileno(outfile), statbuf.st_mode) != 0) {
+			fprintf(stderr,
+				"%s: failed to change permission of new file. - %s\n",
+				Cmd, strerror(errno));
+			return 2;
+		}
 		fclose(outfile);
 		if (rename(argv[0], orignew) == 0 &&
 		    rename(replacename, argv[0]) == 0)
