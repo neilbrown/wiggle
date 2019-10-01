@@ -543,6 +543,8 @@ static int do_merge(int argc, char *argv[], int obj, int blanks,
 			fprintf(stderr, "%s: %s already exists\n",
 				Cmd,
 				orignew);
+			free(replacename);
+			free(orignew);
 			return 2;
 		}
 		strcat(replacename, "XXXXXX");
@@ -552,6 +554,8 @@ static int do_merge(int argc, char *argv[], int obj, int blanks,
 				"%s: could not create temporary file for %s\n",
 				Cmd,
 				replacename);
+			free(replacename);
+			free(orignew);
 			return 2;
 		}
 		outfile = fdopen(fd, "w");
@@ -595,12 +599,16 @@ static int do_merge(int argc, char *argv[], int obj, int blanks,
 			fprintf(stderr,
 				"%s: failed to stat original file. - %s\n",
 				Cmd, strerror(errno));
+			free(replacename);
+			free(orignew);
 			return 2;
 		}
 		if (fchmod(fileno(outfile), statbuf.st_mode) != 0) {
 			fprintf(stderr,
 				"%s: failed to change permission of new file. - %s\n",
 				Cmd, strerror(errno));
+			free(replacename);
+			free(orignew);
 			return 2;
 		}
 		fclose(outfile);
@@ -611,9 +619,15 @@ static int do_merge(int argc, char *argv[], int obj, int blanks,
 			fprintf(stderr,
 				"%s: failed to move new file into place.\n",
 				Cmd);
+			free(replacename);
+			free(orignew);
 			return 2;
 		}
 	}
+	if (replacename)
+		free(replacename);
+	if (orignew)
+		free(orignew);
 	if (show_wiggles)
 		return ci.conflicts + ci.wiggles > 0;
 	else
