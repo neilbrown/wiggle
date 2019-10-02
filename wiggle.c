@@ -624,10 +624,8 @@ static int do_merge(int argc, char *argv[], int obj, int blanks,
 			return 2;
 		}
 	}
-	if (replacename)
-		free(replacename);
-	if (orignew)
-		free(orignew);
+	free(replacename);
+	free(orignew);
 	if (show_wiggles)
 		return ci.conflicts + ci.wiggles > 0;
 	else
