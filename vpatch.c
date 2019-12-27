@@ -2613,7 +2613,7 @@ static char *saveall_query[] = {
 	"  Q = Don't quit just yet",
 	NULL
 };
-static void main_window(struct plist *pl, int *np, FILE *f, int reverse,
+static void main_window(struct plist *pl, int np, FILE *f, int reverse,
 			int replace, int ignore_blanks, int just_diff, int backup)
 {
 	/* The main window lists all files together with summary information:
@@ -2669,7 +2669,6 @@ static void main_window(struct plist *pl, int *np, FILE *f, int reverse,
 
 	freopen("/dev/null","w",stderr);
 	term_init(1);
-	pl = sort_patches(pl, np);
 
 	while (1) {
 		if (refresh == 2) {
@@ -2694,7 +2693,7 @@ static void main_window(struct plist *pl, int *np, FILE *f, int reverse,
 				row = rows-1;
 			tpos = pos;
 			for (i = row; i > 1; i--) {
-				tpos = get_prev(tpos, pl, *np, mode);
+				tpos = get_prev(tpos, pl, np, mode);
 				if (tpos == -1) {
 					row = row - i + 1;
 					break;
@@ -2704,11 +2703,11 @@ static void main_window(struct plist *pl, int *np, FILE *f, int reverse,
 			tpos = pos;
 			for (i = row; i >= 1; i--) {
 				draw_one(i, &pl[tpos], f, reverse, ignore_blanks, just_diff);
-				tpos = get_prev(tpos, pl, *np, mode);
+				tpos = get_prev(tpos, pl, np, mode);
 			}
 			tpos = pos;
 			for (i = row+1; i < rows; i++) {
-				tpos = get_next(tpos, pl, *np, mode, f, reverse,ignore_blanks, just_diff);
+				tpos = get_next(tpos, pl, np, mode, f, reverse,ignore_blanks, just_diff);
 				if (tpos >= 0)
 					draw_one(i, &pl[tpos], f, reverse, ignore_blanks, just_diff);
 				else
@@ -2742,7 +2741,7 @@ static void main_window(struct plist *pl, int *np, FILE *f, int reverse,
 		case 'N':
 		case 'N'-64:
 		case KEY_DOWN:
-			tpos = get_next(pos, pl, *np, mode, f, reverse, ignore_blanks, just_diff);
+			tpos = get_next(pos, pl, np, mode, f, reverse, ignore_blanks, just_diff);
 			if (tpos >= 0) {
 				pos = tpos;
 				row++;
@@ -2753,7 +2752,7 @@ static void main_window(struct plist *pl, int *np, FILE *f, int reverse,
 		case 'P':
 		case 'P'-64:
 		case KEY_UP:
-			tpos = get_prev(pos, pl, *np, mode);
+			tpos = get_prev(pos, pl, np, mode);
 			if (tpos >= 0) {
 				pos = tpos;
 				row--;
@@ -2764,13 +2763,13 @@ static void main_window(struct plist *pl, int *np, FILE *f, int reverse,
 			if (getmouse(&mevent) != OK)
 				break;
 			while (row < mevent.y &&
-			       (tpos = get_next(pos, pl, *np, mode, f, reverse, ignore_blanks, just_diff))
+			       (tpos = get_next(pos, pl, np, mode, f, reverse, ignore_blanks, just_diff))
 			       >= 0) {
 				pos = tpos;
 				row++;
 			}
 			while (row > mevent.y &&
-			       (tpos = get_prev(pos, pl, *np, mode)) >= 0) {
+			       (tpos = get_prev(pos, pl, np, mode)) >= 0) {
 				pos = tpos;
 				row--;
 			}
@@ -2824,7 +2823,7 @@ static void main_window(struct plist *pl, int *np, FILE *f, int reverse,
 		case 'q':
 			cnt = 0;
 			any = 0;
-			for (i = 0; i < *np; i++)
+			for (i = 0; i < np; i++)
 				if (pl[i].end && !pl[i].is_merge)
 					cnt++;
 				else if (pl[i].end)
@@ -2845,7 +2844,7 @@ static void main_window(struct plist *pl, int *np, FILE *f, int reverse,
 			if (ans < 0)
 				break;
 			if (ans) {
-				for (i = 0; i < *np; i++) {
+				for (i = 0; i < np; i++) {
 					if (pl[i].end
 					    && !pl[i].is_merge)
 						save_one(f, &pl[i],
@@ -2921,7 +2920,7 @@ static void main_window(struct plist *pl, int *np, FILE *f, int reverse,
 		case 'I': /* Toggle ignoring blanks */
 			ignore_blanks = ignore_blanks ? 0 : IgnoreBlanks;
 			refresh = 2;
-			for (i = 0; i < *np; i++)
+			for (i = 0; i < np; i++)
 				pl[i].calced = 0;
 			break;
 
@@ -3073,7 +3072,8 @@ int vpatch(int argc, char *argv[], int patch, int strip,
 			fprintf(stderr, "%s: aborting\n", Cmd);
 			exit(2);
 		}
-		main_window(pl, &num_patches, in, reverse, replace, ignore_blanks,
+		pl = sort_patches(pl, &num_patches);
+		main_window(pl, num_patches, in, reverse, replace, ignore_blanks,
 		            just_diff, backup);
 		plist_free(pl, num_patches);
 		fclose(in);
@@ -3092,7 +3092,8 @@ int vpatch(int argc, char *argv[], int patch, int strip,
 				fprintf(stderr, "%s: aborting\n", Cmd);
 				exit(2);
 			}
-			main_window(pl, &num_patches, f, reverse, replace,
+			pl = sort_patches(pl, &num_patches);
+			main_window(pl, num_patches, f, reverse, replace,
 			            ignore_blanks, just_diff, backup);
 			plist_free(pl, num_patches);
 		} else if (strlen(argv[0]) > 4 &&
