@@ -2427,7 +2427,7 @@ static void calc_one(struct plist *pl, FILE *f, int reverse,
 static int get_prev(int pos, struct plist *pl, int n, int mode)
 {
 	int found = 0;
-	if (pos == -1)
+	if (pos == -1 || pl == NULL)
 		return pos;
 	do {
 		if (pl[pos].prev == -1)
