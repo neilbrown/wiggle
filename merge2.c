@@ -224,7 +224,10 @@ int isolate_conflicts(struct file af, struct file bf, struct file cf,
 				 * might be after the last newline, if there
 				 * is one, or might be at the start
 				 */
-				for (k = m[j].al; k > 0; k--)
+				for (k = m[j].al; k > 0; k--) {
+					if (m[j].a + k >= af.elcnt)
+						/* FIXME impossible!*/
+						break;
 					if (ends_line(af.list[m[j].a+k-1])) {
 						if (firstk > m[j].al)
 							firstk = k;
@@ -234,6 +237,7 @@ int isolate_conflicts(struct file af, struct file bf, struct file cf,
 							break;
 						}
 					}
+				}
 				if (k > 0)
 					m[j].hi = k;
 				else if (j == 0)
@@ -380,7 +384,12 @@ int isolate_conflicts(struct file af, struct file bf, struct file cf,
 			if (m[i].type == End)
 				break;
 		}
-		for (k = 1; k < m[i].al; k++)
+		for (k = 1; k < m[i].al; k++) {
+			if (m[i].a + k >= af.elcnt)
+				/* FIXME this should be impossible, but
+				 * it happened.
+				 */
+				break;
 			if (words || ends_line(af.list[m[i].a+k])) {
 				if (unmatched)
 					unmatched--;
@@ -389,6 +398,7 @@ int isolate_conflicts(struct file af, struct file bf, struct file cf,
 				if (extraneous)
 					extraneous--;
 			}
+		}
 	}
 	if (!show_wiggles)
 		*wigglesp = wiggles;
@@ -615,7 +625,7 @@ static int printrange(FILE *out, struct file *f, int start, int len,
 		      int offset)
 {
 	int lines = 0;
-	while (len > 0) {
+	while (len > 0 && start < f->elcnt) {
 		struct elmnt e = f->list[start];
 		printword(out, e);
 		if (e.start[e.plen-1] == '\n' &&
