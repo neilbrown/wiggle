@@ -3117,11 +3117,11 @@ int vpatch(int argc, char *argv[], int patch, int strip,
 			break;
 		}
 		f = fopen(argv[1], "r");
-		check_dir(argv[1], fileno(f));
 		if (!f) {
 			fprintf(stderr, "%s: cannot open %s\n", Cmd, argv[0]);
 			exit(1);
 		}
+		check_dir(argv[1], fileno(f));
 		show_merge(argv[0], f, reverse, 0, NULL, NULL,
 			   replace, outfilename,
 			   selftest, ignore_blanks, just_diff, backup);
