@@ -2901,6 +2901,8 @@ static void main_window(struct plist *pl, int np, FILE *f, int reverse,
 				mesg = "Cannot restore a folder.";
 			else if (!pl[pos].is_merge)
 				mesg = "File has not been saved, cannot restore.";
+			else if (!backup)
+				mesg = "Backups are disabled, nothing to restore!";
 			else {
 				/* rename foo.porig to foo, and clear is_merge */
 				char *file = pl[pos].file;
