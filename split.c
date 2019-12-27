@@ -125,9 +125,13 @@ struct file split_stream(struct stream s, int type)
 {
 	int cnt;
 	struct file f;
-
 	char *c, *end;
 
+	if (!s.body) {
+		f.list = NULL;
+		f.elcnt = 0;
+		return f;
+	}
 	end = s.body+s.len;
 	c = s.body;
 
