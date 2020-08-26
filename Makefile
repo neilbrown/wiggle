@@ -18,13 +18,34 @@ MAN1DIR = $(MANDIR)/man1
 MAN5DIR = $(MANDIR)/man5
 LDLIBS = -lncurses
 
-all: wiggle wiggle.man test
+# Where to place intermediate objects
+O=O
+# Where to place final objects
+BIN=.
+DOC=.
 
-wiggle : wiggle.o load.o parse.o split.o extract.o diff.o bestmatch.o ReadMe.o \
-              merge2.o vpatch.o ccan/hash/hash.o
-wiggle.o load.o parse.o split.o extract.o diff.o bestmatch.o \
-               merge2.o vpatch.o :: wiggle.h
-split.o :: ccan/hash/hash.h config.h
+LIBOBJ= load.o parse.o split.o extract.o diff.o bestmatch.o merge2.o ccan/hash/hash.o
+OBJ=wiggle.o ReadMe.o vpatch.o
+
+BOBJ=$(patsubst %.o,$(O)/%.o,$(OBJ))
+BLIBOBJ=$(patsubst %.o,$(O)/%.o,$(LIBOBJ))
+
+all: $(BIN)/wiggle $(DOC)/wiggle.man test
+lib : $(O)/libwiggle.a
+
+$(BIN)/wiggle : $(BOBJ) $(O)/libwiggle.a
+	$(CC) $^ $(LDLIBS) -o $@
+
+$(O)/libwiggle.a : $(BLIBOBJ)
+	ar cr $@ $^
+
+$(BOBJ) :: wiggle.h
+
+$(O)/split.o :: ccan/hash/hash.h config.h
+
+$(BOBJ) $(BLIBOBJ) :: $(O)/%.o : %.c
+	@mkdir -p $(dir $@)
+	$(CC) $(CFLAGS) -c -o $@ $<
 
 VERSION = $(shell [ -d .git ] && git 2> /dev/null describe HEAD)
 VERS_DATE = $(shell [ -d .git ] && git 2> /dev/null log -n1 --format=format:%cd --date=short)
@@ -41,16 +62,17 @@ valgrind: wiggle dotest
 vtest: wiggle dovtest
 	./dovtest
 
-wiggle.man : wiggle.1
-	nroff -man wiggle.1 > wiggle.man
+$(DOC)/wiggle.man : wiggle.1
+	nroff -man wiggle.1 > $@
 
 clean:
-	rm -f *.o ccan/hash/*.o *.man wiggle .version* demo.patch version
+	rm -f $(O)/*.o $(O)/ccan/hash/*.o $(DOC)/*.man $(BIN)/wiggle .version* demo.patch version
 	find . -name core -o -name '*.tmp*' -o -name .tmp -o -name .time | xargs rm -f
+	-rmdir -p $(O)
 
-install : wiggle wiggle.1
+install : $(BIN)/wiggle wiggle.1
 	$(INSTALL) -d $(DESTDIR)$(BINDIR) $(DESTDIR)$(MAN1DIR)
-	$(INSTALL) $(STRIP) -m 755 wiggle $(DESTDIR)$(BINDIR)
+	$(INSTALL) $(STRIP) -m 755 $(BIN)/wiggle $(DESTDIR)$(BINDIR)
 	$(INSTALL) -m 644 wiggle.1 $(DESTDIR)$(MAN1DIR)
 
 version : ReadMe.c wiggle.1
