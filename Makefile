@@ -33,11 +33,23 @@ BLIBOBJ=$(patsubst %.o,$(O)/%.o,$(LIBOBJ))
 all: $(BIN)/wiggle $(DOC)/wiggle.man test
 lib : $(O)/libwiggle.a
 
+#
+# Pretty print
+#
+V	      = @
+Q	      = $(V:1=)
+QUIET_CC      = $(Q:@=@echo    '     CC       '$@;)
+QUIET_AR      = $(Q:@=@echo    '     AR       '$@;)
+QUIET_LINK    = $(Q:@=@echo    '     LINK     '$@;)
+QUIET_MAN     = $(Q:@=@echo    '     MAN      '$@;)
+QUIET_CLEAN   = $(Q:@=@echo    '     CLEAN    '$@;)
+
+
 $(BIN)/wiggle : $(BOBJ) $(O)/libwiggle.a
-	$(CC) $^ $(LDLIBS) -o $@
+	$(QUIET_LINK)$(CC) $^ $(LDLIBS) -o $@
 
 $(O)/libwiggle.a : $(BLIBOBJ)
-	ar cr $@ $^
+	$(QUIET_AR)ar cr $@ $^
 
 $(BOBJ) :: wiggle.h
 
@@ -45,7 +57,7 @@ $(O)/split.o :: ccan/hash/hash.h config.h
 
 $(BOBJ) $(BLIBOBJ) :: $(O)/%.o : %.c
 	@mkdir -p $(dir $@)
-	$(CC) $(CFLAGS) -c -o $@ $<
+	$(QUIET_CC)$(CC) $(CFLAGS) -c -o $@ $<
 
 VERSION = $(shell [ -d .git ] && git 2> /dev/null describe HEAD)
 VERS_DATE = $(shell [ -d .git ] && git 2> /dev/null log -n1 --format=format:%cd --date=short)
@@ -63,12 +75,16 @@ vtest: wiggle dovtest
 	./dovtest
 
 $(DOC)/wiggle.man : wiggle.1
-	nroff -man wiggle.1 > $@
+	$(QUIET_MAN)nroff -man wiggle.1 > $@
 
-clean:
-	rm -f $(O)/*.o $(O)/ccan/hash/*.o $(DOC)/*.man $(BIN)/wiggle .version* demo.patch version
-	find . -name core -o -name '*.tmp*' -o -name .tmp -o -name .time | xargs rm -f
-	-rmdir -p $(O)
+clean: targets artifacts dirs
+targets:
+	$(QUIET_CLEAN)rm -f $(O)/*.[ao] $(O)/ccan/hash/*.o $(DOC)/*.man $(BIN)/wiggle .version* demo.patch version
+artifacts:
+	$(QUIET_CLEAN)find . -name core -o -name '*.tmp*' -o -name .tmp -o -name .time | xargs rm -f
+dirs : targets artifacts
+	$(QUIET_CLEAN)[ -d $(O)/ccan/hash ] && rmdir -p $(O)/ccan/hash || true
+	$(QUIET_CLEAN)[ -d $(O) ] && rmdir -p $(O) || true
 
 install : $(BIN)/wiggle wiggle.1
 	$(INSTALL) -d $(DESTDIR)$(BINDIR) $(DESTDIR)$(MAN1DIR)
