@@ -424,9 +424,9 @@ static int do_diff(int argc, char *argv[], int obj, int ispatch,
 		return 2;
 	}
 	if (reverse) {
-		f = flist[1];
-		flist[1] = flist[2];
-		flist[2] = f;
+		f = flist[0];
+		flist[0] = flist[1];
+		flist[1] = f;
 	}
 	fl[0] = split_stream(flist[0], obj);
 	fl[1] = split_stream(flist[1], obj);
