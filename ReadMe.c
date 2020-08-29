@@ -58,9 +58,10 @@ struct option long_options[] = {
 	{"no-ignore",	0, 0, 'i'},
 	{"show-wiggles",0, 0, 'W'},
 	{"ignore-blanks",0,0, 'b'},
-	{"no-backup",   0, 0, NO_BACKUP },
-	{"self-test",   0, 0, SELF_TEST},
+	{"no-backup",	0, 0, NO_BACKUP },
+	{"self-test",	0, 0, SELF_TEST},
 	{"report-wiggles", 0, 0, REPORT_WIGGLES},
+	{"non-space",	0, 0, NON_SPACE},
 	{0, 0, 0, 0}
 };
 
@@ -84,6 +85,7 @@ char Help[] =  "\n"
 "\n"
 "   --words     -w    : word-wise diff and merge.\n"
 "   --lines     -l    : line-wise diff and merge.\n"
+"   --non-space       : words are separated by spaces.\n"
 "\n"
 "   --patch     -p    : treat last file as a patch file.\n"
 "   -1  -2  -3        : select which component of patch or merge to use.\n"

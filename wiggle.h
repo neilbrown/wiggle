@@ -199,8 +199,9 @@ extern char short_options[];
 extern struct option long_options[];
 enum other_options {
 	SELF_TEST = 300,
-	REPORT_WIGGLES = 301,
+	REPORT_WIGGLES,
 	NO_BACKUP,
+	NON_SPACE,
 };
 extern char Usage[];
 extern char Help[];
@@ -216,4 +217,5 @@ enum {
 	ByWord = 1,
 	ByMask = 3,
 	IgnoreBlanks = 8, /* 'or'ed in */
+	WholeWord = 16,
 };

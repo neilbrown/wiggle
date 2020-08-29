@@ -759,6 +759,10 @@ int main(int argc, char *argv[])
 				Cmd, mode, opt);
 			exit(2);
 
+		case NON_SPACE:
+			ignore_blanks |= WholeWord;
+			continue;
+
 		case 'w':
 		case 'l':
 			if (obj == 0 || obj == opt) {
@@ -784,7 +788,7 @@ int main(int argc, char *argv[])
 			continue;
 
 		case 'b':
-			ignore_blanks = IgnoreBlanks;
+			ignore_blanks |= IgnoreBlanks;
 			continue;
 
 		case 'i':

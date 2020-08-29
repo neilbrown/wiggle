@@ -58,7 +58,7 @@ static int split_internal(char *start, char *end, int type,
 		char *cp2;
 		int prefix = 0;
 
-		if (type == (ByWord | IgnoreBlanks))
+		if ((type & ByWord) && (type & IgnoreBlanks))
 			while (cp < end &&
 			       (*cp == ' ' || *cp == '\t')) {
 				prefix++;
@@ -79,24 +79,28 @@ static int split_internal(char *start, char *end, int type,
 					cp++;
 				break;
 			case ByWord:
-				if (isalnum(*cp) || *cp == '_') {
-					do
-						cp++;
-					while (cp < end
-					       && (isalnum(*cp)
-						   || *cp == '_'));
-				} else if (*cp == ' ' || *cp == '\t') {
+				if (*cp == ' ' || *cp == '\t') {
 					do
 						cp++;
 					while (cp < end
 					       && (*cp == ' '
 						   || *cp == '\t'));
+				} else if ((type & WholeWord) ||
+					   isalnum(*cp) || *cp == '_') {
+					do
+						cp++;
+					while (cp < end
+					       && (((type & WholeWord)
+						    && *cp != ' ' && *cp != '\t'
+						    && *cp != '\n')
+						   || isalnum(*cp)
+						   || *cp == '_'));
 				} else
 					cp++;
 				break;
 			}
 		cp2 = cp;
-		if (type == (ByWord | IgnoreBlanks) &&
+		if ((type & ByWord) && (type & IgnoreBlanks) &&
 		    *start && *start != '\n')
 			while (cp2 < end &&
 			       (*cp2 == ' ' || *cp2 == '\t' || *cp2 == '\n')) {
