@@ -45,7 +45,7 @@ struct stream {
  * elmnt at the start of each hunk which starts with '\0' and
  * records the line offsets of the hunk.  These are 20+ bytes long.
  * "\0\d{5} \d{5} \d{5}{SP funcname}?\n\0"
- * The 3 numbers are: chunk number, starting line, number if lines.
+ * The 3 numbers are: chunk number, starting line, number of lines.
  * An element with len==0 marks EOF.
  */
 struct elmnt {

@@ -1619,6 +1619,7 @@ static int merge_window(struct plist *p, FILE *f, int reverse, int replace,
 			while (spos.p.m >= 0 && spos.state != 0)
 				prev_mline(&spos, fm, fb, fa, ci.merger, smode);
 			while (!same_mpos(spos, tpos) &&
+			       spos.p.m >= 0 &&
 			       ci.merger[spos.p.m].type != End)
 				next_mline(&spos, fm, fb, fa, ci.merger, smode);
 
@@ -1636,7 +1637,8 @@ static int merge_window(struct plist *p, FILE *f, int reverse, int replace,
 				blank(i--, 0, cols, a_void);
 			tpos = spos;
 			for (i = srow;
-			     i < rows && ci.merger[tpos.p.m].type != End;
+			     i < rows && tpos.p.m >= 0 &&
+			     ci.merger[tpos.p.m].type != End;
 			     i++) {
 				draw_mline(smode, i, start, cols, fm, fb, fa, ci.merger,
 					   tpos,

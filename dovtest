@@ -41,7 +41,7 @@ do
     else $VG $WIGGLE -B  orig
     fi
     if grep 'ERROR SUMMARY: [1-9]' $vallog > /dev/null 2>&1
-    then msg="VALGRIND ERRORS"; xit=1
+    then msg="VALGRIND ERRORS"; xit=1 ; mv $vallog $vallog-${dir////-}
     else msg="SUCCESS"; xit=0
     fi
     echo $path $msg

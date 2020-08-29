@@ -46,7 +46,7 @@ QUIET_CLEAN   = $(Q:@=@echo    '     CLEAN    '$@;)
 
 
 $(BIN)/wiggle : $(BOBJ) $(O)/libwiggle.a
-	$(QUIET_LINK)$(CC) $^ $(LDLIBS) -o $@
+	$(QUIET_LINK)$(CC) $(CFLAGS) $^ $(LDLIBS) -o $@
 
 $(O)/libwiggle.a : $(BLIBOBJ)
 	$(QUIET_AR)ar cr $@ $^
