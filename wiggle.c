@@ -430,6 +430,14 @@ static int do_diff(int argc, char *argv[], int obj, int ispatch,
 	}
 	fl[0] = split_stream(flist[0], obj);
 	fl[1] = split_stream(flist[1], obj);
+	if (!(obj & WholeWord) && fl[0].elcnt > 50000 && fl[1].elcnt > 50000) {
+		/* Too big - use fewer words if possible */
+		free(fl[0].list);
+		free(fl[1].list);
+		obj |= WholeWord;
+		fl[0] = split_stream(flist[0], obj);
+		fl[1] = split_stream(flist[1], obj);
+	}
 	if (chunks2 && !chunks1)
 		csl = pdiff(fl[0], fl[1], chunks2);
 	else
@@ -568,6 +576,18 @@ static int do_merge(int argc, char *argv[], int obj, int blanks,
 	fl[0] = split_stream(flist[0], blanks);
 	fl[1] = split_stream(flist[1], blanks);
 	fl[2] = split_stream(flist[2], blanks);
+	if (!(blanks & WholeWord) &&
+	    fl[1].elcnt > 50000 &&
+	    (fl[0].elcnt > 50000 || fl[2].elcnt > 50000)) {
+		/* Too many words */
+		free(fl[0].list);
+		free(fl[1].list);
+		free(fl[2].list);
+		blanks |= WholeWord;
+		fl[0] = split_stream(flist[0], blanks);
+		fl[1] = split_stream(flist[1], blanks);
+		fl[2] = split_stream(flist[2], blanks);
+	}
 
 	if (chunks2 && !chunks1)
 		csl1 = pdiff(fl[0], fl[1], chunks2);

@@ -147,7 +147,9 @@ default for the "diff" function.
 .BR \-\-non\-space
 Request that words be defined as sequences of non-white-space.  Without
 this flag words are sequences of alphanumerics or single non-white-space
-characters.
+characters.  This flag is enabled by automatically enabled if 
+.I wiggle
+needs to compare two files which both have more than 50,000 words.
 .TP
 .BR \-l ", " \-\-lines
 Request that all operations and display be line based.
