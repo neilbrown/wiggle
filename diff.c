@@ -532,6 +532,88 @@ static void fixup(struct file *a, struct file *b, struct csl *list)
 	}
 }
 
+static int elcmp(const void *v1, const void *v2)
+{
+	const struct elmnt *e1 = v1;
+	const struct elmnt *e2 = v2;
+
+	if (e1->hash != e2->hash) {
+		if (e1->hash < e2->hash)
+			return -1;
+		return 1;
+	}
+	if (e1->start[0] == 0 && e2->start[0] == 0)
+		return 0;
+	if (e1->len != e2->len)
+		return e1->len - e2->len;
+	return strncmp(e1->start, e2->start, e1->len);
+}
+
+#define BPL (sizeof(unsigned long) * 8)
+static struct file filter_unique(struct file f, struct file ref)
+{
+	/* Use a bloom-filter to record all hashes in 'ref' and
+	 * then if there are consequtive entries in 'f' that are
+	 * not in 'ref', reduce each such run to 1 entry
+	 */
+	struct file n;
+	int fi, cnt;
+	struct file sorted;
+
+	sorted.list = xmalloc(sizeof(sorted.list[0]) * ref.elcnt);
+	sorted.elcnt = ref.elcnt;
+	memcpy(sorted.list, ref.list, sizeof(sorted.list[0]) * sorted.elcnt);
+	qsort(sorted.list, sorted.elcnt, sizeof(sorted.list[0]),
+	      elcmp);
+
+	n.list = xmalloc(sizeof(n.list[0]) * f.elcnt);
+	n.elcnt = 0;
+	cnt = 0;
+	for (fi = 0; fi < f.elcnt; fi++) {
+		int lo = 0, hi = sorted.elcnt;
+		while (lo + 1 < hi) {
+			int mid = (lo + hi) / 2;
+			if (elcmp(&f.list[fi], &sorted.list[mid]) < 0)
+				hi = mid;
+			else
+				lo = mid;
+		}
+		if (match(&f.list[fi], &sorted.list[lo]))
+			cnt = 0;
+		else
+			cnt += 1;
+		if (cnt <= 1)
+			n.list[n.elcnt++] = f.list[fi];
+	}
+	free(sorted.list);
+	return n;
+}
+
+static void remap(struct csl *csl, int which, struct file from, struct file to)
+{
+	/* The a,b pointer in csl points to 'from' we need to remap to 'to'.
+	 * 'to' has everything that 'from' has, plus more.
+	 * Each list[].start is unique
+	 */
+	int ti = 0;
+	while (csl->len) {
+		int fi = which ? csl->b : csl->a;
+		while (to.list[ti].start != from.list[fi].start) {
+			ti += 1;
+			if (ti > to.elcnt)
+				abort();
+		}
+		if (which)
+			csl->b = ti;
+		else
+			csl->a = ti;
+		csl += 1;
+	}
+	if (which)
+		csl->b = to.elcnt;
+	else
+		csl->a = to.elcnt;
+}
 /* Main entry point - find the common-sub-list of files 'a' and 'b'.
  * The final element in the list will have 'len' == 0 and will point
  * beyond the end of the files.
@@ -540,13 +622,26 @@ struct csl *diff(struct file a, struct file b)
 {
 	struct v *v;
 	struct csl *csl;
-	v = xmalloc(sizeof(struct v)*(a.elcnt+b.elcnt+2));
-	v += b.elcnt+1;
+	struct file af, bf;
 
-	csl = lcsl(&a, 0, a.elcnt,
-		   &b, 0, b.elcnt,
+	/* Remove runs of 2 or more elements in one file that don't
+	 * exist in the other file.  This often makes the number of
+	 * elements more manageable.
+	 */
+	af = filter_unique(a, b);
+	bf = filter_unique(b, a);
+
+	v = xmalloc(sizeof(struct v)*(af.elcnt+bf.elcnt+2));
+	v += bf.elcnt+1;
+
+	csl = lcsl(&af, 0, af.elcnt,
+		   &bf, 0, bf.elcnt,
 		   NULL, v);
-	free(v-(b.elcnt+1));
+	free(v-(bf.elcnt+1));
+	remap(csl, 0, af, a);
+	remap(csl, 1, bf, b);
+	free(af.list);
+	free(bf.list);
 	fixup(&a, &b, csl);
 	if (!csl) {
 		csl = xmalloc(sizeof(*csl));

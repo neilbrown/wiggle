@@ -54,7 +54,7 @@ struct elmnt {
 	short len, plen, prefix;
 };
 
-static  inline int match(struct elmnt *a, struct elmnt *b)
+static inline int match(struct elmnt *a, struct elmnt *b)
 {
 	return
 		a->hash == b->hash &&
