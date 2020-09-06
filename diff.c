@@ -301,23 +301,29 @@ static int find_common(struct file *a, struct file *b,
 		/* new location if we step up from klo to klo-1*/
 		x = v[klo].x; y = x - (klo-1);
 		cost = abs((ahi-x)-(bhi-y));
+		klo--;
 		if (y <= bhi && cost <= worst) {
 			/* Looks acceptable - step up. */
-			v[klo-1] = v[klo];
-			klo--;
-		} else
-			klo++;
+			v[klo] = v[klo+1];
+		} else do {
+				klo += 2;
+				x = v[klo].x; y = x - (klo-1);
+				cost = abs((ahi-x)-(bhi-y));
+			} while (cost > worst);
 
 		/* new location if we step to the right from khi to khi+1 */
 		x = v[khi].x+1; y = x - (khi+1);
 		cost = abs((ahi-x)-(bhi-y));
+		khi++;
 		if (x <= ahi && cost <= worst) {
 			/* Looks acceptable - step to the right */
-			v[khi+1] = v[khi];
-			v[khi+1].x++;
-			khi++;
-		} else
-			khi--;
+			v[khi] = v[khi-1];
+			v[khi].x++;
+		} else do {
+				khi -= 2;
+				x = v[khi].x+1; y = x - (khi+1);
+				cost = abs((ahi-x)-(bhi-y));
+			} while (cost > worst);
 	}
 }
 
