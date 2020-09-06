@@ -321,10 +321,41 @@ static int find_common(struct file *a, struct file *b,
 	}
 }
 
-static struct csl *lcsl(struct file *a, int alo, int ahi,
-			struct file *b, int blo, int bhi,
-			struct csl *csl,
-			struct v *v)
+struct cslb {
+	int		size;	/* How much is alloced */
+	int		len;	/* How much is used */
+	struct csl	*csl;
+};
+
+static void csl_add(struct cslb *buf, int a, int b, int len)
+{
+	struct csl *csl;
+	if (len && buf->len) {
+		csl = buf->csl + buf->len - 1;
+		if (csl->a + csl->len == a &&
+		    csl->b + csl->len == b) {
+			csl->len += len;
+			return;
+		}
+	}
+	if (buf->size <= buf->len) {
+		if (buf->size < 64)
+			buf->size = 64;
+		else
+			buf->size += buf->size;
+		buf->csl = realloc(buf->csl, sizeof(buf->csl[0]) * buf->size);
+	}
+	csl = buf->csl + buf->len;
+	csl->len = len;
+	csl->a = a;
+	csl->b = b;
+	buf->len += 1;
+}
+
+static void lcsl(struct file *a, int alo, int ahi,
+		 struct file *b, int blo, int bhi,
+		 struct cslb *cslb,
+		 struct v *v)
 {
 	/* lcsl == longest common sub-list.
 	 * This calls itself recursively as it finds the midpoint
@@ -335,75 +366,39 @@ static struct csl *lcsl(struct file *a, int alo, int ahi,
 	 * snakes we find to csl, and return a pointer to the next
 	 * location where future snakes can be stored.
 	 */
-	int len;
 	int alo1 = alo;
 	int ahi1 = ahi;
 	int blo1 = blo;
 	int bhi1 = bhi;
-	struct csl *rv = NULL;
 
 	if (ahi <= alo || bhi <= blo)
-		return csl;
+		return;
 
-	len = find_common(a, b,
-			  &alo1, &ahi1,
-			  &blo1, &bhi1,
-			  v);
+	if (!find_common(a, b,
+			 &alo1, &ahi1,
+			 &blo1, &bhi1,
+			 v))
+		return;
 
-	if (csl == NULL) {
-		/* 'len+1' to hold a sentinel */
-		rv = csl = xmalloc((len+1)*sizeof(*csl));
-		csl->len = 0;
-	}
-	if (len) {
-		/* There are more snakes to find - keep looking. */
+	/* There are more snakes to find - keep looking. */
 
-		/* With depth-first recursion, this adds all the snakes
-		 * before 'alo1' to 'csl'
+	/* With depth-first recursion, this adds all the snakes
+	 * before 'alo1' to 'csl'
+	 */
+	lcsl(a, alo, alo1,
+	     b, blo, blo1,
+	     cslb, v);
+
+	if (ahi1 > alo1)
+		/* need to add this common seq, possibly attach
+		 * to last
 		 */
-		csl = lcsl(a, alo, alo1,
-			   b, blo, blo1,
-			   csl, v);
+		csl_add(cslb, alo1, blo1, ahi1 - alo1);
 
-		if (ahi1 > alo1) {
-			/* need to add this common seq, possibly attach
-			 * to last
-			 */
-			if (csl->len &&
-			    csl->a+csl->len == alo1 &&
-			    csl->b+csl->len == blo1) {
-				csl->len += ahi1-alo1;
-			} else {
-				if (csl->len)
-					csl++;
-				csl->len = ahi1-alo1;
-				csl->a = alo1;
-				csl->b = blo1;
-				csl[1].len = 0;
-			}
-		}
-		/* Now recurse to add all the snakes after ahi1 to csl */
-		csl = lcsl(a, ahi1, ahi,
-			   b, bhi1, bhi,
-			   csl, v);
-	}
-	if (rv) {
-		/* This was the first call.  Record the endpoint
-		 * as a snake of length 0.  This might be extended.
-		 * by 'fixup()' below.
-		 */
-		if (csl->len)
-			csl++;
-		csl->a = ahi;
-		csl->b = bhi;
-#if 1
-		if (rv+len != csl || csl->len != 0)
-			abort(); /* number of runs was wrong */
-#endif
-		return rv;
-	} else
-		/* intermediate call - return where we are up to */
-		return csl;
+	/* Now recurse to add all the snakes after ahi1 to csl */
+	lcsl(a, ahi1, ahi,
+	     b, bhi1, bhi,
+	     cslb, v);
 }
 
 /* If two common sequences are separated by only an add or remove,
@@ -621,7 +616,7 @@ static void remap(struct csl *csl, int which, struct file from, struct file to)
 struct csl *diff(struct file a, struct file b)
 {
 	struct v *v;
-	struct csl *csl;
+	struct cslb cslb = {};
 	struct file af, bf;
 
 	/* Remove runs of 2 or more elements in one file that don't
@@ -634,22 +629,17 @@ struct csl *diff(struct file a, struct file b)
 	v = xmalloc(sizeof(struct v)*(af.elcnt+bf.elcnt+2));
 	v += bf.elcnt+1;
 
-	csl = lcsl(&af, 0, af.elcnt,
-		   &bf, 0, bf.elcnt,
-		   NULL, v);
+	lcsl(&af, 0, af.elcnt,
+	     &bf, 0, bf.elcnt,
+	     &cslb, v);
+	csl_add(&cslb, af.elcnt, bf.elcnt, 0);
 	free(v-(bf.elcnt+1));
-	remap(csl, 0, af, a);
-	remap(csl, 1, bf, b);
+	remap(cslb.csl, 0, af, a);
+	remap(cslb.csl, 1, bf, b);
 	free(af.list);
 	free(bf.list);
-	fixup(&a, &b, csl);
-	if (!csl) {
-		csl = xmalloc(sizeof(*csl));
-		csl->len = 0;
-		csl->a = a.elcnt;
-		csl->b = b.elcnt;
-	}
-	return csl;
+	fixup(&a, &b, cslb.csl);
+	return cslb.csl;
 }
 
 /* Alternate entry point - find the common-sub-list in two
@@ -659,16 +649,17 @@ struct csl *diff_partial(struct file a, struct file b,
 			 int alo, int ahi, int blo, int bhi)
 {
 	struct v *v;
-	struct csl *csl;
+	struct cslb cslb = {};
 	v = xmalloc(sizeof(struct v)*(ahi-alo+bhi-blo+2));
 	v += bhi-alo+1;
 
-	csl = lcsl(&a, alo, ahi,
-		   &b, blo, bhi,
-		   NULL, v);
+	lcsl(&a, alo, ahi,
+	     &b, blo, bhi,
+	     &cslb, v);
+	csl_add(&cslb, ahi, bhi, 0);
 	free(v-(bhi-alo+1));
-	fixup(&a, &b, csl);
-	return csl;
+	fixup(&a, &b, cslb.csl);
+	return cslb.csl;
 }
 
 struct csl *csl_join(struct csl *c1, struct csl *c2)
