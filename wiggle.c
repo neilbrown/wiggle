@@ -209,7 +209,7 @@ static int do_diff_lines(struct file fl[2], struct csl *csl)
 					  fl[0].list[a]);
 			}
 			a++;
-			exit_status++;
+			exit_status = 1;
 		} else if (b < csl->b) {
 			if (fl[1].list[b].start[0]) {
 				printf("+");
@@ -217,7 +217,7 @@ static int do_diff_lines(struct file fl[2], struct csl *csl)
 					  fl[1].list[b]);
 			}
 			b++;
-			exit_status++;
+			exit_status = 1;
 		} else {
 			if (fl[0].list[a].start[0] == '\0')
 				printsep(fl[0].list[a],
@@ -239,12 +239,12 @@ static int do_diff_lines(struct file fl[2], struct csl *csl)
 static int do_diff_words(struct file fl[2], struct csl *csl)
 {
 	int a, b;
-	int exit_status  = 0;
+	int exit_status = 0;
 	int sol = 1; /* start of line */
 	a = b = 0;
 	while (a < fl[0].elcnt || b < fl[1].elcnt) {
 		if (a < csl->a) {
-			exit_status++;
+			exit_status = 1;
 			if (sol) {
 				int a1;
 				/* If we remove a
@@ -282,7 +282,7 @@ static int do_diff_words(struct file fl[2], struct csl *csl)
 				sol = 0;
 			}
 		} else if (b < csl->b) {
-			exit_status++;
+			exit_status = 1;
 			if (sol) {
 				int b1;
 				sol = 0;
