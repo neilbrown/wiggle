@@ -38,6 +38,9 @@ status=0
 ok=0
 fail=0
 
+# Avoid non-determinism cause by CPU speed
+export WIGGLE_LOOPCOUNT=5000
+
 find . -name core | xargs rm -f
 list=$(find . -type f \( -name script -o -name diff -o -name ldiff \
 	-o -name rediff -o -name merge -o -name wmerge -o -name lmerge \

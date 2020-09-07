@@ -178,9 +178,17 @@ static int find_common(struct file *a, struct file *b,
 	 */
 	int worst = (ahi-alo)+(bhi-blo);
 
+	int loopcount = -1;
 	shortcut = !!shortcut;
-	if (shortcut)
-		gettimeofday(&start, NULL);
+	if (shortcut) {
+		char *lc = getenv("WIGGLE_LOOPCOUNT");
+		if (lc)
+			loopcount = atoi(lc);
+		if (loopcount < 5) {
+			loopcount = -1;
+			gettimeofday(&start, NULL);
+		}
+	}
 
 	klo = khi = alo-blo;
 	v[klo].x = alo;
@@ -191,11 +199,15 @@ static int find_common(struct file *a, struct file *b,
 		int cost;
 		int k;
 
+		if (loopcount > 0)
+			loopcount -= 1;
 		if (shortcut == 1 &&
 		    khi - klo > 5000 &&
-		    gettimeofday(&stop, NULL) == 0 &&
-		    (stop.tv_sec - start.tv_sec) * 1000000 +
-		    (stop.tv_usec - start.tv_usec) > 20000)
+		    (loopcount == 0 ||
+		     (loopcount < 0 &&
+		      gettimeofday(&stop, NULL) == 0 &&
+		      (stop.tv_sec - start.tv_sec) * 1000000 +
+		      (stop.tv_usec - start.tv_usec) > 20000)))
 			/* 20ms is a long time.  Time to take a shortcut
 			 * Next snake wins
 			 */
