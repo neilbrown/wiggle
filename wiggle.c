@@ -354,7 +354,7 @@ static int do_diff_words(struct file fl[2], struct csl *csl)
 }
 
 static int do_diff(int argc, char *argv[], int obj, int ispatch,
-		   int which, int reverse)
+		   int which, int reverse, int shortest)
 {
 	/* create a diff (line or char) of two streams */
 	struct stream f, flist[3];
@@ -441,7 +441,7 @@ static int do_diff(int argc, char *argv[], int obj, int ispatch,
 	if (chunks2 && !chunks1)
 		csl = pdiff(fl[0], fl[1], chunks2);
 	else
-		csl = diff_patch(fl[0], fl[1]);
+		csl = diff_patch(fl[0], fl[1], shortest);
 	if ((obj & ByMask) == ByLine) {
 		if (!chunks1)
 			printf("@@ -1,%d +1,%d @@\n",
@@ -468,7 +468,7 @@ static int do_diff(int argc, char *argv[], int obj, int ispatch,
 static int do_merge(int argc, char *argv[], int obj, int blanks,
 		    int reverse, int replace, char *outfilename,
 		    int ignore, int show_wiggles,
-		    int quiet)
+		    int quiet, int shortest)
 {
 	/* merge three files, A B C, so changed between B and C get made to A
 	 */
@@ -592,8 +592,8 @@ static int do_merge(int argc, char *argv[], int obj, int blanks,
 	if (chunks2 && !chunks1)
 		csl1 = pdiff(fl[0], fl[1], chunks2);
 	else
-		csl1 = diff(fl[0], fl[1]);
-	csl2 = diff_patch(fl[1], fl[2]);
+		csl1 = diff(fl[0], fl[1], shortest);
+	csl2 = diff_patch(fl[1], fl[2], shortest);
 
 	ci = make_merger(fl[0], fl[1], fl[2], csl1, csl2,
 			 obj == 'w', ignore, show_wiggles > 1);
@@ -655,7 +655,7 @@ static int do_merge(int argc, char *argv[], int obj, int blanks,
 static int multi_merge(int argc, char *argv[], int obj, int blanks,
 		       int reverse, int ignore, int show_wiggles,
 		       int replace, int strip,
-		       int quiet)
+		       int quiet, int shortest)
 {
 	FILE *f;
 	char *filename;
@@ -698,7 +698,7 @@ static int multi_merge(int argc, char *argv[], int obj, int blanks,
 		av[0] = pl[i].file;
 		av[1] = name;
 		rv |= do_merge(2, av, obj, blanks, reverse, 1, NULL, ignore,
-			 show_wiggles, quiet);
+			       show_wiggles, quiet, shortest);
 	}
 	return rv;
 }
@@ -718,6 +718,7 @@ int main(int argc, char *argv[])
 	int strip = -1;
 	int exit_status = 0;
 	int ignore = 1;
+	int shortest = 0;
 	int show_wiggles = 0;
 	char *helpmsg;
 	char *trace;
@@ -781,6 +782,10 @@ int main(int argc, char *argv[])
 
 		case NON_SPACE:
 			ignore_blanks |= WholeWord;
+			continue;
+
+		case SHORTEST:
+			shortest = 1;
 			continue;
 
 		case 'w':
@@ -905,7 +910,7 @@ int main(int argc, char *argv[])
 		exit_status = do_diff(argc-optind, argv+optind,
 				      (obj == 'l' ? ByLine : ByWord)
 				      | ignore_blanks,
-				      ispatch, which, reverse);
+				      ispatch, which, reverse, shortest);
 		break;
 	case 'm':
 		if (ispatch)
@@ -915,13 +920,13 @@ int main(int argc, char *argv[])
 						  reverse, ignore,
 						  show_wiggles,
 						  replace, strip,
-						  quiet);
+						  quiet, shortest);
 		else
 			exit_status = do_merge(
 				argc-optind, argv+optind,
 				obj, ignore_blanks, reverse, replace,
 				outfile,
-				ignore, show_wiggles, quiet);
+				ignore, show_wiggles, quiet, shortest);
 		break;
 	}
 	exit(exit_status);

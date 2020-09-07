@@ -1402,8 +1402,8 @@ static int merge_window(struct plist *p, FILE *f, int reverse, int replace,
 		if (ch && !just_diff) \
 			csl1 = pdiff(fm, fb, ch); \
 		else \
-			csl1 = diff(fm, fb); \
-		csl2 = diff_patch(fb, fa); \
+			csl1 = diff(fm, fb, 1); \
+		csl2 = diff_patch(fb, fa, 1); \
 \
 		ci = make_merger(fm, fb, fa, csl1, csl2, 0, 1, 0); \
 		for (i = 0; ci.merger[i].type != End; i++) \
@@ -2405,8 +2405,8 @@ static void calc_one(struct plist *pl, FILE *f, int reverse,
 		if (pl->chunks && !just_diff)
 			csl1 = pdiff(ff, fp1, pl->chunks);
 		else
-			csl1 = diff(ff, fp1);
-		csl2 = diff_patch(fp1, fp2);
+			csl1 = diff(ff, fp1, 1);
+		csl2 = diff_patch(fp1, fp2, 1);
 		ci = make_merger(ff, fp1, fp2, csl1, csl2, 0, 1, 0);
 		pl->wiggles = ci.wiggles;
 		pl->conflicts = ci.conflicts;
@@ -2558,7 +2558,7 @@ static int save_one(FILE *f, struct plist *pl, int reverse,
 	sm = load_file(pl->file);
 	fm = split_stream(sm, ByWord | ignore_blanks);
 	csl1 = pdiff(fm, fb, chunks);
-	csl2 = diff_patch(fb, fa);
+	csl2 = diff_patch(fb, fa, 1);
 	ci = make_merger(fm, fb, fa, csl1, csl2, 0, 1, 0);
 	return save_merge(fm, fb, fa, ci.merger,
 			  pl->file, backup);

@@ -129,6 +129,7 @@
 
 #include	"wiggle.h"
 #include	<stdlib.h>
+#include	<sys/time.h>
 
 struct v {
 	int x;	/* x location of furthest reaching path of current cost */
@@ -137,9 +138,9 @@ struct v {
 };
 
 static int find_common(struct file *a, struct file *b,
-			    int *alop, int *ahip,
-			    int *blop, int *bhip,
-			    struct v *v)
+		       int *alop, int *ahip,
+		       int *blop, int *bhip,
+		       struct v *v, int shortcut)
 {
 	/* Examine matrix from alo to ahi and blo to bhi.
 	 * i.e. including alo and blo, but less than ahi and bhi.
@@ -159,6 +160,7 @@ static int find_common(struct file *a, struct file *b,
 	 * Return the number of snakes found.
 	 */
 
+	struct timeval start, stop;
 	int klo, khi;
 	int alo = *alop;
 	int ahi = *ahip;
@@ -176,6 +178,10 @@ static int find_common(struct file *a, struct file *b,
 	 */
 	int worst = (ahi-alo)+(bhi-blo);
 
+	shortcut = !!shortcut;
+	if (shortcut)
+		gettimeofday(&start, NULL);
+
 	klo = khi = alo-blo;
 	v[klo].x = alo;
 	v[klo].l = 0;
@@ -185,6 +191,15 @@ static int find_common(struct file *a, struct file *b,
 		int cost;
 		int k;
 
+		if (shortcut == 1 &&
+		    khi - klo > 5000 &&
+		    gettimeofday(&stop, NULL) == 0 &&
+		    (stop.tv_sec - start.tv_sec) * 1000000 +
+		    (stop.tv_usec - start.tv_usec) > 20000)
+			/* 20ms is a long time.  Time to take a shortcut
+			 * Next snake wins
+			 */
+			shortcut = 2;
 		/* Find the longest snake extending on each current
 		 * diagonal, and record if it crosses the midline.
 		 * If we reach the end, return.
@@ -208,9 +223,16 @@ static int find_common(struct file *a, struct file *b,
 
 			/* Refine the worst-case remaining cost */
 			cost = (ahi-x)+(bhi-y);
-			if (cost < worst)
+			if (cost < worst) {
 				worst = cost;
-
+				if (snake && shortcut == 2) {
+					*alop = v[k].x;
+					*blop = v[k].x - k;
+					*ahip = x;
+					*bhip = y;
+					return 1;
+				}
+			}
 			/* Check for midline crossing */
 			if (x+y >= mid &&
 			     v[k].x + v[k].x-k <= mid)
@@ -361,7 +383,7 @@ static void csl_add(struct cslb *buf, int a, int b, int len)
 static void lcsl(struct file *a, int alo, int ahi,
 		 struct file *b, int blo, int bhi,
 		 struct cslb *cslb,
-		 struct v *v)
+		 struct v *v, int shortcut)
 {
 	/* lcsl == longest common sub-list.
 	 * This calls itself recursively as it finds the midpoint
@@ -383,7 +405,7 @@ static void lcsl(struct file *a, int alo, int ahi,
 	if (!find_common(a, b,
 			 &alo1, &ahi1,
 			 &blo1, &bhi1,
-			 v))
+			 v, shortcut))
 		return;
 
 	/* There are more snakes to find - keep looking. */
@@ -393,7 +415,7 @@ static void lcsl(struct file *a, int alo, int ahi,
 	 */
 	lcsl(a, alo, alo1,
 	     b, blo, blo1,
-	     cslb, v);
+	     cslb, v, 0);
 
 	if (ahi1 > alo1)
 		/* need to add this common seq, possibly attach
@@ -404,7 +426,7 @@ static void lcsl(struct file *a, int alo, int ahi,
 	/* Now recurse to add all the snakes after ahi1 to csl */
 	lcsl(a, ahi1, ahi,
 	     b, bhi1, bhi,
-	     cslb, v);
+	     cslb, v, shortcut);
 }
 
 /* If two common sequences are separated by only an add or remove,
@@ -619,7 +641,7 @@ static void remap(struct csl *csl, int which, struct file from, struct file to)
  * The final element in the list will have 'len' == 0 and will point
  * beyond the end of the files.
  */
-struct csl *diff(struct file a, struct file b)
+struct csl *diff(struct file a, struct file b, int shortest)
 {
 	struct v *v;
 	struct cslb cslb = {};
@@ -637,7 +659,7 @@ struct csl *diff(struct file a, struct file b)
 
 	lcsl(&af, 0, af.elcnt,
 	     &bf, 0, bf.elcnt,
-	     &cslb, v);
+	     &cslb, v, !shortest);
 	csl_add(&cslb, af.elcnt, bf.elcnt, 0);
 	free(v-(bf.elcnt+1));
 	remap(cslb.csl, 0, af, a);
@@ -661,7 +683,7 @@ struct csl *diff_partial(struct file a, struct file b,
 
 	lcsl(&a, alo, ahi,
 	     &b, blo, bhi,
-	     &cslb, v);
+	     &cslb, v, 0);
 	csl_add(&cslb, ahi, bhi, 0);
 	free(v-(bhi-alo+1));
 	fixup(&a, &b, cslb.csl);
@@ -702,7 +724,7 @@ struct csl *csl_join(struct csl *c1, struct csl *c2)
  * line up.  So don't do a full diff, but rather find the hunk
  * headers and diff the bits between them.
  */
-struct csl *diff_patch(struct file a, struct file b)
+struct csl *diff_patch(struct file a, struct file b, int shortest)
 {
 	int ap, bp;
 	struct csl *csl = NULL;
@@ -710,7 +732,7 @@ struct csl *diff_patch(struct file a, struct file b)
 	    a.list[0].start[0] != '\0' ||
 	    b.list[0].start[0] != '\0')
 		/* this is not a patch */
-		return diff(a, b);
+		return diff(a, b, shortest);
 
 	ap = 0; bp = 0;
 	while (ap < a.elcnt && bp < b.elcnt) {
@@ -770,7 +792,7 @@ main(int argc, char *argv[])
 		arg++;
 	}
 
-	csl = diff(a, b);
+	csl = diff(a, b, 1);
 	fixup(&a, &b, csl);
 	while (csl && csl->len) {
 		int i;

@@ -62,6 +62,7 @@ struct option long_options[] = {
 	{"self-test",	0, 0, SELF_TEST},
 	{"report-wiggles", 0, 0, REPORT_WIGGLES},
 	{"non-space",	0, 0, NON_SPACE},
+	{"shortest",	0, 0, SHORTEST},
 	{0, 0, 0, 0}
 };
 

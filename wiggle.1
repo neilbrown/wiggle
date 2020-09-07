@@ -252,6 +252,15 @@ functions,
 .I wiggle
 attempts to revert changes rather than apply them.
 .TP
+.BR \-\-shortest
+If the files being compared are large, it can take a long time to
+isolate the differences.  Normally 
+.I wiggle
+will give up on perfection if a step take more than 20msec.  To over-ride
+this and always find the shortest edit-distance between two files, use the
+.B \-\-shortest
+option.
+.TP
 .BR \-i ", " \-\-no\-ignore
 Normally wiggle will ignore changes in the patch which appear to
 already have been applied in the original.  With this flag those

@@ -153,8 +153,8 @@ extern int split_merge(struct stream, struct stream*, struct stream*,
 		       struct stream*);
 extern struct file split_stream(struct stream s, int type);
 extern struct csl *pdiff(struct file a, struct file b, int chunks);
-extern struct csl *diff(struct file a, struct file b);
-extern struct csl *diff_patch(struct file a, struct file b);
+extern struct csl *diff(struct file a, struct file b, int shortest);
+extern struct csl *diff_patch(struct file a, struct file b, int shortest);
 extern struct csl *diff_partial(struct file a, struct file b,
 				int alo, int ahi, int blo, int bhi);
 extern struct csl *worddiff(struct stream f1, struct stream f2,
@@ -202,6 +202,7 @@ enum other_options {
 	REPORT_WIGGLES,
 	NO_BACKUP,
 	NON_SPACE,
+	SHORTEST,
 };
 extern char Usage[];
 extern char Help[];
