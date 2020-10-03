@@ -170,11 +170,6 @@ extern int print_merge(FILE *out,
 		       int words, struct merge *merger,
 		       struct merge *mpos, int streampos, int offsetpos);
 extern void printword(FILE *f, struct elmnt e);
-extern int save_merge(struct file a, struct file b, struct file c,
-		      struct merge *merger, char *file, int backup);
-extern int save_tmp_merge(struct file a, struct file b, struct file c,
-			  struct merge *merger, char **filep,
-			  struct merge *mpos, int streampos, int offsetpos);
 
 extern int isolate_conflicts(struct file af, struct file bf, struct file cf,
 			     struct csl *csl1, struct csl *csl2, int words,
