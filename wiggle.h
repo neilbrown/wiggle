@@ -18,7 +18,7 @@
  *    along with this program.
  *
  *    Author: Neil Brown
- *    Email: <neilb@suse.de>
+ *    Email: <neil@brown.name>
  */
 
 #define _GNU_SOURCE /* for asprintf */
