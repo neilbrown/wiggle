@@ -266,7 +266,8 @@ EXPORT_SYMBOL(ioport_unmap);
 #ifdef CONFIG_PCI
 /* Hide the details if this is a MMIO or PIO address space and just do what
 <<<<<<< found
- * you expect in the correct way. */||||||| expected
+ * you expect in the correct way. */
+||||||| expected
  * you expect from them in the correct way.
  *
  * @maxlen specifies the maximum length to map. If you want to get access to
@@ -325,7 +326,6 @@ void __iomem *pci_iomap_range(struct pci_dev *dev, int bar,
 		return ioremap_nocache(start, len);
 	}
 >>>>>>> replacement
-
 /**
  * pci_iomap - create a virtual mapping cookie for a PCI BAR
  * @dev: PCI device that owns the BAR

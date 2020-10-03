@@ -264,10 +264,6 @@ int isolate_conflicts(struct file af, struct file bf, struct file cf,
 			/* now the forward search */
 			newlines = 0;
 			for (j = i+1; m[j].type != End; j++) {
-				if (m[j].type == Extraneous &&
-				    bf.list[m[j].b].start[0] == '\0')
-					/* hunk header - not conflict any more */
-					break;
 				if (m[j].type == Extraneous) {
 					for (k = 0; k < m[j].bl; k++)
 						if (ends_line(bf.list[m[j].b+k]))
@@ -638,6 +634,9 @@ static int printrange(FILE *out, struct file *f, int start, int len,
 	return lines;
 }
 
+static const char *conflict_types[] = {
+	"", " border"," conflict"," wiggle" };
+
 int print_merge(FILE *out, struct file *a, struct file *b, struct file *c,
 		int words, struct merge *merger,
 		struct merge *mpos, int streampos, int offsetpos)
@@ -646,6 +645,7 @@ int print_merge(FILE *out, struct file *a, struct file *b, struct file *c,
 	int lineno = 1;
 	int rv = 0;
 	int offset = INT_MAX;
+	int first_matched;
 
 	for (m = merger; m->type != End ; m++) {
 		struct merge *cm;
@@ -660,7 +660,7 @@ int print_merge(FILE *out, struct file *a, struct file *b, struct file *c,
 			       m->a, m->a+m->al-1,
 			       m->b, m->b+m->bl-1,
 			       m->c, m->c+m->cl-1,
-			       m->in_conflict ? " in_conflict" : "",
+			       conflict_types[m->in_conflict],
 			       m->lo, m->hi);
 
 		while (m->in_conflict) {
@@ -682,7 +682,7 @@ int print_merge(FILE *out, struct file *a, struct file *b, struct file *c,
 				rv = lineno;
 			if (do_trace)
 				for (cm = m; cm->in_conflict; cm++) {
-					printf("{%s: %d-%d,%d-%d,%d-%d%s(%d,%d)}\n",
+					printf("{%s: %d-%d,%d-%d,%d-%d%s(%d,%d)}%s\n",
 					       cm->type==Unmatched?"Unmatched":
 					       cm->type==Unchanged?"Unchanged":
 					       cm->type==Extraneous?"Extraneous":
@@ -692,8 +692,12 @@ int print_merge(FILE *out, struct file *a, struct file *b, struct file *c,
 					       cm->a, cm->a+cm->al-1,
 					       cm->b, cm->b+cm->bl-1,
 					       cm->c, cm->c+cm->cl-1,
-					       cm->in_conflict ? " in_conflict" : "",
-					       cm->lo, cm->hi);
+					       conflict_types[m->in_conflict],
+					       cm->lo, cm->hi,
+					       (cm->type == Extraneous &&
+						b->list[cm->b].start[0] == '\0') ?
+					       b->list[cm->b].start+1: ""
+					);
 					if (cm->in_conflict == 1 && cm != m)
 						break;
 				}
@@ -724,11 +728,24 @@ int print_merge(FILE *out, struct file *a, struct file *b, struct file *c,
 			}
 			if (cm == mpos && streampos == 0)
 				rv = lineno;
+		restart:
 			fputs(words ? "|||" : "||||||| expected\n", out);
 			if (!words)
 				lineno++;
 			st1 = st;
+			first_matched = 1;
 			for (cm = m; cm->in_conflict; cm++) {
+				if (cm->type == Extraneous &&
+				    b->list[cm->b].start[0] == '\0') {
+					/* This is a hunk header, skip it and possibly
+					 * abort this section
+					 */
+					if (first_matched)
+						continue;
+					break;
+				}
+				if (cm->type != Unchanged && cm->type != Unmatched)
+					first_matched = 0;
 				if (cm == mpos && streampos == 1)
 					offset = offsetpos;
 				if (cm->in_conflict == 1 && cm != m) {
@@ -746,7 +763,43 @@ int print_merge(FILE *out, struct file *a, struct file *b, struct file *c,
 			if (!words)
 				lineno++;
 			st1 = st;
+			first_matched = 1;
 			for (cm = m; cm->in_conflict; cm++) {
+				if (cm->type == Extraneous &&
+				    b->list[cm->b].start[0] == '\0') {
+					/* This is a hunk header, skip it and possibly
+					 * abort this section and restart.
+					 */
+					if (first_matched)
+						continue;
+					m = cm;
+					/* If remaining merges are all
+					 * Extraneous, Unchanged, or Unmatched,
+					 * we don't need them.
+					 */
+					while (cm->in_conflict > 1 &&
+					       (cm->type == Extraneous ||
+						cm->type == Unmatched ||
+						cm->type == Unchanged))
+						cm ++;
+					if (!cm->in_conflict)
+						/* Nothing more to report */
+						break;
+					if (cm->in_conflict == 1 &&
+					       (cm->type == Extraneous ||
+						cm->type == Unmatched ||
+						cm->type == Unchanged))
+						/* border between conflicts, but
+						 * still nothing to report.
+						 */
+						break;
+					fputs(words ? ">>>" : ">>>>>>> replacement\n", out);
+					fputs(words ? "<<<" : "<<<<<<< found\n", out);
+					st = 0;
+					goto restart;
+				}
+				if (cm->type != Unchanged && cm->type != Unmatched)
+					first_matched = 0;
 				if (cm == mpos && streampos == 2)
 					offset = offsetpos;
 				if (cm->in_conflict == 1 && cm != m) {
@@ -833,7 +886,7 @@ int print_merge(FILE *out, struct file *a, struct file *b, struct file *c,
 			       m->a, m->a+m->al-1,
 			       m->b, m->b+m->bl-1,
 			       m->c, m->c+m->cl-1,
-			       m->in_conflict ? " in_conflict" : "",
+			       conflict_types[m->in_conflict],
 			       m->lo, m->hi);
 		}
 		if (m == mpos)

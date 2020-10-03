@@ -918,6 +918,7 @@ static int make_request(mddev_t *mddev, struct bio * bio)
 <<<<<<< found
 		}
 
+		atomic_inc(&r1_bio->remaining);
 ||||||| expected
 		bio_list_add(&bl, mbio);
 	}
@@ -930,7 +931,6 @@ static int make_request(mddev_t *mddev, struct bio * bio)
 	kfree(behind_pages); /* the behind pages are attached to the bios now */
 
 >>>>>>> replacement
-		atomic_inc(&r1_bio->remaining);
 <<<<<<< found
 		spin_lock_irqsave(&conf->device_lock, flags);
 		bio_list_add(&conf->pending_bio_list, mbio);
