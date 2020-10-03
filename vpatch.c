@@ -50,9 +50,9 @@ static void term_init(int raw);
 static int intr_kills = 0;
 
 /* global attributes */
-unsigned int a_delete, a_added, a_common, a_sep, a_void,
+static unsigned int a_delete, a_added, a_common, a_sep, a_void,
 	a_unmatched, a_extra, a_already;
-unsigned int a_has_conflicts, a_has_wiggles, a_no_wiggles, a_saved;
+static unsigned int a_has_conflicts, a_has_wiggles, a_no_wiggles, a_saved;
 
 /******************************************************************
  * Help window
@@ -68,7 +68,7 @@ unsigned int a_has_conflicts, a_has_wiggles, a_no_wiggles, a_saved;
  * A help text is an array of lines of text
  */
 
-char *help_help[] = {
+static char *help_help[] = {
 	"   You are viewing the help page for the help viewer.",
 	"You normally get here by typing '?'",
 	"",
@@ -83,14 +83,14 @@ char *help_help[] = {
 	NULL
 };
 
-char *help_missing[] = {
+static char *help_missing[] = {
 	"The file that this patch applies to appears",
 	"to be missing.",
 	"Please type 'q' to continue",
 	NULL
 };
 
-char *help_corrupt[] = {
+static char *help_corrupt[] = {
 	"This patch appears to be corrupt",
 	"Please type 'q' to continue",
 	NULL
