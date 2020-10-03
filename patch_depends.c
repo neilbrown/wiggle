@@ -76,7 +76,7 @@ void add_depends(struct patch *new, struct patch *old)
 
 void add_chunk(struct patch *p, struct file *f, int os, int oe, int ns, int ne)
 {
-	struct chunk *c = xmalloc(sizeof(struct chunk));
+	struct chunk *c = wiggle_xmalloc(sizeof(struct chunk));
 	c->patch = p;
 	c->file = f;
 	c->old_start = os;

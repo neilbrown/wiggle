@@ -141,54 +141,54 @@ struct plist {
 	char *before, *after;
 };
 
-extern struct plist *sort_patches(struct plist *pl, int *np);
-extern void plist_free(struct plist *pl, int num);
-extern struct plist *parse_patch(FILE *f, FILE *of, int *np);
-extern struct stream load_segment(FILE *f, unsigned int start,
+extern struct plist *wiggle_sort_patches(struct plist *pl, int *np);
+extern void wiggle_plist_free(struct plist *pl, int num);
+extern struct plist *wiggle_parse_patch(FILE *f, FILE *of, int *np);
+extern struct stream wiggle_load_segment(FILE *f, unsigned int start,
 				  unsigned int end);
-extern int set_prefix(struct plist *pl, int n, int strip);
-extern struct stream load_file(char *name);
-extern int split_patch(struct stream, struct stream*, struct stream*);
-extern int split_merge(struct stream, struct stream*, struct stream*,
+extern int wiggle_set_prefix(struct plist *pl, int n, int strip);
+extern struct stream wiggle_load_file(char *name);
+extern int wiggle_split_patch(struct stream, struct stream*, struct stream*);
+extern int wiggle_split_merge(struct stream, struct stream*, struct stream*,
 		       struct stream*);
-extern struct file split_stream(struct stream s, int type);
-extern struct csl *pdiff(struct file a, struct file b, int chunks);
-extern struct csl *diff(struct file a, struct file b, int shortest);
-extern struct csl *diff_patch(struct file a, struct file b, int shortest);
-extern struct csl *diff_partial(struct file a, struct file b,
+extern struct file wiggle_split_stream(struct stream s, int type);
+extern struct csl *wiggle_pdiff(struct file a, struct file b, int chunks);
+extern struct csl *wiggle_diff(struct file a, struct file b, int shortest);
+extern struct csl *wiggle_diff_patch(struct file a, struct file b, int shortest);
+extern struct csl *wiggle_diff_partial(struct file a, struct file b,
 				int alo, int ahi, int blo, int bhi);
 extern struct csl *worddiff(struct stream f1, struct stream f2,
 			    struct file *fl1p, struct file *fl2p);
-extern struct csl *csl_join(struct csl *c1, struct csl *c2);
+extern struct csl *wiggle_csl_join(struct csl *c1, struct csl *c2);
 
 struct ci {
 	int conflicts, wiggles, ignored;
 	struct merge *merger;
 };
-extern int print_merge(FILE *out,
+extern int wiggle_print_merge(FILE *out,
 		       struct file *a, struct file *b, struct file *c,
 		       int words, struct merge *merger,
 		       struct merge *mpos, int streampos, int offsetpos);
-extern void printword(FILE *f, struct elmnt e);
+extern void wiggle_printword(FILE *f, struct elmnt e);
 
-extern int isolate_conflicts(struct file af, struct file bf, struct file cf,
-			     struct csl *csl1, struct csl *csl2, int words,
-			     struct merge *m, int show_wiggles, int *wigglesp);
-extern struct ci make_merger(struct file a, struct file b, struct file c,
-			     struct csl *c1, struct csl *c2, int words,
-			     int ignore_already, int show_wiggles);
+extern int wiggle_isolate_conflicts(struct file af, struct file bf, struct file cf,
+				    struct csl *csl1, struct csl *csl2, int words,
+				    struct merge *m, int show_wiggles, int *wigglesp);
+extern struct ci wiggle_make_merger(struct file a, struct file b, struct file c,
+				    struct csl *c1, struct csl *c2, int words,
+				    int ignore_already, int show_wiggles);
 
-extern void die(char *reason);
-extern void check_dir(char *name, int fd);
-extern void *xmalloc(int len);
-extern int do_trace;
+extern void wiggle_die(char *reason);
+extern void wiggle_check_dir(char *name, int fd);
+extern void *wiggle_xmalloc(int len);
+extern int wiggle_do_trace;
 
 extern int vpatch(int argc, char *argv[], int patch, int strip,
 		  int reverse, int replace, char *outfile,
 		  int selftest,
 		  int ignore_blanks, int backup);
 
-extern char *Cmd;
+extern char *wiggle_Cmd;
 extern char Version[];
 extern char short_options[];
 extern struct option long_options[];

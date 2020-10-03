@@ -1295,8 +1295,8 @@ static void *memdup(void *a, int len)
 static int save_merge(struct file a, struct file b, struct file c,
 		      struct merge *merger, char *file, int backup)
 {
-	char *replacename = xmalloc(strlen(file) + 20);
-	char *orignew = xmalloc(strlen(file) + 20);
+	char *replacename = wiggle_xmalloc(strlen(file) + 20);
+	char *orignew = wiggle_xmalloc(strlen(file) + 20);
 	int fd;
 	FILE *outfile;
 	int err = 0;
@@ -1312,8 +1312,8 @@ static int save_merge(struct file a, struct file b, struct file c,
 		goto out;
 	}
 	outfile = fdopen(fd, "w");
-	lineno = print_merge(outfile, &a, &b, &c, 0, merger,
-			     NULL, 0, 0);
+	lineno = wiggle_print_merge(outfile, &a, &b, &c, 0, merger,
+				    NULL, 0, 0);
 	fclose(outfile);
 	if (backup && rename(file, orignew) != 0)
 		err = -2;
@@ -1361,8 +1361,8 @@ static int save_tmp_merge(struct file a, struct file b, struct file c,
 		return -1;
 	}
 	outfile = fdopen(fd, "w");
-	lineno = print_merge(outfile, &a, &b, &c, 0, merger,
-			     mpos, streampos, offsetpos);
+	lineno = wiggle_print_merge(outfile, &a, &b, &c, 0, merger,
+				    mpos, streampos, offsetpos);
 	fclose(outfile);
 	*filep = fname;
 	return lineno;
@@ -1472,17 +1472,17 @@ static int merge_window(struct plist *p, FILE *f, int reverse, int replace,
 	#define prepare_merge(ch) \
 	do { \
 		/* FIXME check for errors in the stream */ \
-		fm = split_stream(sm, ByWord | ignore_blanks); \
-		fb = split_stream(sb, ByWord | ignore_blanks); \
-		fa = split_stream(sa, ByWord | ignore_blanks); \
+		fm = wiggle_split_stream(sm, ByWord | ignore_blanks); \
+		fb = wiggle_split_stream(sb, ByWord | ignore_blanks); \
+		fa = wiggle_split_stream(sa, ByWord | ignore_blanks); \
 \
 		if (ch && !just_diff) \
-			csl1 = pdiff(fm, fb, ch); \
+			csl1 = wiggle_pdiff(fm, fb, ch); \
 		else \
-			csl1 = diff(fm, fb, 1); \
-		csl2 = diff_patch(fb, fa, 1); \
+			csl1 = wiggle_diff(fm, fb, 1); \
+		csl2 = wiggle_diff_patch(fb, fa, 1); \
 \
-		ci = make_merger(fm, fb, fa, csl1, csl2, 0, 1, 0); \
+		ci = wiggle_make_merger(fm, fb, fa, csl1, csl2, 0, 1, 0); \
 		for (i = 0; ci.merger[i].type != End; i++) \
 			ci.merger[i].oldtype = ci.merger[i].type; \
 	} while(0)
@@ -1495,39 +1495,39 @@ static int merge_window(struct plist *p, FILE *f, int reverse, int replace,
 	if (f == NULL) {
 		if (!p->is_merge) {
 			/* three separate files */
-			sb = load_file(p->before);
-			sa = load_file(p->after);
+			sb = wiggle_load_file(p->before);
+			sa = wiggle_load_file(p->after);
 			if (just_diff)
 				sm = sb;
 			else
-				sm = load_file(p->file);
+				sm = wiggle_load_file(p->file);
 		} else {
 			/* One merge file */
-			sp = load_file(p->file);
+			sp = wiggle_load_file(p->file);
 			if (reverse)
-				split_merge(sp, &sm, &sa, &sb);
+				wiggle_split_merge(sp, &sm, &sa, &sb);
 			else
-				split_merge(sp, &sm, &sb, &sa);
+				wiggle_split_merge(sp, &sm, &sb, &sa);
 			free(sp.body);
 		}
 		ch = 0;
 	} else {
-		sp = load_segment(f, p->start, p->end);
+		sp = wiggle_load_segment(f, p->start, p->end);
 		if (p->is_merge) {
 			if (reverse)
-				split_merge(sp, &sm, &sa, &sb);
+				wiggle_split_merge(sp, &sm, &sa, &sb);
 			else
-				split_merge(sp, &sm, &sb, &sa);
+				wiggle_split_merge(sp, &sm, &sb, &sa);
 			ch = 0;
 		} else {
 			if (reverse)
-				ch = split_patch(sp, &sa, &sb);
+				ch = wiggle_split_patch(sp, &sa, &sb);
 			else
-				ch = split_patch(sp, &sb, &sa);
+				ch = wiggle_split_patch(sp, &sb, &sa);
 			if (just_diff)
 				sm = sb;
 			else
-				sm = load_file(p->file);
+				sm = wiggle_load_file(p->file);
 		}
 		free(sp.body);
 	}
@@ -1864,7 +1864,7 @@ static int merge_window(struct plist *p, FILE *f, int reverse, int replace,
 				break;
 			if (answer) {
 				p->wiggles = 0;
-				p->conflicts = isolate_conflicts(
+				p->conflicts = wiggle_isolate_conflicts(
 					fm, fb, fa, csl1, csl2, 0,
 					ci.merger, 0, &p->wiggles);
 				p->chunks = p->conflicts;
@@ -1910,15 +1910,15 @@ static int merge_window(struct plist *p, FILE *f, int reverse, int replace,
 			endwin();
 			free_stuff();
 			do_edit(tempname, lineno);
-			sp = load_file(tempname);
+			sp = wiggle_load_file(tempname);
 			unlink(tempname);
-			split_merge(sp, &sm, &sb, &sa);
+			wiggle_split_merge(sp, &sm, &sb, &sa);
 			if (sp.len == sm.len &&
 			    memcmp(sp.body, sm.body, sm.len) == 0 &&
 				!p->is_merge) {
 				/* no conflicts left, so display diff */
 				free(sm.body);
-				sm = load_file(p->file);
+				sm = wiggle_load_file(p->file);
 				free(sb.body);
 				sb = sm;
 				sb.body = memdup(sm.body, sm.len);
@@ -2332,7 +2332,7 @@ static int merge_window(struct plist *p, FILE *f, int reverse, int replace,
 				ci.merger[curs.pos.m].type = ci.merger[curs.pos.m].oldtype;
 			else
 				ci.merger[curs.pos.m].type = next;
-			p->conflicts = isolate_conflicts(
+			p->conflicts = wiggle_isolate_conflicts(
 				fm, fb, fa, csl1, csl2, 0,
 				ci.merger, 0, &p->wiggles);
 			refresh = 1;
@@ -2350,7 +2350,7 @@ static int merge_window(struct plist *p, FILE *f, int reverse, int replace,
 				ci.merger[curs.pos.m].type = ci.merger[curs.pos.m].oldtype;
 			else
 				ci.merger[curs.pos.m].type = Changed;
-			p->conflicts = isolate_conflicts(
+			p->conflicts = wiggle_isolate_conflicts(
 				fm, fb, fa, csl1, csl2, 0,
 				ci.merger, 0, &p->wiggles);
 			refresh = 1;
@@ -2367,7 +2367,7 @@ static int merge_window(struct plist *p, FILE *f, int reverse, int replace,
 					break;
 			} while (!ends_line(e) ||
 				 visible(mode & (RESULT|AFTER), ci.merger, &tpos) < 0);
-			p->conflicts = isolate_conflicts(
+			p->conflicts = wiggle_isolate_conflicts(
 				fm, fb, fa, csl1, csl2, 0,
 				ci.merger, 0, &p->wiggles);
 			refresh = 1;
@@ -2389,7 +2389,7 @@ static int merge_window(struct plist *p, FILE *f, int reverse, int replace,
 			    !same_mpos(anchor->pos, pos) ||
 			    anchor->searchlen != searchlen ||
 			    !same_mp(anchor->curs.pos, curs.pos)) {
-				struct search_anchor *a = xmalloc(sizeof(*a));
+				struct search_anchor *a = wiggle_xmalloc(sizeof(*a));
 				a->pos = pos;
 				a->row = row;
 				a->start = start;
@@ -2452,23 +2452,23 @@ static void calc_one(struct plist *pl, FILE *f, int reverse,
 		     int ignore_blanks, int just_diff)
 {
 	struct stream s1, s2;
-	struct stream s = load_segment(f, pl->start, pl->end);
+	struct stream s = wiggle_load_segment(f, pl->start, pl->end);
 	struct stream sf;
 	if (pl->is_merge) {
 		if (reverse)
-			split_merge(s, &sf, &s2, &s1);
+			wiggle_split_merge(s, &sf, &s2, &s1);
 		else
-			split_merge(s, &sf, &s1, &s2);
+			wiggle_split_merge(s, &sf, &s1, &s2);
 		pl->chunks = 0;
 	} else {
 		if (reverse)
-			pl->chunks = split_patch(s, &s2, &s1);
+			pl->chunks = wiggle_split_patch(s, &s2, &s1);
 		else
-			pl->chunks = split_patch(s, &s1, &s2);
+			pl->chunks = wiggle_split_patch(s, &s1, &s2);
 		if (just_diff)
 			sf = s1;
 		else
-			sf = load_file(pl->file);
+			sf = wiggle_load_file(pl->file);
 	}
 	if (sf.body == NULL || s1.body == NULL || s1.body == NULL) {
 		pl->wiggles = pl->conflicts = -1;
@@ -2476,15 +2476,15 @@ static void calc_one(struct plist *pl, FILE *f, int reverse,
 		struct file ff, fp1, fp2;
 		struct csl *csl1, *csl2;
 		struct ci ci;
-		ff = split_stream(sf, ByWord | ignore_blanks);
-		fp1 = split_stream(s1, ByWord | ignore_blanks);
-		fp2 = split_stream(s2, ByWord | ignore_blanks);
+		ff = wiggle_split_stream(sf, ByWord | ignore_blanks);
+		fp1 = wiggle_split_stream(s1, ByWord | ignore_blanks);
+		fp2 = wiggle_split_stream(s2, ByWord | ignore_blanks);
 		if (pl->chunks && !just_diff)
-			csl1 = pdiff(ff, fp1, pl->chunks);
+			csl1 = wiggle_pdiff(ff, fp1, pl->chunks);
 		else
-			csl1 = diff(ff, fp1, 1);
-		csl2 = diff_patch(fp1, fp2, 1);
-		ci = make_merger(ff, fp1, fp2, csl1, csl2, 0, 1, 0);
+			csl1 = wiggle_diff(ff, fp1, 1);
+		csl2 = wiggle_diff_patch(fp1, fp2, 1);
+		ci = wiggle_make_merger(ff, fp1, fp2, csl1, csl2, 0, 1, 0);
 		pl->wiggles = ci.wiggles;
 		pl->conflicts = ci.conflicts;
 		free(ci.merger);
@@ -2624,19 +2624,19 @@ static int save_one(FILE *f, struct plist *pl, int reverse,
 	struct csl *csl1, *csl2;
 	struct ci ci;
 	int chunks;
-	sp = load_segment(f, pl->start,
+	sp = wiggle_load_segment(f, pl->start,
 			  pl->end);
 	if (reverse)
-		chunks = split_patch(sp, &sa, &sb);
+		chunks = wiggle_split_patch(sp, &sa, &sb);
 	else
-		chunks = split_patch(sp, &sb, &sa);
-	fb = split_stream(sb, ByWord | ignore_blanks);
-	fa = split_stream(sa, ByWord | ignore_blanks);
-	sm = load_file(pl->file);
-	fm = split_stream(sm, ByWord | ignore_blanks);
-	csl1 = pdiff(fm, fb, chunks);
-	csl2 = diff_patch(fb, fa, 1);
-	ci = make_merger(fm, fb, fa, csl1, csl2, 0, 1, 0);
+		chunks = wiggle_split_patch(sp, &sb, &sa);
+	fb = wiggle_split_stream(sb, ByWord | ignore_blanks);
+	fa = wiggle_split_stream(sa, ByWord | ignore_blanks);
+	sm = wiggle_load_file(pl->file);
+	fm = wiggle_split_stream(sm, ByWord | ignore_blanks);
+	csl1 = wiggle_pdiff(fm, fb, chunks);
+	csl2 = wiggle_diff_patch(fb, fa, 1);
+	ci = wiggle_make_merger(fm, fb, fa, csl1, csl2, 0, 1, 0);
 	return save_merge(fm, fb, fa, ci.merger,
 			  pl->file, backup);
 }
@@ -2985,7 +2985,7 @@ static void main_window(struct plist *pl, int np, FILE *f, int reverse,
 			else {
 				/* rename foo.porig to foo, and clear is_merge */
 				char *file = pl[pos].file;
-				char *orignew = xmalloc(strlen(file) + 20);
+				char *orignew = wiggle_xmalloc(strlen(file) + 20);
 				strcpy(orignew, file);
 				strcat(orignew, ".porig");
 				if (rename(orignew, file) == 0) {
@@ -3031,7 +3031,7 @@ static void catch(int sig)
 	if (sig != SIGBUS && sig != SIGSEGV)
 		exit(2);
 	else
-		/* Otherwise return and die */
+		/* Otherwise return and wiggle_die */
 		signal(sig, NULL);
 }
 
@@ -3129,7 +3129,7 @@ int vpatch(int argc, char *argv[], int patch, int strip,
 
 	switch (argc) {
 	default:
-		fprintf(stderr, "%s: too many file names given.\n", Cmd);
+		fprintf(stderr, "%s: too many file names given.\n", wiggle_Cmd);
 		exit(1);
 
 	case 0: /* stdin is a patch or diff */
@@ -3137,46 +3137,46 @@ int vpatch(int argc, char *argv[], int patch, int strip,
 			/* cannot seek, so need to copy to a temp file */
 			f = tmpfile();
 			if (!f) {
-				fprintf(stderr, "%s: Cannot create temp file\n", Cmd);
+				fprintf(stderr, "%s: Cannot create temp file\n", wiggle_Cmd);
 				exit(1);
 			}
-			pl = parse_patch(stdin, f, &num_patches);
+			pl = wiggle_parse_patch(stdin, f, &num_patches);
 			in = f;
 		} else {
-			pl = parse_patch(stdin, NULL, &num_patches);
+			pl = wiggle_parse_patch(stdin, NULL, &num_patches);
 			in = fdopen(dup(0), "r");
 		}
 		/* use stderr for keyboard input */
 		dup2(2, 0);
 		if (!just_diff &&
-		    set_prefix(pl, num_patches, strip) == 0) {
-			fprintf(stderr, "%s: aborting\n", Cmd);
+		    wiggle_set_prefix(pl, num_patches, strip) == 0) {
+			fprintf(stderr, "%s: aborting\n", wiggle_Cmd);
 			exit(2);
 		}
-		pl = sort_patches(pl, &num_patches);
+		pl = wiggle_sort_patches(pl, &num_patches);
 		main_window(pl, num_patches, in, reverse, replace, ignore_blanks,
 		            just_diff, backup);
-		plist_free(pl, num_patches);
+		wiggle_plist_free(pl, num_patches);
 		fclose(in);
 		break;
 
 	case 1: /* a patch/diff, a .rej, or a merge file */
 		f = fopen(argv[0], "r");
 		if (!f) {
-			fprintf(stderr, "%s: cannot open %s\n", Cmd, argv[0]);
+			fprintf(stderr, "%s: cannot open %s\n", wiggle_Cmd, argv[0]);
 			exit(1);
 		}
-		check_dir(argv[0], fileno(f));
+		wiggle_check_dir(argv[0], fileno(f));
 		if (patch) {
-			pl = parse_patch(f, NULL, &num_patches);
-			if (!just_diff && set_prefix(pl, num_patches, strip) == 0) {
-				fprintf(stderr, "%s: aborting\n", Cmd);
+			pl = wiggle_parse_patch(f, NULL, &num_patches);
+			if (!just_diff && wiggle_set_prefix(pl, num_patches, strip) == 0) {
+				fprintf(stderr, "%s: aborting\n", wiggle_Cmd);
 				exit(2);
 			}
-			pl = sort_patches(pl, &num_patches);
+			pl = wiggle_sort_patches(pl, &num_patches);
 			main_window(pl, num_patches, f, reverse, replace,
 			            ignore_blanks, just_diff, backup);
-			plist_free(pl, num_patches);
+			wiggle_plist_free(pl, num_patches);
 		} else if (strlen(argv[0]) > 4 &&
 			 strcmp(argv[0]+strlen(argv[0])-4, ".rej") == 0) {
 			char *origname = strdup(argv[0]);
@@ -3199,10 +3199,10 @@ int vpatch(int argc, char *argv[], int patch, int strip,
 		}
 		f = fopen(argv[1], "r");
 		if (!f) {
-			fprintf(stderr, "%s: cannot open %s\n", Cmd, argv[0]);
+			fprintf(stderr, "%s: cannot open %s\n", wiggle_Cmd, argv[0]);
 			exit(1);
 		}
-		check_dir(argv[1], fileno(f));
+		wiggle_check_dir(argv[1], fileno(f));
 		show_merge(argv[0], f, reverse, 0, NULL, NULL,
 			   replace, outfilename,
 			   selftest, ignore_blanks, just_diff, backup);

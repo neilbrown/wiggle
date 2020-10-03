@@ -175,7 +175,7 @@ static void find_best(struct file *a, struct file *b,
 	int klo, khi, k;
 	int f;
 
-	struct v *valloc = xmalloc(sizeof(struct v)*((ahi-alo)+(bhi-blo)+5));
+	struct v *valloc = wiggle_xmalloc(sizeof(struct v)*((ahi-alo)+(bhi-blo)+5));
 	struct v *v = valloc + (bhi-alo+2);
 
 	k = klo = khi = alo-blo;
@@ -301,7 +301,7 @@ static struct file reduce(struct file orig)
 		return orig;
 
 	rv.elcnt = cnt;
-	rv.list = xmalloc(cnt*sizeof(struct elmnt));
+	rv.list = wiggle_xmalloc(cnt*sizeof(struct elmnt));
 	cnt = 0;
 	for (i = 0; i < orig.elcnt; i++)
 		if (!is_skipped(orig.list[i]))
@@ -432,10 +432,10 @@ static void find_best_inorder(struct file *a, struct file *b,
 	}
 }
 
-struct csl *pdiff(struct file a, struct file b, int chunks)
+struct csl *wiggle_pdiff(struct file a, struct file b, int chunks)
 {
 	struct csl *csl1, *csl2;
-	struct best *best = xmalloc(sizeof(struct best)*(chunks+1));
+	struct best *best = wiggle_xmalloc(sizeof(struct best)*(chunks+1));
 	int i;
 	struct file asmall, bsmall;
 	int xmin;
@@ -460,7 +460,7 @@ struct csl *pdiff(struct file a, struct file b, int chunks)
 		if (best[i].val > 0) {
 			/* If we there are any newlines in the hunk before
 			 * ylo, then extend xlo back that many newlines if
-			 * possible and diff_partial the extended regions.
+			 * possible and wiggle_diff_partial the extended regions.
 			 */
 			int lines = 0;
 			int ylo = best[i].ylo;
@@ -477,23 +477,23 @@ struct csl *pdiff(struct file a, struct file b, int chunks)
 				}
 				while (xlo > xmin && !ends_line(a.list[xlo-1]))
 					xlo--;
-				csl2 = diff_partial(a, b,
+				csl2 = wiggle_diff_partial(a, b,
 						    xlo, best[i].xlo,
 						    ylo, best[i].ylo);
-				csl1 = csl_join(csl1, csl2);
+				csl1 = wiggle_csl_join(csl1, csl2);
 			}
 
-			/* Now diff_partial the good bit of the hunk with the
+			/* Now wiggle_diff_partial the good bit of the hunk with the
 			 * good match
 			 */
-			csl2 = diff_partial(a, b,
+			csl2 = wiggle_diff_partial(a, b,
 					    best[i].xlo, best[i].xhi,
 					    best[i].ylo, best[i].yhi);
-			csl1 = csl_join(csl1, csl2);
+			csl1 = wiggle_csl_join(csl1, csl2);
 
 			/* Now if there are newlines at the end of the
 			 * hunk that weren't matched, find as many in
-			 * original and diff_partial those bits
+			 * original and wiggle_diff_partial those bits
 			 */
 			lines = 0;
 			yhi = best[i].yhi;
@@ -511,10 +511,10 @@ struct csl *pdiff(struct file a, struct file b, int chunks)
 					lines -= !!ends_line(a.list[xhi]);
 					xhi++;
 				}
-				csl2 = diff_partial(a, b,
+				csl2 = wiggle_diff_partial(a, b,
 						    best[i].xhi, xhi,
 						    best[i].yhi, yhi);
-				csl1 = csl_join(csl1, csl2);
+				csl1 = wiggle_csl_join(csl1, csl2);
 				xmin = xhi;
 			}
 		} else {
@@ -526,7 +526,7 @@ struct csl *pdiff(struct file a, struct file b, int chunks)
 		csl2->a = a.elcnt;
 		csl2->b = b.elcnt;
 	} else {
-		csl1 = xmalloc(sizeof(*csl1));
+		csl1 = wiggle_xmalloc(sizeof(*csl1));
 		csl1->len = 0;
 		csl1->a = a.elcnt;
 		csl1->b = b.elcnt;

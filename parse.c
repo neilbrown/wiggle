@@ -56,7 +56,7 @@ static int get_strip(char *file)
 
 }
 
-int set_prefix(struct plist *pl, int n, int strip)
+int wiggle_set_prefix(struct plist *pl, int n, int strip)
 {
 	int i;
 	for (i = 0; i < 4 && i < n  && strip < 0; i++)
@@ -64,7 +64,7 @@ int set_prefix(struct plist *pl, int n, int strip)
 
 	if (strip < 0) {
 		fprintf(stderr, "%s: Cannot find files to patch: please specify --strip\n",
-			Cmd);
+			wiggle_Cmd);
 		return 0;
 	}
 	for (i = 0; i < n; i++) {
@@ -78,7 +78,7 @@ int set_prefix(struct plist *pl, int n, int strip)
 		}
 		if (p == NULL) {
 			fprintf(stderr, "%s: cannot strip %d segments from %s\n",
-				Cmd, strip, pl[i].file);
+				wiggle_Cmd, strip, pl[i].file);
 			return 0;
 		}
 		memmove(pl[i].file, p, strlen(p)+1);
@@ -206,7 +206,7 @@ static struct plist *add_dir(struct plist *pl, int *np, char *file, char *curr)
 	return pl;
 }
 
-struct plist *sort_patches(struct plist *pl, int *np)
+struct plist *wiggle_sort_patches(struct plist *pl, int *np)
 {
 	/* sort the patches, add directory names, and re-sort */
 	char curr[1024];
@@ -246,7 +246,7 @@ struct plist *sort_patches(struct plist *pl, int *np)
 	return pl;
 }
 
-struct plist *parse_patch(FILE *f, FILE *of, int *np)
+struct plist *wiggle_parse_patch(FILE *f, FILE *of, int *np)
 {
 	/* read a multi-file patch from 'f' and record relevant
 	 * details in a plist.
@@ -321,7 +321,7 @@ struct plist *parse_patch(FILE *f, FILE *of, int *np)
 	return plist;
 }
 
-void plist_free(struct plist *pl, int num)
+void wiggle_plist_free(struct plist *pl, int num)
 {
 	int i;
 	for (i = 0; i < num ; i++)

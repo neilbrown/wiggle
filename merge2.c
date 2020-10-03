@@ -63,7 +63,7 @@ static int check_alreadyapplied(struct file af, struct file cf,
 			    af.list[m->a+i].len) != 0)
 			return 0;
 	}
-	if (do_trace) {
+	if (wiggle_do_trace) {
 		printf("already applied %d,%d,%d - %d,%d,%d\n",
 		       m->a, m->b, m->c, m->al, m->bl, m->cl);
 		printf(" %.10s - %.10s\n", af.list[m->a].start,
@@ -89,7 +89,7 @@ static int is_cutpoint(struct merge m,
 		(m.c == 0 || ends_line(cf.list[m.c-1])));
 }
 
-int isolate_conflicts(struct file af, struct file bf, struct file cf,
+int wiggle_isolate_conflicts(struct file af, struct file bf, struct file cf,
 		      struct csl *csl1, struct csl *csl2, int words,
 		      struct merge *m, int show_wiggles,
 		      int *wigglesp)
@@ -426,7 +426,7 @@ int isolate_conflicts(struct file af, struct file bf, struct file cf,
 	return cnt;
 }
 
-struct ci make_merger(struct file af, struct file bf, struct file cf,
+struct ci wiggle_make_merger(struct file af, struct file bf, struct file cf,
 		      struct csl *csl1, struct csl *csl2, int words,
 		      int ignore_already, int show_wiggles)
 {
@@ -449,7 +449,7 @@ struct ci make_merger(struct file af, struct file bf, struct file cf,
 	/* maybe a bit of slack at each end */
 	l = l * 4 + 10;
 
-	rv.merger = xmalloc(sizeof(struct merge)*l);
+	rv.merger = wiggle_xmalloc(sizeof(struct merge)*l);
 
 	a = b = c = c1 = c2 = 0;
 	i = 0;
@@ -612,7 +612,7 @@ struct ci make_merger(struct file af, struct file bf, struct file cf,
 		    rv.merger[i+1].type != End)
 			rv.merger[i].type = Conflict;
 	}
-	rv.conflicts = isolate_conflicts(af, bf, cf, csl1, csl2, words,
+	rv.conflicts = wiggle_isolate_conflicts(af, bf, cf, csl1, csl2, words,
 					 rv.merger, show_wiggles, &rv.wiggles);
 	return rv;
 }
@@ -623,7 +623,7 @@ static int printrange(FILE *out, struct file *f, int start, int len,
 	int lines = 0;
 	while (len > 0 && start < f->elcnt) {
 		struct elmnt e = f->list[start];
-		printword(out, e);
+		wiggle_printword(out, e);
 		if (e.start[e.plen-1] == '\n' &&
 		    offset > 0)
 			lines++;
@@ -637,7 +637,7 @@ static int printrange(FILE *out, struct file *f, int start, int len,
 static const char *conflict_types[] = {
 	"", " border"," conflict"," wiggle" };
 
-int print_merge(FILE *out, struct file *a, struct file *b, struct file *c,
+int wiggle_print_merge(FILE *out, struct file *a, struct file *b, struct file *c,
 		int words, struct merge *merger,
 		struct merge *mpos, int streampos, int offsetpos)
 {
@@ -649,7 +649,7 @@ int print_merge(FILE *out, struct file *a, struct file *b, struct file *c,
 
 	for (m = merger; m->type != End ; m++) {
 		struct merge *cm;
-		if (do_trace)
+		if (wiggle_do_trace)
 			printf("[%s: %d-%d,%d-%d,%d-%d%s(%d,%d)]\n",
 			       m->type==Unmatched ? "Unmatched" :
 			       m->type==Unchanged ? "Unchanged" :
@@ -680,7 +680,7 @@ int print_merge(FILE *out, struct file *a, struct file *b, struct file *c,
 
 			if (m == mpos)
 				rv = lineno;
-			if (do_trace)
+			if (wiggle_do_trace)
 				for (cm = m; cm->in_conflict; cm++) {
 					printf("{%s: %d-%d,%d-%d,%d-%d%s(%d,%d)}%s\n",
 					       cm->type==Unmatched?"Unmatched":
@@ -875,7 +875,7 @@ int print_merge(FILE *out, struct file *a, struct file *b, struct file *c,
 		if (m->type == End)
 			break;
 
-		if (do_trace) {
+		if (wiggle_do_trace) {
 			printf("<<%s: %d-%d,%d-%d,%d-%d%s(%d,%d)>>\n",
 			       m->type==Unmatched?"Unmatched":
 			       m->type==Unchanged?"Unchanged":

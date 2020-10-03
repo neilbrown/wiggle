@@ -28,11 +28,11 @@
 #include	<stdlib.h>
 #include	<sys/stat.h>
 
-char *Cmd = "wiggle";
+char *wiggle_Cmd = "wiggle";
 
-int do_trace = 0;
+int wiggle_do_trace = 0;
 
-void *xmalloc(int size)
+void *wiggle_xmalloc(int size)
 {
 	void *rv = malloc(size);
 	if (size && !rv) {
@@ -43,7 +43,7 @@ void *xmalloc(int size)
 	return rv;
 }
 
-void printword(FILE *f, struct elmnt e)
+void wiggle_printword(FILE *f, struct elmnt e)
 {
 	if (e.start[0])
 		fprintf(f, "%.*s", e.plen + e.prefix,
@@ -55,21 +55,21 @@ void printword(FILE *f, struct elmnt e)
 	}
 }
 
-void die(char *reason)
+void wiggle_die(char *reason)
 {
-	fprintf(stderr, "%s: fatal error: %s failure\n", Cmd, reason);
+	fprintf(stderr, "%s: fatal error: %s failure\n", wiggle_Cmd, reason);
 	exit(3);
 }
 
-void check_dir(char *name, int fd)
+void wiggle_check_dir(char *name, int fd)
 {
 	struct stat st;
 	if (fstat(fd, &st) != 0) {
-		fprintf(stderr, "%s: fatal: %s is strange\n", Cmd, name);
+		fprintf(stderr, "%s: fatal: %s is strange\n", wiggle_Cmd, name);
 		exit(3);
 	}
 	if (S_ISDIR(st.st_mode)) {
-		fprintf(stderr, "%s: %s is a directory\n", Cmd, name);
+		fprintf(stderr, "%s: %s is a directory\n", wiggle_Cmd, name);
 		exit(3);
 	}
 }

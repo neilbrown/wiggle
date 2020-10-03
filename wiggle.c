@@ -107,39 +107,39 @@ static int extract(int argc, char *argv[], int ispatch, int which)
 
 	if (argc == 0) {
 		fprintf(stderr,
-			"%s: no file given for --extract\n", Cmd);
+			"%s: no file given for --extract\n", wiggle_Cmd);
 		return 2;
 	}
 	if (argc > 1) {
 		fprintf(stderr,
-			"%s: only give one file for --extract\n", Cmd);
+			"%s: only give one file for --extract\n", wiggle_Cmd);
 		return 2;
 	}
-	f = load_file(argv[0]);
+	f = wiggle_load_file(argv[0]);
 	if (f.body == NULL) {
 		fprintf(stderr,
-			"%s: cannot load file '%s' - %s\n", Cmd,
+			"%s: cannot load file '%s' - %s\n", wiggle_Cmd,
 			argv[0], strerror(errno));
 		return 2;
 	}
 	if (ispatch) {
-		if (split_patch(f, &flist[0], &flist[1]) == 0) {
+		if (wiggle_split_patch(f, &flist[0], &flist[1]) == 0) {
 			fprintf(stderr,
-				"%s: No chunk found in patch: %s\n", Cmd,
+				"%s: No chunk found in patch: %s\n", wiggle_Cmd,
 				argv[0]);
 			return 0;
 		}
 	} else {
-		if (!split_merge(f, &flist[0], &flist[1], &flist[2])) {
+		if (!wiggle_split_merge(f, &flist[0], &flist[1], &flist[2])) {
 			fprintf(stderr,
-				"%s: merge file %s looks bad.\n", Cmd,
+				"%s: merge file %s looks bad.\n", wiggle_Cmd,
 				argv[0]);
 			return 2;
 		}
 	}
 	if (flist[which-'1'].body == NULL) {
 		fprintf(stderr,
-			"%s: %s has no -%c component.\n", Cmd,
+			"%s: %s has no -%c component.\n", wiggle_Cmd,
 			argv[0], which);
 		return 2;
 	} else {
@@ -160,7 +160,7 @@ static int do_diff_lines(struct file fl[2], struct csl *csl)
 		if (a < csl->a) {
 			if (fl[0].list[a].start[0]) {
 				printf("-");
-				printword(stdout,
+				wiggle_printword(stdout,
 					  fl[0].list[a]);
 			}
 			a++;
@@ -168,7 +168,7 @@ static int do_diff_lines(struct file fl[2], struct csl *csl)
 		} else if (b < csl->b) {
 			if (fl[1].list[b].start[0]) {
 				printf("+");
-				printword(stdout,
+				wiggle_printword(stdout,
 					  fl[1].list[b]);
 			}
 			b++;
@@ -179,7 +179,7 @@ static int do_diff_lines(struct file fl[2], struct csl *csl)
 					 fl[1].list[b]);
 			else {
 				printf(" ");
-				printword(stdout,
+				wiggle_printword(stdout,
 					  fl[0].list[a]);
 			}
 			a++;
@@ -215,7 +215,7 @@ static int do_diff_words(struct file fl[2], struct csl *csl)
 				if (sol) {
 					printf("-");
 					for (; a < csl->a ; a++) {
-						printword(stdout, fl[0].list[a]);
+						wiggle_printword(stdout, fl[0].list[a]);
 						if (ends_line(fl[0].list[a])) {
 							a++;
 							break;
@@ -229,7 +229,7 @@ static int do_diff_words(struct file fl[2], struct csl *csl)
 				do {
 					if (sol)
 						printf("|");
-					printword(stdout, fl[0].list[a]);
+					wiggle_printword(stdout, fl[0].list[a]);
 					sol = ends_line(fl[0].list[a]);
 					a++;
 				} while (a < csl->a);
@@ -249,7 +249,7 @@ static int do_diff_words(struct file fl[2], struct csl *csl)
 				if (sol) {
 					printf("+");
 					for (; b < csl->b ; b++) {
-						printword(stdout, fl[1].list[b]);
+						wiggle_printword(stdout, fl[1].list[b]);
 						if (ends_line(fl[1].list[b])) {
 							b++;
 							break;
@@ -263,7 +263,7 @@ static int do_diff_words(struct file fl[2], struct csl *csl)
 				do {
 					if (sol)
 						printf("|");
-					printword(stdout, fl[1].list[b]);
+					wiggle_printword(stdout, fl[1].list[b]);
 					sol = ends_line(fl[1].list[b]);
 					b++;
 				} while (b < csl->b);
@@ -281,7 +281,7 @@ static int do_diff_words(struct file fl[2], struct csl *csl)
 					if (fl[0].list[a].start[0]) {
 						printf(" ");
 						for (; a < csl->a+csl->len; a++, b++) {
-							printword(stdout, fl[0].list[a]);
+							wiggle_printword(stdout, fl[0].list[a]);
 							if (ends_line(fl[0].list[a])) {
 								a++, b++;
 								break;
@@ -295,7 +295,7 @@ static int do_diff_words(struct file fl[2], struct csl *csl)
 					printf("|");
 			}
 			if (!sol) {
-				printword(stdout, fl[0].list[a]);
+				wiggle_printword(stdout, fl[0].list[a]);
 				if (ends_line(fl[0].list[a]))
 					sol = 1;
 				a++;
@@ -320,62 +320,62 @@ static int do_diff(int argc, char *argv[], int obj, int ispatch,
 
 	switch (argc) {
 	case 0:
-		fprintf(stderr, "%s: no file given for --diff\n", Cmd);
+		fprintf(stderr, "%s: no file given for --diff\n", wiggle_Cmd);
 		return 2;
 	case 1:
-		f = load_file(argv[0]);
+		f = wiggle_load_file(argv[0]);
 		if (f.body == NULL) {
 			fprintf(stderr,
-				"%s: cannot load file '%s' - %s\n", Cmd,
+				"%s: cannot load file '%s' - %s\n", wiggle_Cmd,
 				argv[0], strerror(errno));
 			return 2;
 		}
 		chunks1 = chunks2 =
-			split_patch(f, &flist[0], &flist[1]);
+			wiggle_split_patch(f, &flist[0], &flist[1]);
 		if (!flist[0].body || !flist[1].body) {
 			fprintf(stderr,
-				"%s: couldn't parse patch %s\n", Cmd,
+				"%s: couldn't parse patch %s\n", wiggle_Cmd,
 				argv[0]);
 			return 2;
 		}
 		break;
 	case 2:
-		flist[0] = load_file(argv[0]);
+		flist[0] = wiggle_load_file(argv[0]);
 		if (flist[0].body == NULL) {
 			fprintf(stderr,
-				"%s: cannot load file '%s' - %s\n", Cmd,
+				"%s: cannot load file '%s' - %s\n", wiggle_Cmd,
 				argv[0], strerror(errno));
 			return 2;
 		}
 		if (ispatch) {
-			f = load_file(argv[1]);
+			f = wiggle_load_file(argv[1]);
 			if (f.body == NULL) {
 				fprintf(stderr,
-					"%s: cannot load patch '%s' - %s\n", Cmd,
+					"%s: cannot load patch '%s' - %s\n", wiggle_Cmd,
 					argv[1], strerror(errno));
 				return 2;
 			}
 			if (which == '2')
 				chunks2 = chunks3 =
-					split_patch(f, &flist[2],
+					wiggle_split_patch(f, &flist[2],
 						    &flist[1]);
 			else
 				chunks2 = chunks3 =
-					split_patch(f, &flist[1],
+					wiggle_split_patch(f, &flist[1],
 						    &flist[2]);
 
 		} else
-			flist[1] = load_file(argv[1]);
+			flist[1] = wiggle_load_file(argv[1]);
 		if (flist[1].body == NULL) {
 			fprintf(stderr,
-				"%s: cannot load file '%s' - %s\n", Cmd,
+				"%s: cannot load file '%s' - %s\n", wiggle_Cmd,
 				argv[1], strerror(errno));
 			return 2;
 		}
 		break;
 	default:
 		fprintf(stderr,
-			"%s: too many files given for --diff\n", Cmd);
+			"%s: too many files given for --diff\n", wiggle_Cmd);
 		return 2;
 	}
 	if (reverse) {
@@ -383,20 +383,20 @@ static int do_diff(int argc, char *argv[], int obj, int ispatch,
 		flist[0] = flist[1];
 		flist[1] = f;
 	}
-	fl[0] = split_stream(flist[0], obj);
-	fl[1] = split_stream(flist[1], obj);
+	fl[0] = wiggle_split_stream(flist[0], obj);
+	fl[1] = wiggle_split_stream(flist[1], obj);
 	if (!(obj & WholeWord) && fl[0].elcnt > 50000 && fl[1].elcnt > 50000) {
 		/* Too big - use fewer words if possible */
 		free(fl[0].list);
 		free(fl[1].list);
 		obj |= WholeWord;
-		fl[0] = split_stream(flist[0], obj);
-		fl[1] = split_stream(flist[1], obj);
+		fl[0] = wiggle_split_stream(flist[0], obj);
+		fl[1] = wiggle_split_stream(flist[1], obj);
 	}
 	if (chunks2 && !chunks1)
-		csl = pdiff(fl[0], fl[1], chunks2);
+		csl = wiggle_pdiff(fl[0], fl[1], chunks2);
 	else
-		csl = diff_patch(fl[0], fl[1], shortest);
+		csl = wiggle_diff_patch(fl[0], fl[1], shortest);
 	if ((obj & ByMask) == ByLine) {
 		if (!chunks1)
 			printf("@@ -1,%d +1,%d @@\n",
@@ -438,16 +438,16 @@ static int do_merge(int argc, char *argv[], int obj, int blanks,
 
 	switch (argc) {
 	case 0:
-		fprintf(stderr, "%s: no files given for --merge\n", Cmd);
+		fprintf(stderr, "%s: no files given for --merge\n", wiggle_Cmd);
 		return 2;
 	case 3:
 	case 2:
 	case 1:
 		for (i = 0; i < argc; i++) {
-			flist[i] = load_file(argv[i]);
+			flist[i] = wiggle_load_file(argv[i]);
 			if (flist[i].body == NULL) {
 				fprintf(stderr, "%s: cannot load file '%s' - %s\n",
-					Cmd,
+					wiggle_Cmd,
 					argv[i], strerror(errno));
 				return 2;
 			}
@@ -455,22 +455,22 @@ static int do_merge(int argc, char *argv[], int obj, int blanks,
 		break;
 	default:
 		fprintf(stderr, "%s: too many files given for --merge\n",
-			Cmd);
+			wiggle_Cmd);
 		return 2;
 	}
 	switch (argc) {
 	case 1: /* a merge file */
 		f = flist[0];
-		if (!split_merge(f, &flist[0], &flist[1], &flist[2])) {
+		if (!wiggle_split_merge(f, &flist[0], &flist[1], &flist[2])) {
 			fprintf(stderr, "%s: merge file %s looks bad.\n",
-				Cmd,
+				wiggle_Cmd,
 				argv[0]);
 			return 2;
 		}
 		break;
 	case 2: /* a file and a patch */
 		f = flist[1];
-		chunks2 = chunks3 = split_patch(f, &flist[1], &flist[2]);
+		chunks2 = chunks3 = wiggle_split_patch(f, &flist[1], &flist[2]);
 		break;
 	case 3: /* three separate files */
 		break;
@@ -483,7 +483,7 @@ static int do_merge(int argc, char *argv[], int obj, int blanks,
 
 	for (i = 0; i < 3; i++) {
 		if (flist[i].body == NULL) {
-			fprintf(stderr, "%s: file %d missing\n", Cmd, i);
+			fprintf(stderr, "%s: file %d missing\n", wiggle_Cmd, i);
 			return 2;
 		}
 	}
@@ -491,20 +491,20 @@ static int do_merge(int argc, char *argv[], int obj, int blanks,
 		outfile = fopen(outfilename, "w");
 		if (!outfile) {
 			fprintf(stderr, "%s: could not create %s\n",
-				Cmd, outfilename);
+				wiggle_Cmd, outfilename);
 			return 2;
 		}
 	} else if (replace) {
 		int fd;
-		replacename = xmalloc(strlen(argv[0]) + 20);
-		orignew = xmalloc(strlen(argv[0]) + 20);
+		replacename = wiggle_xmalloc(strlen(argv[0]) + 20);
+		orignew = wiggle_xmalloc(strlen(argv[0]) + 20);
 		strcpy(replacename, argv[0]);
 		strcpy(orignew, argv[0]);
 		strcat(orignew, ".porig");
 		if (open(orignew, O_RDONLY) >= 0 ||
 		    errno != ENOENT) {
 			fprintf(stderr, "%s: %s already exists\n",
-				Cmd,
+				wiggle_Cmd,
 				orignew);
 			free(replacename);
 			free(orignew);
@@ -515,7 +515,7 @@ static int do_merge(int argc, char *argv[], int obj, int blanks,
 		if (fd == -1) {
 			fprintf(stderr,
 				"%s: could not create temporary file for %s\n",
-				Cmd,
+				wiggle_Cmd,
 				replacename);
 			free(replacename);
 			free(orignew);
@@ -528,9 +528,9 @@ static int do_merge(int argc, char *argv[], int obj, int blanks,
 		blanks |= ByLine;
 	else
 		blanks |= ByWord;
-	fl[0] = split_stream(flist[0], blanks);
-	fl[1] = split_stream(flist[1], blanks);
-	fl[2] = split_stream(flist[2], blanks);
+	fl[0] = wiggle_split_stream(flist[0], blanks);
+	fl[1] = wiggle_split_stream(flist[1], blanks);
+	fl[2] = wiggle_split_stream(flist[2], blanks);
 	if (!(blanks & WholeWord) &&
 	    fl[1].elcnt > 50000 &&
 	    (fl[0].elcnt > 50000 || fl[2].elcnt > 50000)) {
@@ -539,20 +539,20 @@ static int do_merge(int argc, char *argv[], int obj, int blanks,
 		free(fl[1].list);
 		free(fl[2].list);
 		blanks |= WholeWord;
-		fl[0] = split_stream(flist[0], blanks);
-		fl[1] = split_stream(flist[1], blanks);
-		fl[2] = split_stream(flist[2], blanks);
+		fl[0] = wiggle_split_stream(flist[0], blanks);
+		fl[1] = wiggle_split_stream(flist[1], blanks);
+		fl[2] = wiggle_split_stream(flist[2], blanks);
 	}
 
 	if (chunks2 && !chunks1)
-		csl1 = pdiff(fl[0], fl[1], chunks2);
+		csl1 = wiggle_pdiff(fl[0], fl[1], chunks2);
 	else
-		csl1 = diff(fl[0], fl[1], shortest);
-	csl2 = diff_patch(fl[1], fl[2], shortest);
+		csl1 = wiggle_diff(fl[0], fl[1], shortest);
+	csl2 = wiggle_diff_patch(fl[1], fl[2], shortest);
 
-	ci = make_merger(fl[0], fl[1], fl[2], csl1, csl2,
+	ci = wiggle_make_merger(fl[0], fl[1], fl[2], csl1, csl2,
 			 obj == 'w', ignore, show_wiggles > 1);
-	print_merge(outfile, &fl[0], &fl[1], &fl[2],
+	wiggle_print_merge(outfile, &fl[0], &fl[1], &fl[2],
 		    obj == 'w', ci.merger, NULL, 0, 0);
 	if (!quiet && ci.conflicts)
 		fprintf(stderr,
@@ -573,7 +573,7 @@ static int do_merge(int argc, char *argv[], int obj, int blanks,
 		if (stat(argv[0], &statbuf) != 0) {
 			fprintf(stderr,
 				"%s: failed to stat original file. - %s\n",
-				Cmd, strerror(errno));
+				wiggle_Cmd, strerror(errno));
 			free(replacename);
 			free(orignew);
 			return 2;
@@ -581,7 +581,7 @@ static int do_merge(int argc, char *argv[], int obj, int blanks,
 		if (fchmod(fileno(outfile), statbuf.st_mode) != 0) {
 			fprintf(stderr,
 				"%s: failed to change permission of new file. - %s\n",
-				Cmd, strerror(errno));
+				wiggle_Cmd, strerror(errno));
 			free(replacename);
 			free(orignew);
 			return 2;
@@ -593,7 +593,7 @@ static int do_merge(int argc, char *argv[], int obj, int blanks,
 		else {
 			fprintf(stderr,
 				"%s: failed to move new file into place.\n",
-				Cmd);
+				wiggle_Cmd);
 			free(replacename);
 			free(orignew);
 			return 2;
@@ -622,27 +622,27 @@ static int multi_merge(int argc, char *argv[], int obj, int blanks,
 	if (!replace) {
 		fprintf(stderr,
 			"%s: -p in merge mode requires -r\n",
-			Cmd);
+			wiggle_Cmd);
 		return 2;
 	}
 	if (argc != 1) {
 		fprintf(stderr,
 			"%s: -p in merge mode requires exactly one file\n",
-			Cmd);
+			wiggle_Cmd);
 		return 2;
 	}
 	filename = argv[0];
 	f = fopen(filename, "r");
 	if (!f) {
 		fprintf(stderr, "%s: cannot open %s\n",
-			Cmd, filename);
+			wiggle_Cmd, filename);
 		return 2;
 	}
-	check_dir(filename, fileno(f));
-	pl = parse_patch(f, NULL, &num_patches);
+	wiggle_check_dir(filename, fileno(f));
+	pl = wiggle_parse_patch(f, NULL, &num_patches);
 	fclose(f);
-	if (set_prefix(pl, num_patches, strip) == 0) {
-		fprintf(stderr, "%s: aborting\n", Cmd);
+	if (wiggle_set_prefix(pl, num_patches, strip) == 0) {
+		fprintf(stderr, "%s: aborting\n", wiggle_Cmd);
 		return 2;
 	}
 	for (i = 0; i < num_patches; i++) {
@@ -683,7 +683,7 @@ int main(int argc, char *argv[])
 
 	trace = getenv("WIGGLE_TRACE");
 	if (trace && *trace)
-		do_trace = 1;
+		wiggle_do_trace = 1;
 
 	while ((opt = getopt_long(argc, argv,
 				  short_options, long_options,
@@ -732,7 +732,7 @@ int main(int argc, char *argv[])
 			}
 			fprintf(stderr,
 				"%s: mode is '%c' - cannot set to '%c'\n",
-				Cmd, mode, opt);
+				wiggle_Cmd, mode, opt);
 			exit(2);
 
 		case NON_SPACE:
@@ -750,7 +750,7 @@ int main(int argc, char *argv[])
 				continue;
 			}
 			fprintf(stderr,
-				"%s: cannot select both words and lines.\n", Cmd);
+				"%s: cannot select both words and lines.\n", wiggle_Cmd);
 			exit(2);
 
 		case 'r':
@@ -790,7 +790,7 @@ int main(int argc, char *argv[])
 				continue;
 			}
 			fprintf(stderr,
-				"%s: can only select one of -1, -2, -3\n", Cmd);
+				"%s: can only select one of -1, -2, -3\n", wiggle_Cmd);
 			exit(2);
 
 		case 'p': /* 'patch' or 'strip' */
@@ -824,36 +824,36 @@ int main(int argc, char *argv[])
 	if (obj && mode == 'x') {
 		fprintf(stderr,
 			"%s: cannot specify --line or --word with --extract\n",
-			Cmd);
+			wiggle_Cmd);
 		exit(2);
 	}
 	if (mode != 'm' && !obj)
 		obj = 'w';
 	if (ispatch && outfile) {
 		fprintf(stderr, "%s: --output incompatible with --patch\n",
-			Cmd);
+			wiggle_Cmd);
 		exit(2);
 	}
 	if (replace && mode != 'm') {
 		fprintf(stderr,
-			"%s: --replace or --output only allowed with --merge\n", Cmd);
+			"%s: --replace or --output only allowed with --merge\n", wiggle_Cmd);
 		exit(2);
 	}
 	if (mode == 'x' && !which) {
 		fprintf(stderr,
-			"%s: must specify -1, -2 or -3 with --extract\n", Cmd);
+			"%s: must specify -1, -2 or -3 with --extract\n", wiggle_Cmd);
 		exit(2);
 	}
 	if (mode != 'x' && mode != 'd' && which) {
 		fprintf(stderr,
 			"%s: -1, -2 or -3 only allowed with --extract or --diff\n",
-			Cmd);
+			wiggle_Cmd);
 		exit(2);
 	}
 
 	if (ispatch && which == '3') {
 		fprintf(stderr,
-			"%s: cannot extract -3 from a patch.\n", Cmd);
+			"%s: cannot extract -3 from a patch.\n", wiggle_Cmd);
 		exit(2);
 	}
 

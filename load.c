@@ -54,7 +54,7 @@ static void join_streams(struct stream list[], int cnt)
 
 	c = realloc(list[0].body, len+1);
 	if (c == NULL)
-		die("memory allocation");
+		wiggle_die("memory allocation");
 
 	list[0].body = c;
 	c  += list[0].len;
@@ -68,32 +68,32 @@ static void join_streams(struct stream list[], int cnt)
 	c[0] = 0;
 }
 
-static struct stream load_regular(int fd)
+static struct stream wiggle_load_regular(int fd)
 {
 	struct stat stb;
 	struct stream s;
 	fstat(fd, &stb);
 
 	s.len = stb.st_size;
-	s.body = xmalloc(s.len+1);
+	s.body = wiggle_xmalloc(s.len+1);
 	if (read(fd, s.body, s.len) != s.len)
-		die("file read");
+		wiggle_die("file read");
 
 	s.body[s.len] = 0;
 	return s;
 }
 
-static struct stream load_other(int fd)
+static struct stream wiggle_load_other(int fd)
 {
 
 	struct stream list[10];
 	int i = 0;
 
 	while (1) {
-		list[i].body = xmalloc(8192);
+		list[i].body = wiggle_xmalloc(8192);
 		list[i].len = read(fd, list[i].body, 8192);
 		if (list[i].len < 0)
-			die("file read");
+			wiggle_die("file read");
 		if (list[i].len == 0)
 			break;
 		i++;
@@ -106,21 +106,21 @@ static struct stream load_other(int fd)
 	return list[0];
 }
 
-struct stream load_segment(FILE *f,
+struct stream wiggle_load_segment(FILE *f,
 			   unsigned int start, unsigned int end)
 {
 	struct stream s;
 	s.len = end - start;
-	s.body = xmalloc(s.len+1);
+	s.body = wiggle_xmalloc(s.len+1);
 	fseek(f, start, 0);
 	if (fread(s.body, 1, s.len, f) != (size_t)s.len)
-		die("file read");
+		wiggle_die("file read");
 	/* ensure string is 'nul' terminated - for sscanf */
 	s.body[s.len] = 0;
 	return s;
 }
 
-struct stream load_file(char *name)
+struct stream wiggle_load_file(char *name)
 {
 	struct stream s;
 	struct stat stb;
@@ -134,7 +134,7 @@ struct stream load_file(char *name)
 		   &prefix_len) >= 2 && prefix_len > 0) {
 		FILE *f = fopen(name + prefix_len, "r");
 		if (f) {
-			s = load_segment(f, start, end);
+			s = wiggle_load_segment(f, start, end);
 			fclose(f);
 		} else {
 			s.body = NULL;
@@ -148,13 +148,13 @@ struct stream load_file(char *name)
 			if (fd < 0)
 				return s;
 		}
-		check_dir(name, fd);
+		wiggle_check_dir(name, fd);
 		if (fstat(fd, &stb) == 0) {
 
 			if (S_ISREG(stb.st_mode))
-				s = load_regular(fd);
+				s = wiggle_load_regular(fd);
 			else
-				s = load_other(fd);
+				s = wiggle_load_other(fd);
 		}
 		close(fd);
 	}

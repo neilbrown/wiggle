@@ -595,13 +595,13 @@ static struct file filter_unique(struct file f, struct file ref)
 	int fi, cnt;
 	struct file sorted;
 
-	sorted.list = xmalloc(sizeof(sorted.list[0]) * ref.elcnt);
+	sorted.list = wiggle_xmalloc(sizeof(sorted.list[0]) * ref.elcnt);
 	sorted.elcnt = ref.elcnt;
 	memcpy(sorted.list, ref.list, sizeof(sorted.list[0]) * sorted.elcnt);
 	qsort(sorted.list, sorted.elcnt, sizeof(sorted.list[0]),
 	      elcmp);
 
-	n.list = xmalloc(sizeof(n.list[0]) * f.elcnt);
+	n.list = wiggle_xmalloc(sizeof(n.list[0]) * f.elcnt);
 	n.elcnt = 0;
 	cnt = 0;
 	for (fi = 0; fi < f.elcnt; fi++) {
@@ -653,7 +653,7 @@ static void remap(struct csl *csl, int which, struct file from, struct file to)
  * The final element in the list will have 'len' == 0 and will point
  * beyond the end of the files.
  */
-struct csl *diff(struct file a, struct file b, int shortest)
+struct csl *wiggle_diff(struct file a, struct file b, int shortest)
 {
 	struct v *v;
 	struct cslb cslb = {};
@@ -666,7 +666,7 @@ struct csl *diff(struct file a, struct file b, int shortest)
 	af = filter_unique(a, b);
 	bf = filter_unique(b, a);
 
-	v = xmalloc(sizeof(struct v)*(af.elcnt+bf.elcnt+2));
+	v = wiggle_xmalloc(sizeof(struct v)*(af.elcnt+bf.elcnt+2));
 	v += bf.elcnt+1;
 
 	lcsl(&af, 0, af.elcnt,
@@ -685,12 +685,12 @@ struct csl *diff(struct file a, struct file b, int shortest)
 /* Alternate entry point - find the common-sub-list in two
  * subranges of files.
  */
-struct csl *diff_partial(struct file a, struct file b,
+struct csl *wiggle_diff_partial(struct file a, struct file b,
 			 int alo, int ahi, int blo, int bhi)
 {
 	struct v *v;
 	struct cslb cslb = {};
-	v = xmalloc(sizeof(struct v)*(ahi-alo+bhi-blo+2));
+	v = wiggle_xmalloc(sizeof(struct v)*(ahi-alo+bhi-blo+2));
 	v += bhi-alo+1;
 
 	lcsl(&a, alo, ahi,
@@ -702,7 +702,7 @@ struct csl *diff_partial(struct file a, struct file b,
 	return cslb.csl;
 }
 
-struct csl *csl_join(struct csl *c1, struct csl *c2)
+struct csl *wiggle_csl_join(struct csl *c1, struct csl *c2)
 {
 	int cnt1, cnt2;
 	int offset = 0;
@@ -736,7 +736,7 @@ struct csl *csl_join(struct csl *c1, struct csl *c2)
  * line up.  So don't do a full diff, but rather find the hunk
  * headers and diff the bits between them.
  */
-struct csl *diff_patch(struct file a, struct file b, int shortest)
+struct csl *wiggle_diff_patch(struct file a, struct file b, int shortest)
 {
 	int ap, bp;
 	struct csl *csl = NULL;
@@ -744,7 +744,7 @@ struct csl *diff_patch(struct file a, struct file b, int shortest)
 	    a.list[0].start[0] != '\0' ||
 	    b.list[0].start[0] != '\0')
 		/* this is not a patch */
-		return diff(a, b, shortest);
+		return wiggle_diff(a, b, shortest);
 
 	ap = 0; bp = 0;
 	while (ap < a.elcnt && bp < b.elcnt) {
@@ -760,8 +760,8 @@ struct csl *diff_patch(struct file a, struct file b, int shortest)
 			bp++;
 		while (bp < b.elcnt &&
 		       b.list[bp].start[0] != '\0');
-		cs = diff_partial(a, b, alo, ap, blo, bp);
-		csl = csl_join(csl, cs);
+		cs = wiggle_diff_partial(a, b, alo, ap, blo, bp);
+		csl = wiggle_csl_join(csl, cs);
 	}
 	return csl;
 }
@@ -772,7 +772,7 @@ main(int argc, char *argv[])
 {
 	struct file a, b;
 	struct csl *csl;
-	struct elmnt *lst = xmalloc(argc*sizeof(*lst));
+	struct elmnt *lst = wiggle_xmalloc(argc*sizeof(*lst));
 	int arg;
 	struct v *v;
 	int ln;
@@ -804,7 +804,7 @@ main(int argc, char *argv[])
 		arg++;
 	}
 
-	csl = diff(a, b, 1);
+	csl = wiggle_diff(a, b, 1);
 	fixup(&a, &b, csl);
 	while (csl && csl->len) {
 		int i;

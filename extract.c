@@ -56,7 +56,7 @@ static void copyline(struct stream *s, char **cp, char *end)
 	*cp = from;
 }
 
-int split_patch(struct stream f, struct stream *f1, struct stream *f2)
+int wiggle_split_patch(struct stream f, struct stream *f1, struct stream *f2)
 {
 	struct stream r1, r2;
 	int chunks = 0;
@@ -70,8 +70,8 @@ int split_patch(struct stream f, struct stream *f1, struct stream *f2)
 
 	f1->body = f2->body = NULL;
 
-	r1.body = xmalloc(f.len);
-	r2.body = xmalloc(f.len);
+	r1.body = wiggle_xmalloc(f.len);
+	r2.body = wiggle_xmalloc(f.len);
 	r1.len = r2.len = 0;
 	func[0] = 0;
 
@@ -165,7 +165,7 @@ int split_patch(struct stream f, struct stream *f1, struct stream *f2)
 					state = 0;
 			} else {
 				fprintf(stderr, "%s: bad context patch at line %d\n",
-					Cmd, lineno);
+					wiggle_Cmd, lineno);
 				return 0;
 			}
 			break;
@@ -179,7 +179,7 @@ int split_patch(struct stream f, struct stream *f1, struct stream *f2)
 					state = 0;
 			} else {
 				fprintf(stderr, "%s: bad context patch/2 at line %d\n",
-					Cmd, lineno);
+					wiggle_Cmd, lineno);
 				return 0;
 			}
 			break;
@@ -207,7 +207,7 @@ int split_patch(struct stream f, struct stream *f1, struct stream *f2)
 				acnt --; bcnt--;
 			} else {
 				fprintf(stderr, "%s: bad unified patch at line %d\n",
-					Cmd, lineno);
+					wiggle_Cmd, lineno);
 				return 0;
 			}
 			if (acnt <= 0 && bcnt <= 0)
@@ -225,7 +225,7 @@ int split_patch(struct stream f, struct stream *f1, struct stream *f2)
 /*
  * extract parts of a "diff3 -m" or "wiggle -m" output
  */
-int split_merge(struct stream f, struct stream *f1, struct stream *f2, struct stream *f3)
+int wiggle_split_merge(struct stream f, struct stream *f1, struct stream *f2, struct stream *f3)
 {
 	int state = 0;
 	char *cp, *end;
@@ -233,9 +233,9 @@ int split_merge(struct stream f, struct stream *f1, struct stream *f2, struct st
 	f1->body = NULL;
 	f2->body = NULL;
 
-	r1.body = xmalloc(f.len);
-	r2.body = xmalloc(f.len);
-	r3.body = xmalloc(f.len);
+	r1.body = wiggle_xmalloc(f.len);
+	r2.body = wiggle_xmalloc(f.len);
+	r3.body = wiggle_xmalloc(f.len);
 	r1.len = r2.len = r3.len = 0;
 
 	cp = f.body;

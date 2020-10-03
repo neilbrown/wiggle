@@ -48,7 +48,7 @@
 
 #include "ccan/hash/hash.h"
 
-static int split_internal(char *start, char *end, int type,
+static int wiggle_split_internal(char *start, char *end, int type,
 			  struct elmnt *list)
 {
 	int cnt = 0;
@@ -125,7 +125,7 @@ static int split_internal(char *start, char *end, int type,
 	return cnt;
 }
 
-struct file split_stream(struct stream s, int type)
+struct file wiggle_split_stream(struct stream s, int type)
 {
 	int cnt;
 	struct file f;
@@ -139,9 +139,9 @@ struct file split_stream(struct stream s, int type)
 	end = s.body+s.len;
 	c = s.body;
 
-	cnt = split_internal(c, end, type, NULL);
-	f.list = xmalloc(cnt*sizeof(struct elmnt));
+	cnt = wiggle_split_internal(c, end, type, NULL);
+	f.list = wiggle_xmalloc(cnt*sizeof(struct elmnt));
 
-	f.elcnt = split_internal(c, end, type, f.list);
+	f.elcnt = wiggle_split_internal(c, end, type, f.list);
 	return f;
 }
