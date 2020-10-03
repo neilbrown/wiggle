@@ -686,7 +686,7 @@ struct csl *wiggle_diff(struct file a, struct file b, int shortest)
  * subranges of files.
  */
 struct csl *wiggle_diff_partial(struct file a, struct file b,
-			 int alo, int ahi, int blo, int bhi)
+				int alo, int ahi, int blo, int bhi)
 {
 	struct v *v;
 	struct cslb cslb = {};

@@ -90,9 +90,9 @@ static int is_cutpoint(struct merge m,
 }
 
 int wiggle_isolate_conflicts(struct file af, struct file bf, struct file cf,
-		      struct csl *csl1, struct csl *csl2, int words,
-		      struct merge *m, int show_wiggles,
-		      int *wigglesp)
+			     struct csl *csl1, struct csl *csl2, int words,
+			     struct merge *m, int show_wiggles,
+			     int *wigglesp)
 {
 	/* A Conflict indicates that something is definitely wrong
 	 * and so we need to be a bit suspicious of nearby apparent matches.
@@ -427,8 +427,8 @@ int wiggle_isolate_conflicts(struct file af, struct file bf, struct file cf,
 }
 
 struct ci wiggle_make_merger(struct file af, struct file bf, struct file cf,
-		      struct csl *csl1, struct csl *csl2, int words,
-		      int ignore_already, int show_wiggles)
+			     struct csl *csl1, struct csl *csl2, int words,
+			     int ignore_already, int show_wiggles)
 {
 	/* find the wiggles and conflicts between csl1 and csl2
 	 */
@@ -613,7 +613,7 @@ struct ci wiggle_make_merger(struct file af, struct file bf, struct file cf,
 			rv.merger[i].type = Conflict;
 	}
 	rv.conflicts = wiggle_isolate_conflicts(af, bf, cf, csl1, csl2, words,
-					 rv.merger, show_wiggles, &rv.wiggles);
+						rv.merger, show_wiggles, &rv.wiggles);
 	return rv;
 }
 
@@ -638,8 +638,8 @@ static const char *conflict_types[] = {
 	"", " border"," conflict"," wiggle" };
 
 int wiggle_print_merge(FILE *out, struct file *a, struct file *b, struct file *c,
-		int words, struct merge *merger,
-		struct merge *mpos, int streampos, int offsetpos)
+		       int words, struct merge *merger,
+		       struct merge *mpos, int streampos, int offsetpos)
 {
 	struct merge *m;
 	int lineno = 1;
@@ -786,9 +786,9 @@ int wiggle_print_merge(FILE *out, struct file *a, struct file *b, struct file *c
 						/* Nothing more to report */
 						break;
 					if (cm->in_conflict == 1 &&
-					       (cm->type == Extraneous ||
-						cm->type == Unmatched ||
-						cm->type == Unchanged))
+					    (cm->type == Extraneous ||
+					     cm->type == Unmatched ||
+					     cm->type == Unchanged))
 						/* border between conflicts, but
 						 * still nothing to report.
 						 */

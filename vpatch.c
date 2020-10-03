@@ -2625,7 +2625,7 @@ static int save_one(FILE *f, struct plist *pl, int reverse,
 	struct ci ci;
 	int chunks;
 	sp = wiggle_load_segment(f, pl->start,
-			  pl->end);
+				 pl->end);
 	if (reverse)
 		chunks = wiggle_split_patch(sp, &sa, &sb);
 	else
@@ -3155,7 +3155,7 @@ int vpatch(int argc, char *argv[], int patch, int strip,
 		}
 		pl = wiggle_sort_patches(pl, &num_patches);
 		main_window(pl, num_patches, in, reverse, replace, ignore_blanks,
-		            just_diff, backup);
+			    just_diff, backup);
 		wiggle_plist_free(pl, num_patches);
 		fclose(in);
 		break;
@@ -3175,10 +3175,10 @@ int vpatch(int argc, char *argv[], int patch, int strip,
 			}
 			pl = wiggle_sort_patches(pl, &num_patches);
 			main_window(pl, num_patches, f, reverse, replace,
-			            ignore_blanks, just_diff, backup);
+				    ignore_blanks, just_diff, backup);
 			wiggle_plist_free(pl, num_patches);
 		} else if (strlen(argv[0]) > 4 &&
-			 strcmp(argv[0]+strlen(argv[0])-4, ".rej") == 0) {
+			   strcmp(argv[0]+strlen(argv[0])-4, ".rej") == 0) {
 			char *origname = strdup(argv[0]);
 			origname[strlen(origname) - 4] = '\0';
 			show_merge(origname, f, reverse, 0, NULL, NULL,

@@ -245,8 +245,8 @@ static void find_best(struct file *a, struct file *b,
 		       (y > bhi ||
 			(best_val(&v[klo], min(ahi-x, bhi-y)) < best[v[klo].c].val &&
 			 best_val(&v[klo+1], min(ahi-x, bhi-y+1)) < best[v[klo+1].c].val
-				)
-			       )) {
+			)
+		)) {
 			klo += 2;
 			x = (klo+f)/2; y = x-klo;
 		}
@@ -260,8 +260,8 @@ static void find_best(struct file *a, struct file *b,
 			(v[khi].c >= 0 &&
 			 best_val(&v[khi], min(ahi-x, bhi-y)) < best[v[khi].c].val &&
 			 best_val(&v[khi-1], min(ahi-x+1, bhi-y)) < best[v[khi].c].val
-				)
-			       )) {
+			)
+		)) {
 			khi -= 2;
 			x = (khi+f)/2; y = x - khi;
 		}
@@ -478,8 +478,8 @@ struct csl *wiggle_pdiff(struct file a, struct file b, int chunks)
 				while (xlo > xmin && !ends_line(a.list[xlo-1]))
 					xlo--;
 				csl2 = wiggle_diff_partial(a, b,
-						    xlo, best[i].xlo,
-						    ylo, best[i].ylo);
+							   xlo, best[i].xlo,
+							   ylo, best[i].ylo);
 				csl1 = wiggle_csl_join(csl1, csl2);
 			}
 
@@ -487,8 +487,8 @@ struct csl *wiggle_pdiff(struct file a, struct file b, int chunks)
 			 * good match
 			 */
 			csl2 = wiggle_diff_partial(a, b,
-					    best[i].xlo, best[i].xhi,
-					    best[i].ylo, best[i].yhi);
+						   best[i].xlo, best[i].xhi,
+						   best[i].ylo, best[i].yhi);
 			csl1 = wiggle_csl_join(csl1, csl2);
 
 			/* Now if there are newlines at the end of the
@@ -512,8 +512,8 @@ struct csl *wiggle_pdiff(struct file a, struct file b, int chunks)
 					xhi++;
 				}
 				csl2 = wiggle_diff_partial(a, b,
-						    best[i].xhi, xhi,
-						    best[i].yhi, yhi);
+							   best[i].xhi, xhi,
+							   best[i].yhi, yhi);
 				csl1 = wiggle_csl_join(csl1, csl2);
 				xmin = xhi;
 			}

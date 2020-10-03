@@ -225,7 +225,8 @@ int wiggle_split_patch(struct stream f, struct stream *f1, struct stream *f2)
 /*
  * extract parts of a "diff3 -m" or "wiggle -m" output
  */
-int wiggle_split_merge(struct stream f, struct stream *f1, struct stream *f2, struct stream *f3)
+int wiggle_split_merge(struct stream f, struct stream *f1, struct stream *f2,
+		       struct stream *f3)
 {
 	int state = 0;
 	char *cp, *end;

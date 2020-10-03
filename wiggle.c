@@ -161,7 +161,7 @@ static int do_diff_lines(struct file fl[2], struct csl *csl)
 			if (fl[0].list[a].start[0]) {
 				printf("-");
 				wiggle_printword(stdout,
-					  fl[0].list[a]);
+						 fl[0].list[a]);
 			}
 			a++;
 			exit_status = 1;
@@ -169,7 +169,7 @@ static int do_diff_lines(struct file fl[2], struct csl *csl)
 			if (fl[1].list[b].start[0]) {
 				printf("+");
 				wiggle_printword(stdout,
-					  fl[1].list[b]);
+						 fl[1].list[b]);
 			}
 			b++;
 			exit_status = 1;
@@ -180,7 +180,7 @@ static int do_diff_lines(struct file fl[2], struct csl *csl)
 			else {
 				printf(" ");
 				wiggle_printword(stdout,
-					  fl[0].list[a]);
+						 fl[0].list[a]);
 			}
 			a++;
 			b++;
@@ -358,11 +358,11 @@ static int do_diff(int argc, char *argv[], int obj, int ispatch,
 			if (which == '2')
 				chunks2 = chunks3 =
 					wiggle_split_patch(f, &flist[2],
-						    &flist[1]);
+							   &flist[1]);
 			else
 				chunks2 = chunks3 =
 					wiggle_split_patch(f, &flist[1],
-						    &flist[2]);
+							   &flist[2]);
 
 		} else
 			flist[1] = wiggle_load_file(argv[1]);

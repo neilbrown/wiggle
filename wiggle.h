@@ -145,18 +145,18 @@ extern struct plist *wiggle_sort_patches(struct plist *pl, int *np);
 extern void wiggle_plist_free(struct plist *pl, int num);
 extern struct plist *wiggle_parse_patch(FILE *f, FILE *of, int *np);
 extern struct stream wiggle_load_segment(FILE *f, unsigned int start,
-				  unsigned int end);
+					 unsigned int end);
 extern int wiggle_set_prefix(struct plist *pl, int n, int strip);
 extern struct stream wiggle_load_file(char *name);
 extern int wiggle_split_patch(struct stream, struct stream*, struct stream*);
 extern int wiggle_split_merge(struct stream, struct stream*, struct stream*,
-		       struct stream*);
+			      struct stream*);
 extern struct file wiggle_split_stream(struct stream s, int type);
 extern struct csl *wiggle_pdiff(struct file a, struct file b, int chunks);
 extern struct csl *wiggle_diff(struct file a, struct file b, int shortest);
 extern struct csl *wiggle_diff_patch(struct file a, struct file b, int shortest);
 extern struct csl *wiggle_diff_partial(struct file a, struct file b,
-				int alo, int ahi, int blo, int bhi);
+				       int alo, int ahi, int blo, int bhi);
 extern struct csl *worddiff(struct stream f1, struct stream f2,
 			    struct file *fl1p, struct file *fl2p);
 extern struct csl *wiggle_csl_join(struct csl *c1, struct csl *c2);
