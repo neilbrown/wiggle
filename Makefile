@@ -24,7 +24,7 @@ O=O
 BIN=.
 DOC=.
 
-LIBOBJ= load.o parse.o split.o extract.o diff.o bestmatch.o merge2.o ccan/hash/hash.o
+LIBOBJ= load.o parse.o split.o extract.o diff.o bestmatch.o merge2.o utils.o ccan/hash/hash.o
 OBJ=wiggle.o ReadMe.o vpatch.o
 
 BOBJ=$(patsubst %.o,$(O)/%.o,$(OBJ))

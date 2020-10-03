@@ -90,51 +90,6 @@
 #include	<ctype.h>
 #include	<sys/stat.h>
 
-char *Cmd = "wiggle";
-int do_trace = 0;
-
-void die(char *reason)
-{
-	fprintf(stderr, "%s: fatal error: %s failure\n", Cmd, reason);
-	exit(3);
-}
-
-void check_dir(char *name, int fd)
-{
-	struct stat st;
-	if (fstat(fd, &st) != 0) {
-		fprintf(stderr, "%s: fatal: %s is strange\n", Cmd, name);
-		exit(3);
-	}
-	if (S_ISDIR(st.st_mode)) {
-		fprintf(stderr, "%s: %s is a directory\n", Cmd, name);
-		exit(3);
-	}
-}
-
-void *xmalloc(int size)
-{
-	void *rv = malloc(size);
-	if (size && !rv) {
-		char *msg = "Failed to allocate memory - aborting\n";
-		write(2, msg, strlen(msg));
-		exit(3);
-	}
-	return rv;
-}
-
-void printword(FILE *f, struct elmnt e)
-{
-	if (e.start[0])
-		fprintf(f, "%.*s", e.plen + e.prefix,
-			e.start - e.prefix);
-	else {
-		int a, b, c;
-		sscanf(e.start+1, "%d %d %d", &a, &b, &c);
-		fprintf(f, "*** %d,%d **** %d%s", b, c, a, e.start+18);
-	}
-}
-
 static void printsep(struct elmnt e1, struct elmnt e2)
 {
 	int a, b, c, d, e, f;
