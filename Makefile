@@ -51,11 +51,11 @@ $(BIN)/wiggle : $(BOBJ) $(O)/libwiggle.a
 $(O)/libwiggle.a : $(BLIBOBJ)
 	$(QUIET_AR)ar cr $@ $^
 
-$(BOBJ) :: wiggle.h
+$(BOBJ) $(BLIBOBJ) : wiggle.h
 
-$(O)/split.o :: ccan/hash/hash.h config.h
+$(O)/split.o : ccan/hash/hash.h config.h
 
-$(BOBJ) $(BLIBOBJ) :: $(O)/%.o : %.c
+$(BOBJ) $(BLIBOBJ) : $(O)/%.o : %.c
 	@mkdir -p $(dir $@)
 	$(QUIET_CC)$(CC) $(CFLAGS) -c -o $@ $<
 
