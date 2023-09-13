@@ -424,7 +424,7 @@ static int do_diff(int argc, char *argv[], int obj, int ispatch,
 static int do_merge(int argc, char *argv[], int obj, int blanks,
 		    int reverse, int replace, char *outfilename,
 		    int ignore, int show_wiggles,
-		    int quiet, int shortest)
+		    int quiet, int shortest, int backup)
 {
 	/* merge three files, A B C, so changed between B and C get made to A
 	 */
@@ -502,8 +502,8 @@ static int do_merge(int argc, char *argv[], int obj, int blanks,
 		strcpy(replacename, argv[0]);
 		strcpy(orignew, argv[0]);
 		strcat(orignew, ".porig");
-		if (open(orignew, O_RDONLY) >= 0 ||
-		    errno != ENOENT) {
+		if (backup && (open(orignew, O_RDONLY) >= 0 ||
+			       errno != ENOENT)) {
 			fprintf(stderr, "%s: %s already exists\n",
 				wiggle_Cmd,
 				orignew);
@@ -588,7 +588,7 @@ static int do_merge(int argc, char *argv[], int obj, int blanks,
 			return 2;
 		}
 		fclose(outfile);
-		if (rename(argv[0], orignew) == 0 &&
+		if ((!backup || rename(argv[0], orignew) == 0) &&
 		    rename(replacename, argv[0]) == 0)
 			/* all ok */;
 		else {
@@ -611,7 +611,7 @@ static int do_merge(int argc, char *argv[], int obj, int blanks,
 static int multi_merge(int argc, char *argv[], int obj, int blanks,
 		       int reverse, int ignore, int show_wiggles,
 		       int replace, int strip,
-		       int quiet, int shortest)
+		       int quiet, int shortest, int backup)
 {
 	FILE *f;
 	char *filename;
@@ -654,7 +654,7 @@ static int multi_merge(int argc, char *argv[], int obj, int blanks,
 		av[0] = pl[i].file;
 		av[1] = name;
 		rv |= do_merge(2, av, obj, blanks, reverse, 1, NULL, ignore,
-			       show_wiggles, quiet, shortest);
+			       show_wiggles, quiet, shortest, backup);
 	}
 	return rv;
 }
@@ -876,13 +876,15 @@ int main(int argc, char *argv[])
 						  reverse, ignore,
 						  show_wiggles,
 						  replace, strip,
-						  quiet, shortest);
+						  quiet, shortest,
+						  backup);
 		else
 			exit_status = do_merge(
 				argc-optind, argv+optind,
 				obj, ignore_blanks, reverse, replace,
 				outfile,
-				ignore, show_wiggles, quiet, shortest);
+				ignore, show_wiggles, quiet, shortest,
+				backup);
 		break;
 	}
 	exit(exit_status);
