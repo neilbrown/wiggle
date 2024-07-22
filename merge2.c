@@ -619,15 +619,19 @@ struct ci wiggle_make_merger(struct file af, struct file bf, struct file cf,
 }
 
 static int printrange(FILE *out, struct file *f, int start, int len,
-		      int offset)
+		      int offset, int *eol)
 {
 	int lines = 0;
 	while (len > 0 && start < f->elcnt) {
 		struct elmnt e = f->list[start];
 		wiggle_printword(out, e);
-		if (e.start[e.plen-1] == '\n' &&
-		    offset > 0)
-			lines++;
+		if (e.start[e.plen-1] == '\n') {
+			*eol = 1;
+			if (offset > 0)
+				lines++;
+		} else {
+			*eol = 0;
+		}
 		offset--;
 		start++;
 		len--;
@@ -647,6 +651,7 @@ int wiggle_print_merge(FILE *out, struct file *a, struct file *b, struct file *c
 	int rv = 0;
 	int offset = INT_MAX;
 	int first_matched;
+	int eol = 1;
 
 	for (m = merger; m->type != End ; m++) {
 		struct merge *cm;
@@ -677,7 +682,9 @@ int wiggle_print_merge(FILE *out, struct file *a, struct file *b, struct file *c
 			if (m == mpos)
 				offset = offsetpos;
 			if (m->in_conflict == 1 && m->type == Unchanged)
-				lineno += printrange(out, a, m->a+m->lo, m->hi - m->lo, offset - m->lo);
+				lineno += printrange(out, a,
+						     m->a+m->lo, m->hi - m->lo,
+						     offset - m->lo, &eol);
 
 			if (m == mpos)
 				rv = lineno;
@@ -710,6 +717,8 @@ int wiggle_print_merge(FILE *out, struct file *a, struct file *b, struct file *c
 				continue;
 			}
 
+			if (!words && !eol)
+				fputs("\n", out);
 			fputs(words ? "<<<---" : "<<<<<<< found\n", out);
 			if (!words)
 				lineno++;
@@ -719,10 +728,12 @@ int wiggle_print_merge(FILE *out, struct file *a, struct file *b, struct file *c
 				if (cm->type == Conflict)
 					found_conflict = 1;
 				if (cm->in_conflict == 1 && cm != m) {
-					lineno += printrange(out, a, cm->a, cm->lo, offset);
+					lineno += printrange(out, a, cm->a, cm->lo,
+							     offset, &eol);
 					break;
 				}
-				lineno += printrange(out, a, cm->a+st1, cm->al-st1, offset-st1);
+				lineno += printrange(out, a, cm->a+st1, cm->al-st1,
+						     offset-st1, &eol);
 				st1 = 0;
 				if (cm == mpos && streampos == 0)
 					rv = lineno;
@@ -730,6 +741,8 @@ int wiggle_print_merge(FILE *out, struct file *a, struct file *b, struct file *c
 			if (cm == mpos && streampos == 0)
 				rv = lineno;
 		restart:
+			if (!words && !eol)
+				fputs("\n", out);
 			fputs(words ? "|||" : "||||||| expected\n", out);
 			if (!words)
 				lineno++;
@@ -750,16 +763,20 @@ int wiggle_print_merge(FILE *out, struct file *a, struct file *b, struct file *c
 				if (cm == mpos && streampos == 1)
 					offset = offsetpos;
 				if (cm->in_conflict == 1 && cm != m) {
-					lineno += printrange(out, a, cm->a, cm->lo, offset);
+					lineno += printrange(out, a, cm->a, cm->lo,
+							     offset, &eol);
 					break;
 				}
-				lineno += printrange(out, b, cm->b+st1, cm->bl-st1, offset-st1);
+				lineno += printrange(out, b, cm->b+st1, cm->bl-st1,
+						     offset-st1, &eol);
 				st1 = 0;
 				if (cm == mpos && streampos == 1)
 					rv = lineno;
 			}
 			if (cm == mpos && streampos == 1)
 				rv = lineno;
+			if (!words && !eol)
+				fputs("\n", out);
 			fputs(words ? "===" : "=======\n", out);
 			if (!words)
 				lineno++;
@@ -794,6 +811,8 @@ int wiggle_print_merge(FILE *out, struct file *a, struct file *b, struct file *c
 						 * still nothing to report.
 						 */
 						break;
+					if (!words && !eol)
+						fputs("\n", out);
 					fputs(words ? ">>>" : ">>>>>>> replacement\n", out);
 					fputs(words ? "<<<" : "<<<<<<< found\n", out);
 					st = 0;
@@ -805,14 +824,19 @@ int wiggle_print_merge(FILE *out, struct file *a, struct file *b, struct file *c
 					offset = offsetpos;
 				if (cm->in_conflict == 1 && cm != m) {
 					if (cm->type == Unchanged)
-						lineno += printrange(out, a, cm->a, cm->lo, offset);
+						lineno += printrange(out, a,
+								     cm->a, cm->lo,
+								     offset, &eol);
 					else
-						lineno += printrange(out, c, cm->c, cm->cl, offset);
+						lineno += printrange(out, c,
+								     cm->c, cm->cl,
+								     offset, &eol);
 					break;
 				}
 				if (cm->type == Changed)
 					st1 = 0; /* All of result of change must be printed */
-				lineno += printrange(out, c, cm->c+st1, cm->cl-st1, offset-st1);
+				lineno += printrange(out, c, cm->c+st1, cm->cl-st1,
+						     offset-st1, &eol);
 				st1 = 0;
 				if (cm == mpos && streampos == 2)
 					rv = lineno;
@@ -824,6 +848,8 @@ int wiggle_print_merge(FILE *out, struct file *a, struct file *b, struct file *c
 				 * but full conflict display was requested.
 				 * So now print out the wiggled result as well.
 				 */
+				if (!words && !eol)
+					fputs("\n", out);
 				fputs(words ? "&&&" : "&&&&&&& resolution\n", out);
 				if (!words)
 					lineno++;
@@ -837,13 +863,15 @@ int wiggle_print_merge(FILE *out, struct file *a, struct file *b, struct file *c
 					case AlreadyApplied:
 					case Unmatched:
 						lineno += printrange(out, a, cm->a+st1,
-								     last ? cm->lo : cm->al-st1, offset-st1);
+								     last ? cm->lo : cm->al-st1,
+								     offset-st1, &eol);
 						break;
 					case Extraneous:
 						break;
 					case Changed:
 						lineno += printrange(out, c, cm->c,
-								     last ? cm->lo : cm->cl, offset);
+								     last ? cm->lo : cm->cl,
+								     offset, &eol);
 						break;
 					case Conflict:
 					case End:
@@ -854,6 +882,8 @@ int wiggle_print_merge(FILE *out, struct file *a, struct file *b, struct file *c
 					st1 = 0;
 				}
 			}
+			if (!words && !eol)
+				fputs("\n", out);
 			fputs(words ? "--->>>" : ">>>>>>> replacement\n", out);
 			if (!words)
 				lineno++;
@@ -863,7 +893,8 @@ int wiggle_print_merge(FILE *out, struct file *a, struct file *b, struct file *c
 				if (m == mpos)
 					offset = offsetpos;
 				if (m->type == Unchanged)
-					lineno += printrange(out, a, m->a+m->lo, m->hi-m->lo, offset-m->lo);
+					lineno += printrange(out, a, m->a+m->lo, m->hi-m->lo,
+							     offset-m->lo, &eol);
 				if (m == mpos)
 					rv = lineno;
 				m++;
@@ -897,12 +928,12 @@ int wiggle_print_merge(FILE *out, struct file *a, struct file *b, struct file *c
 		case Unchanged:
 		case AlreadyApplied:
 		case Unmatched:
-			lineno += printrange(out, a, m->a, m->al, offset);
+			lineno += printrange(out, a, m->a, m->al, offset, &eol);
 			break;
 		case Extraneous:
 			break;
 		case Changed:
-			lineno += printrange(out, c, m->c, m->cl, offset);
+			lineno += printrange(out, c, m->c, m->cl, offset, &eol);
 			break;
 		case Conflict:
 		case End:
