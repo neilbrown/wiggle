@@ -76,10 +76,11 @@ static struct stream wiggle_load_regular(int fd)
 	fstat(fd, &stb);
 
 	s.len = stb.st_size;
-	s.body = wiggle_xmalloc(s.len+1);
+	s.body = wiggle_xmalloc(s.len+2);
 	if (read(fd, s.body, s.len) != s.len)
 		wiggle_die("file read");
-
+	if (s.len && s.body[s.len-1] != '\n')
+		s.body[s.len++] = '\n';
 	s.body[s.len] = 0;
 	return s;
 }
@@ -95,8 +96,14 @@ static struct stream wiggle_load_other(int fd)
 		list[i].len = read(fd, list[i].body, 8192);
 		if (list[i].len < 0)
 			wiggle_die("file read");
-		if (list[i].len == 0)
+		if (list[i].len == 0) {
+			if (i && list[i-1].body[list[i-i].len-1] != '\n') {
+				list[i].body[0] = '\n';
+				list[i].len = 1;
+				i += 1;
+			}
 			break;
+		}
 		i++;
 		if (i == 10) {
 			join_streams(list, i);
