@@ -1,0 +1,13 @@
+diff --git a/terminal-emulator/src/main/java/com/termux/terminal/TerminalSessionClient.java b/terminal-emulator/src/main/java/com/termux/terminal/TerminalSessionClient.java
+index f6f6fdcc2d78..3531173032b4 100644
+--- a/terminal-emulator/src/main/java/com/termux/terminal/TerminalSessionClient.java
++++ b/terminal-emulator/src/main/java/com/termux/terminal/TerminalSessionClient.java
+@@ -30,6 +30,8 @@ public interface TerminalSessionClient {
+ 
+     Integer getTerminalCursorStyle();
+ 
++    boolean shouldEnableDarkTheme();
++
+     void logError(String tag, String message);
+ 
+     void logWarn(String tag, String message);

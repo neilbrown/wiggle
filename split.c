@@ -37,7 +37,7 @@
  * second from the end.
  *
  * We make two passes through the stream.
- * Firstly we count the number of item so an array can be allocated,
+ * Firstly we count the number of items so an array can be allocated,
  * then we store start and length of each item in the array
  *
  */
@@ -53,17 +53,31 @@ static int wiggle_split_internal(char *start, char *end, int type,
 			  struct elmnt *list)
 {
 	int cnt = 0;
+	int sol = 1;
 
 	while (start < end) {
 		char *cp = start;
 		char *cp2;
 		int prefix = 0;
 
+		if (sol && (type & IgnoreBlanks)) {
+			/* Skip blank lines */
+			while (*cp == ' ' || *cp == '\t' || *cp == '\n') {
+				if (*cp == '\n') {
+					prefix += cp+1 - start;
+					start = cp+1;
+				}
+				sol = *cp == '\n';
+				cp += 1;
+			}
+			cp = start;
+		}
 		if ((type & ByWord) && (type & IgnoreBlanks))
 			while (cp < end &&
 			       (*cp == ' ' || *cp == '\t')) {
 				prefix++;
 				cp++;
+				sol = 0;
 			}
 		start = cp;
 
@@ -78,6 +92,7 @@ static int wiggle_split_internal(char *start, char *end, int type,
 					cp++;
 				if (cp < end)
 					cp++;
+				sol = 1;
 				break;
 			case ByWord:
 				if (*cp == ' ' || *cp == '\t') {
@@ -98,16 +113,31 @@ static int wiggle_split_internal(char *start, char *end, int type,
 						   || *cp == '_'));
 				} else
 					cp++;
+				sol = cp[-1] == '\n';
 				break;
 			}
 		cp2 = cp;
+
+		if (sol && (type & IgnoreBlanks)) {
+			/* Skip blank lines */
+			char *cp3 = cp2;
+			while (*cp3 == ' ' || *cp3 == '\t' || *cp3 == '\n') {
+				if (*cp3 == '\n')
+					cp2 = cp3+1;
+				sol = *cp3 == '\n';
+				cp3 += 1;
+			}
+		}
 		if ((type & ByWord) && (type & IgnoreBlanks) &&
 		    *start && *start != '\n')
 			while (cp2 < end &&
 			       (*cp2 == ' ' || *cp2 == '\t' || *cp2 == '\n')) {
 				cp2++;
-				if (cp2[-1] == '\n')
+				if (cp2[-1] == '\n') {
+					sol = 1;
 					break;
+				}
+				sol = 0;
 			}
 		if (list) {
 			list->start = start;
